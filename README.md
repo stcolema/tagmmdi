@@ -10,7 +10,6 @@ The goal of tagmmdi is to extend Crook's T-Augmented Gaussian Mixture (TAGM) mod
 Installation
 ------------
 
-# You can install the released version of tagmmdi from [CRAN](https://CRAN.R-project.org) with:
 You can install the package from GITHUB using
 ``` r
 devtools::install_github("tagmmdi")
@@ -35,5 +34,3 @@ mcmc_obj <- mcmc_out(tan2009r1,
                      outlier = T)
 
 ```
-
-# What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
