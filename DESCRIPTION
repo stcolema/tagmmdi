@@ -1,0 +1,36 @@
+Package: tagmmdi
+Type: Package
+Title: Bayesian Analysis For Continuous And Categorical Data
+Version: 0.1
+Date: 2018-08-17
+Authors@R: c(
+  person("Stephen", "Coleman", email = "stcolema@tcd.ie",
+  role = c("aut", "cre")),
+  person("Paul", "Kirk", email = "paul.kirk@mrc-bsu.cam.ac.uk",
+  role = "ctb")
+  )
+Description: Tools for clustering categorical and normal data using priors of 
+    the Dirichlet and the Normal Inverse Wishart respectively.
+License: MIT + file LICENSE
+biocViews:
+    pRoloc,
+    pRolocData
+Imports: 
+    Rcpp (>= 0.12.18),
+    ggplot2,
+    dplyr,
+    pheatmap,
+    RColorBrewer,
+    attempt,
+    reshape,
+    mcclust,
+    pRoloc
+Suggests: 
+    pRolocData,
+    testthat,
+    covr,
+    spelling
+LinkingTo: Rcpp, RcppArmadillo
+RoxygenNote: 6.1.0
+Encoding: UTF-8
+Language: en-UK
