@@ -1,6 +1,6 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-TAGMMDI
+tagmmdi
 ============
 
 [![Travis build status](https://travis-ci.org/stcolema/BayesicGibbs.svg?branch=master)](https://travis-ci.org/stcolema/BayesicGibbs) [![AppVeyor build status](https://ci.appveyor.com/api/projects/status/github/stcolema/BayesicGibbs?branch=master&svg=true)](https://ci.appveyor.com/project/stcolema/BayesicGibbs) [![Coverage status](https://codecov.io/gh/stcolema/BayesicGibbs/branch/master/graph/badge.svg)](https://codecov.io/github/stcolema/BayesicGibbs?branch=master)
