@@ -10,19 +10,20 @@ The goal of tagmmdi is to extend Crook's T-Augmented Gaussian Mixture (TAGM) mod
 Installation
 ------------
 
-You can install the released version of tagmmdi from [CRAN](https://CRAN.R-project.org) with:
-
+# You can install the released version of tagmmdi from [CRAN](https://CRAN.R-project.org) with:
+You can install the package from GITHUB using
 ``` r
-install.packages("tagmmdi")
+devtools::install_github("tagmmdi")
 ```
 
 Example
 -------
 
-This is a basic example which shows you how to solve a common problem:
+This is a basic example of applying MDI clustering to data from pRolocData:
 
 ``` r
-## basic example code
+
+
 ```
 
 What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
