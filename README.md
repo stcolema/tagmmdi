@@ -26,7 +26,7 @@ data(tan2009r1goCC)
 cat_data <- as.matrix(exprs(tan2009r1goCC))
 
 mcmc_obj <- mcmc_out(tan2009r1,
-                     cat_data = rel_go,
+                     cat_data = cat_data,
                      num_clusters_cat = 30,
                      num_iter = 5000,
                      burn = 1000,
