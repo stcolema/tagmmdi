@@ -18,7 +18,7 @@ devtools::install_github("tagmmdi")
 Example
 -------
 
-This is a basic example of applying MDI clustering to data from pRolocData:
+This is a basic example of applying MDI clustering to data from pRolocdata:
 
 ``` r
 data(tan2009r1)
