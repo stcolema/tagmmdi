@@ -2,70 +2,70 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 similarity_mat <- function(cluster_record) {
-    .Call(`_BayesicGibbs_similarity_mat`, cluster_record)
+    .Call(`_tagmmdi_similarity_mat`, cluster_record)
 }
 
 entropy <- function(class_weights) {
-    .Call(`_BayesicGibbs_entropy`, class_weights)
+    .Call(`_tagmmdi_entropy`, class_weights)
 }
 
 dirichlet_posterior <- function(concentration_0, cluster_labels, num_clusters) {
-    .Call(`_BayesicGibbs_dirichlet_posterior`, concentration_0, cluster_labels, num_clusters)
+    .Call(`_tagmmdi_dirichlet_posterior`, concentration_0, cluster_labels, num_clusters)
 }
 
 cat_counter <- function(data) {
-    .Call(`_BayesicGibbs_cat_counter`, data)
+    .Call(`_tagmmdi_cat_counter`, data)
 }
 
 declare_class_probs_field <- function(cat_count, num_cols, num_clusters) {
-    .Call(`_BayesicGibbs_declare_class_probs_field`, cat_count, num_cols, num_clusters)
+    .Call(`_tagmmdi_declare_class_probs_field`, cat_count, num_cols, num_clusters)
 }
 
 sample_class_probabilities <- function(data, class_probabilities, phi_prior, cluster_labels, cat_count, num_clusters, num_cols) {
-    .Call(`_BayesicGibbs_sample_class_probabilities`, data, class_probabilities, phi_prior, cluster_labels, cat_count, num_clusters, num_cols)
+    .Call(`_tagmmdi_sample_class_probabilities`, data, class_probabilities, phi_prior, cluster_labels, cat_count, num_clusters, num_cols)
 }
 
 categorical_cluster_probabilities <- function(point, data, class_probabilities, cluster_weights, num_clusters, num_cols) {
-    .Call(`_BayesicGibbs_categorical_cluster_probabilities`, point, data, class_probabilities, cluster_weights, num_clusters, num_cols)
+    .Call(`_tagmmdi_categorical_cluster_probabilities`, point, data, class_probabilities, cluster_weights, num_clusters, num_cols)
 }
 
 cluster_predictor <- function(probabilities) {
-    .Call(`_BayesicGibbs_cluster_predictor`, probabilities)
+    .Call(`_tagmmdi_cluster_predictor`, probabilities)
 }
 
 categorical_clustering <- function(data, phi_prior, cluster_labels, fix_vec, cluster_weight_priors, num_clusters, num_iter, burn, thinning) {
-    .Call(`_BayesicGibbs_categorical_clustering`, data, phi_prior, cluster_labels, fix_vec, cluster_weight_priors, num_clusters, num_iter, burn, thinning)
+    .Call(`_tagmmdi_categorical_clustering`, data, phi_prior, cluster_labels, fix_vec, cluster_weight_priors, num_clusters, num_iter, burn, thinning)
 }
 
 gaussian_clustering <- function(num_iter, concentration_0, scale_0, class_labels, fix_vec, mu_0, lambda_0, data, df_0, k, burn, thinning, outlier = FALSE, t_df = 4.0, record_posteriors = FALSE, normalise = FALSE, u = 2, v = 10) {
-    .Call(`_BayesicGibbs_gaussian_clustering`, num_iter, concentration_0, scale_0, class_labels, fix_vec, mu_0, lambda_0, data, df_0, k, burn, thinning, outlier, t_df, record_posteriors, normalise, u, v)
+    .Call(`_tagmmdi_gaussian_clustering`, num_iter, concentration_0, scale_0, class_labels, fix_vec, mu_0, lambda_0, data, df_0, k, burn, thinning, outlier, t_df, record_posteriors, normalise, u, v)
 }
 
 mdi_gauss_cat <- function(gaussian_data, categorical_data, mu_0, lambda_0, scale_0, df_0, a0, b0, cluster_weight_priors_gaussian, cluster_weight_priors_categorical, phi_prior, cluster_labels_gaussian, cluster_labels_categorical, num_clusters_gaussian, num_clusters_categorical, fix_vec_1, fix_vec_2, num_iter, burn, thinning, outlier = FALSE, t_df = 4.0, record_posteriors = FALSE, normalise = FALSE, u_1 = 2, v_1 = 10) {
-    .Call(`_BayesicGibbs_mdi_gauss_cat`, gaussian_data, categorical_data, mu_0, lambda_0, scale_0, df_0, a0, b0, cluster_weight_priors_gaussian, cluster_weight_priors_categorical, phi_prior, cluster_labels_gaussian, cluster_labels_categorical, num_clusters_gaussian, num_clusters_categorical, fix_vec_1, fix_vec_2, num_iter, burn, thinning, outlier, t_df, record_posteriors, normalise, u_1, v_1)
+    .Call(`_tagmmdi_mdi_gauss_cat`, gaussian_data, categorical_data, mu_0, lambda_0, scale_0, df_0, a0, b0, cluster_weight_priors_gaussian, cluster_weight_priors_categorical, phi_prior, cluster_labels_gaussian, cluster_labels_categorical, num_clusters_gaussian, num_clusters_categorical, fix_vec_1, fix_vec_2, num_iter, burn, thinning, outlier, t_df, record_posteriors, normalise, u_1, v_1)
 }
 
 mdi_gauss_gauss <- function(data_1, data_2, mu_0_1, lambda_0_1, scale_0_1, df_0_1, mu_0_2, lambda_0_2, scale_0_2, df_0_2, clust_weight_priors_1, clust_weight_priors_2, clust_labels_1, clust_labels_2, n_clust_1, n_clust_2, fix_vec_1, fix_vec_2, a0, b0, num_iter, burn, thinning, outlier_1 = FALSE, t_df_1 = 4.0, outlier_2 = FALSE, t_df_2 = 4.0, record_posteriors = FALSE, normalise_1 = FALSE, normalise_2 = FALSE, u_1 = 2, v_1 = 10, u_2 = 2, v_2 = 10) {
-    .Call(`_BayesicGibbs_mdi_gauss_gauss`, data_1, data_2, mu_0_1, lambda_0_1, scale_0_1, df_0_1, mu_0_2, lambda_0_2, scale_0_2, df_0_2, clust_weight_priors_1, clust_weight_priors_2, clust_labels_1, clust_labels_2, n_clust_1, n_clust_2, fix_vec_1, fix_vec_2, a0, b0, num_iter, burn, thinning, outlier_1, t_df_1, outlier_2, t_df_2, record_posteriors, normalise_1, normalise_2, u_1, v_1, u_2, v_2)
+    .Call(`_tagmmdi_mdi_gauss_gauss`, data_1, data_2, mu_0_1, lambda_0_1, scale_0_1, df_0_1, mu_0_2, lambda_0_2, scale_0_2, df_0_2, clust_weight_priors_1, clust_weight_priors_2, clust_labels_1, clust_labels_2, n_clust_1, n_clust_2, fix_vec_1, fix_vec_2, a0, b0, num_iter, burn, thinning, outlier_1, t_df_1, outlier_2, t_df_2, record_posteriors, normalise_1, normalise_2, u_1, v_1, u_2, v_2)
 }
 
 mdi_cat_cat <- function(data_1, data_2, class_dist_prior_1, class_dist_prior_2, clust_weight_priors_1, clust_weight_priors_2, clust_labels_1, clust_labels_2, n_clust_1, n_clust_2, fix_vec_1, fix_vec_2, a0, b0, num_iter, burn, thinning) {
-    .Call(`_BayesicGibbs_mdi_cat_cat`, data_1, data_2, class_dist_prior_1, class_dist_prior_2, clust_weight_priors_1, clust_weight_priors_2, clust_labels_1, clust_labels_2, n_clust_1, n_clust_2, fix_vec_1, fix_vec_2, a0, b0, num_iter, burn, thinning)
+    .Call(`_tagmmdi_mdi_cat_cat`, data_1, data_2, class_dist_prior_1, class_dist_prior_2, clust_weight_priors_1, clust_weight_priors_2, clust_labels_1, clust_labels_2, n_clust_1, n_clust_2, fix_vec_1, fix_vec_2, a0, b0, num_iter, burn, thinning)
 }
 
 rcpparma_hello_world <- function() {
-    .Call(`_BayesicGibbs_rcpparma_hello_world`)
+    .Call(`_tagmmdi_rcpparma_hello_world`)
 }
 
 rcpparma_outerproduct <- function(x) {
-    .Call(`_BayesicGibbs_rcpparma_outerproduct`, x)
+    .Call(`_tagmmdi_rcpparma_outerproduct`, x)
 }
 
 rcpparma_innerproduct <- function(x) {
-    .Call(`_BayesicGibbs_rcpparma_innerproduct`, x)
+    .Call(`_tagmmdi_rcpparma_innerproduct`, x)
 }
 
 rcpparma_bothproducts <- function(x) {
-    .Call(`_BayesicGibbs_rcpparma_bothproducts`, x)
+    .Call(`_tagmmdi_rcpparma_bothproducts`, x)
 }
 

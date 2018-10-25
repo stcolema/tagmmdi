@@ -1210,6 +1210,7 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
   
   outlier_weight = 1 - sample_beta(u + b, v + N - b);
   
+  double predicted_norm_likelihood = 0.0;
   
   // the predicted class assuming the point is not an outlier
   arma::uword predicted_class = 0;
@@ -1305,9 +1306,14 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
         
         // std::cout << "t likelihood OK!\n";
         
-        curr_outlier_prob(0)= curr_norm_likelihoods(predicted_class - 1) 
-          + log(1 - outlier_weight)
-          - log(class_weights(predicted_class - 1) + 1);
+        predicted_norm_likelihood = normal_likelihood(point,
+                                                      loc_mu_variance(1).slice(predicted_class - 1),
+                                                      loc_mu_variance(0).slice(predicted_class - 1),
+                                                      num_cols);
+        
+        predicted_norm_likelihood += log(1 - outlier_weight);
+        curr_outlier_prob(0) = predicted_norm_likelihood;
+  
 
         
         // std::cout << "normal likelihood OK!\n";
@@ -1581,7 +1587,7 @@ arma::vec mdi_cat_clust_prob(arma::uword row_index,
     
     // Check if in the same cluster in both contexts
     common_cluster = 1 * (clust_labels_comp(row_index) == clust_labels(row_index));
-                            
+    
     similarity_upweight = log(1 + phi * common_cluster);
     
     for(arma::uword j = 0; j < num_cols_cat; j++){
@@ -2147,9 +2153,9 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                     a0,
                                     b0);
     
-    std::cout << "\nCluster weights:\n " << cluster_weights_gaussian 
-              << "\nOutlier weights:\n" << outlier_weight 
-              << "\n";
+    // std::cout << "\nCluster weights:\n " << cluster_weights_gaussian 
+    //           << "\nOutlier weights:\n" << outlier_weight 
+    //           << "\n";
 
     // sample class for each observation
     
@@ -2210,52 +2216,53 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
         // std::cout << "t likelihood OK!\n";
         
         
-        std::cout << "\nCurrent componenet prediction: " << predicted_class 
-                  << "\nCurrent componenet likelihood: " << curr_norm_likelihoods(predicted_class - 1) 
-                  << "\nNon-outlier weight: " << log(1 - outlier_weight)
-                  << "\nComponenet weight: " << log(cluster_weights_gaussian(predicted_class - 1))
-                  << "\n";
+        // std::cout << "\nCurrent componenet prediction: " << predicted_class 
+        //           << "\nCurrent componenet likelihood: " << curr_norm_likelihoods(predicted_class - 1) 
+        //           << "\nNon-outlier weight: " << log(1 - outlier_weight)
+        //           << "\nComponenet weight: " << log(cluster_weights_gaussian(predicted_class - 1))
+        //           << "\n";
         
         predicted_norm_likelihood = normal_likelihood(arma::trans(gaussian_data.row(j)),
                                                       loc_mu_variance(1).slice(predicted_class - 1),
                                                       loc_mu_variance(0).slice(predicted_class - 1),
                                                       num_cols_cont);
         
-        std::cout << "\nRe-calculated log-likelihood: " << predicted_norm_likelihood
-                   << "\n";
+        // std::cout << "\nRe-calculated log-likelihood: " << predicted_norm_likelihood
+        //            << "\n";
         
         predicted_norm_likelihood += log(1 - outlier_weight);
         
-        std::cout << "Likelihood nonn-outlier: " << predicted_norm_likelihood
-                  << "\n";
+        // std::cout << "Likelihood nonn-outlier: " << predicted_norm_likelihood
+                  // << "\n";
         
         
         
         
-        curr_outlier_prob(0) = curr_norm_likelihoods(predicted_class - 1) 
-          + log(1 - outlier_weight)
-          - log(cluster_weights_gaussian(predicted_class - 1));
-        
-        if(predicted_class == cluster_labels_categorical(j)){
-          curr_outlier_prob(0) -= log(1 + context_similarity);
-        }
+        curr_outlier_prob(0) = predicted_norm_likelihood;
+        // curr_norm_likelihoods(predicted_class - 1) 
+        //   + log(1 - outlier_weight)
+        //   - log(cluster_weights_gaussian(predicted_class - 1));
+        // 
+        // if(predicted_class == cluster_labels_categorical(j)){
+        //   curr_outlier_prob(0) -= log(1 + context_similarity);
+        // }
           
           // std::cout << "normal likelihood OK!\n";
-        std::cout << "\nOutlier log-probs pre-normalising:\n" << curr_outlier_prob
-          << "\n";
+        // std::cout << "\nOutlier log-probs pre-normalising:\n" << curr_outlier_prob
+          // << "\n";
         
         // Overflow handling
         curr_outlier_prob = exp(curr_outlier_prob - max(curr_outlier_prob));
         
-        std::cout << "\nOutlier probs pre-normalising:\n" << curr_outlier_prob
-                  << "\n";
+        // std::cout << "\nOutlier probs pre-normalising:\n" << curr_outlier_prob
+        //           << "\n";
         
         // Normalise the vector
         curr_outlier_prob = curr_outlier_prob / sum(curr_outlier_prob);
         
         
-        std::cout << "\nOutlier log-probs post-normalising:\n" << curr_outlier_prob
-                  << "\n";
+        // std::cout << "\nOutlier log-probs post-normalising:\n" << curr_outlier_prob
+        //           << "\n";
         // curr_outlier_prob = over_flow_handling(curr_outlier_prob);
         
         
@@ -3112,6 +3119,16 @@ Rcpp::List mdi_cat_cat(arma::umat data_1,
     
     // std::cout << "Context parameters calculated.\n";
     
+    // Calculate the current normalising constant (consider being more clever 
+    // about this) 
+    Z = calculate_normalising_constant(clust_weights_1,
+                                       clust_weights_2,
+                                       phi,
+                                       n_clust_1,
+                                       n_clust_2);
+    
+    // std::cout << "Z calculated \n";
+    
     // sample the context similarity parameter (as only two contexts this is a
     // single double - number not a drink)
     phi = sample_phi(clust_labels_1,
@@ -3126,15 +3143,6 @@ Rcpp::List mdi_cat_cat(arma::umat data_1,
     
     // std::cout << "Sampled phi\n";
     
-    // Calculate the current normalising constant (consider being more clever 
-    // about this) 
-    Z = calculate_normalising_constant(clust_weights_1,
-                                       clust_weights_2,
-                                       phi,
-                                       n_clust_1,
-                                       n_clust_2);
-    
-    // std::cout << "Z calculated \n";
     
     // sample the strategic latent variable, v
     // v = arma::randg( arma::distr_param(n, 1/Z) );
