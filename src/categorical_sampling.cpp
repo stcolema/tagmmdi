@@ -1844,6 +1844,27 @@ arma::vec cluster_label_update(arma::uvec cluster_labels_1,
   return output;
 }
 
+// Declare object to save class_probabilities in for categorical clustering
+arma::field<arma::field<arma::mat>> class_probs_obj(arma::uword n_clust,
+                                                    arma::uword n_col,
+                                                    arma::uword n_iter,
+                                                    arma::uvec cat_count){
+  arma::field<arma::field<arma::mat>> class_probabilities_saved(n_clust);
+  arma::field<arma::rowvec> comp_class_probs(n_col);
+  
+  for(arma::uword i = 0; i < n_clust; i++){
+    arma::field<arma::mat> loc_level(n_col);
+    
+    for(arma::uword j = 0; j < n_col; j++){
+      arma::mat iter_level(n_iter, cat_count(j));
+      iter_level.zeros();
+      loc_level(j) = iter_level;
+    }
+    class_probabilities_saved(i) = loc_level;
+  }
+  return class_probabilities_saved;
+}
+
 // MDI clustering for a gaussian and cateogrical dataset
 // [[Rcpp::export]]
 Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
@@ -1918,7 +1939,7 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   // iteration
   arma::field<arma::cube> loc_mu_variance(2);
   
-  // std::cout << "Declared to mean/variance thing \n";
+    // std::cout << "Declared to mean/variance thing \n";
   
   // Declare the field for the phi variable for the categorical data
   arma::uvec cat_count(num_cols_cat);
@@ -1948,6 +1969,21 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   // the record for similarity in each clustering
   arma::uword eff_count = ceil((double)(num_iter - burn) / (double)thinning);
   
+  // These are the lists recording the posterior mean and 
+  // variance for each class for each recorded iteration
+  ListMatrix variance(eff_count, num_clusters_gaussian);
+  ListMatrix mu(eff_count, num_clusters_gaussian);
+  
+  // Objects required to save the categorical variable for each component
+  arma::field<arma::field<arma::mat>> class_probabilities_saved(num_clusters_categorical);
+  // arma::field<arma::rowvec> comp_class_probs(num_cols_cat);
+  
+  class_probabilities_saved = class_probs_obj(num_clusters_categorical,
+                                              num_cols_cat,
+                                              eff_count,
+                                              cat_count);
+  
+  // Records of allocation
   arma::umat gaussian_record(n, eff_count);
   gaussian_record.zeros();
   
@@ -1983,7 +2019,8 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   double b = 0.0; // a will be N - b, no need to declare
   
   // for recording the probabilities for each class
-  arma::cube class_probs(eff_count, num_clusters_gaussian, n); 
+  arma::cube gaussian_class_probs(eff_count, num_clusters_gaussian, n);
+  arma::cube cat_class_probs(eff_count, num_clusters_categorical, n); 
   
   // Begin with all non-fixed points (i.e. unlabelled) to outlier component
   outlier_vec.fill(0);
@@ -2041,28 +2078,9 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
     
     // Consider only the labels of points not considered to be outliers
     relevant_labels = cluster_labels_gaussian % (1 - outlier_vec);
-    // std::cout << "\nRelevant labels:\n" << relevant_labels << "\n\n";
-    
-    // std::cout << "Calculate v\n";
-    
+
     // sample the strategic latent variable, v
     v = arma::randg( arma::distr_param(n, 1/Z) );
-    
-    // if(i > 800){
-    //   std::cout << "\nLatent variable: " << v << "\nNormalising constant: "
-    //             << Z << "\nCluster weights gaussian:\n" 
-    //             << cluster_weights_gaussian << "\nCluster weights categorical:\n"
-    //             << cluster_weights_categorical;
-    // }
-    
-    // if(v > 2000){
-    //   std::cout << "\nLatent variable: " << v
-    //             << "\nNormalising constant : " << Z
-    //             << "\nGaussian weights:\n" << cluster_weights_gaussian
-    //             // << "\nCategorical weights:\n" << cluster_weights_categorical
-    //             << "\nOutlier weights:\n" << outlier_weight
-    //             << "\n";
-    // }
     
     // Entropy for graphing convergence
     entropy_cw(i) = entropy(cluster_weights_gaussian);
@@ -2076,9 +2094,7 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                              scale_0,
                                              lambda_0,
                                              mu_0);
-    
-    // std::cout << "Variance sampled\n";
-    
+
     // For the categorical data, sample the probabilities for each class
     class_probabilities = sample_class_probabilities(categorical_data,
                                                      class_probabilities,
@@ -2087,18 +2103,9 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                                      cat_count,
                                                      num_clusters_categorical,
                                                      num_cols_cat);
-    
-    // std::cout << "Sampled class probabilities for categorical data\n";
-    // std::cout << "Strategic latent variable: " << v << "\n";
-    
+  
     // sample cluster weights for the two datasets]
     // Gaussian weights
-    // std::cout << "\nStrategic latent variable: " << v << "\n";
-    // std::cout << "Context similarity parameter: " << context_similarity << "\n";
-    // std::cout << "Class labels:\n" << relevant_labels << "\n";
-    // std::cout << "Categorical cluster weights:\n" << cluster_weights_categorical << "\n";
-    // std::cout << "\nNumber 0 labels:\n" << arma::find(relevant_labels == 0) << "\n";
-    
     cluster_weights_gaussian = mdi_cluster_weights(cluster_weight_priors_gaussian,
                                                    rate_0_gauss,
                                                    v,
@@ -2109,11 +2116,7 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                                    // relevant_labels,
                                                    cluster_labels_categorical,
                                                    context_similarity);
-    
-    // cluster_weights_gaussian = cluster_weights_gaussian / sum(cluster_weights_gaussian);
-    
-    // std::cout << "\nGaussian weights sampled.\n" << cluster_weights_gaussian << "\n";
-    
+
     // Categorical weights
     cluster_weights_categorical = mdi_cluster_weights(cluster_weight_priors_categorical,
                                                       rate_0_cat,
@@ -2125,8 +2128,6 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                                       cluster_labels_gaussian,
                                                       context_similarity);
     
-    // std::cout << "Categorical weights sampled.\n"; // << cluster_weights_categorical << "\n";;
-
     // Calculate the current normalising constant (consider being more clever
     // about this)
     Z = calculate_normalising_constant(cluster_weights_gaussian,
@@ -2134,13 +2135,7 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                        context_similarity,
                                        num_clusters_gaussian,
                                        num_clusters_categorical);
-    
-    // std::cout << "Z calculated \n";
-    
-    // std::cout << "\nNormalising constant:\n" <<  Z << "\n";
 
-    // std::cout << "Sampled v:\n" << v << "\n\n";
-    
     // sample the context similarity parameter (as only two contexts this is a
     // single double - number not a drink)
     context_similarity = sample_phi(cluster_labels_gaussian,
@@ -2152,28 +2147,12 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                     min_num_clusters,
                                     a0,
                                     b0);
-    
-    // std::cout << "\nCluster weights:\n " << cluster_weights_gaussian 
-    //           << "\nOutlier weights:\n" << outlier_weight 
-    //           << "\n";
 
     // sample class for each observation
-    
-    // std::cout << "Outlier stuff\n";
-    // 
-    // std::cout << "Outlier weight: " << outlier_weight << "\n";
-    // std::cout << "b: " << b << "\n";
-    
     for(arma::uword j = 0; j < n; j++){
       
       // for each point create the vector of probabilities associated with 
       // assignment to each cluster
-      // std::cout << "Gaussian cluser prob vec next\n";
-      
-      
-      // std::cout << "Gaussian weights:\n" <<  cluster_weights_gaussian << "\n\n";
-      
-      // std::cout << "\nBeginning outlier and gaussian stuff.\n";
       curr_norm_likelihoods = mdi_gauss_clust_probs(j,
                                                     gaussian_data,
                                                     num_clusters_gaussian,
@@ -2184,19 +2163,9 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                                     relevant_labels,
                                                     cluster_labels_categorical);
       
-      // std::cout << "\nNormal likelihoods for each class calculated.\n";
-
       curr_gaussian_prob_vec = over_flow_handling(curr_norm_likelihoods);
-      
-      // std::cout << "Overflow handled.\n";
-      
-      // std::cout << "\nOutlier weigth: " << outlier_weight << "\n";
-      // std::cout << "Global mean: " << global_mean << "\n";
-      // std::cout << "Global variance: " << global_variance << "\n";
-      // std::cout << "b: " << b << "\n";
-      // std::cout << "n: " << n << "\n";
-      
       predicted_class = cluster_predictor(curr_gaussian_prob_vec);
+      
       
       if(outlier){
         
@@ -2208,19 +2177,6 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                                  t_df,
                                                  u_1 + b,
                                                  v_1 + n - b);
-        
-        // std::cout << "Outlier likelihood calculated.\n";
-        
-        // curr_outlier_prob(1) = log(1 + exp(curr_outlier_likelihood));
-        
-        // std::cout << "t likelihood OK!\n";
-        
-        
-        // std::cout << "\nCurrent componenet prediction: " << predicted_class 
-        //           << "\nCurrent componenet likelihood: " << curr_norm_likelihoods(predicted_class - 1) 
-        //           << "\nNon-outlier weight: " << log(1 - outlier_weight)
-        //           << "\nComponenet weight: " << log(cluster_weights_gaussian(predicted_class - 1))
-        //           << "\n";
         
         predicted_norm_likelihood = normal_likelihood(arma::trans(gaussian_data.row(j)),
                                                       loc_mu_variance(1).slice(predicted_class - 1),
@@ -2316,6 +2272,17 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                                      cluster_labels_gaussian,
                                                      cluster_labels_categorical);
       
+      
+      if (i >= burn && (i - burn) % thinning == 0) {
+        
+        // std::cout << "\nNormal probabilities:\n" << curr_class_probs << "\n";
+        // std::cout << "record accessed" << "\n";
+        // record_ind = (i - burn) / thinning;
+        gaussian_class_probs.slice(j).row((i - burn) / thinning) = arma::trans(curr_gaussian_prob_vec);
+        cat_class_probs.slice(j).row((i - burn) / thinning) = arma::trans(curr_categorical_prob_vec);
+        
+      }
+      
       // std::cout << "Predict label per point\n";
       
       // update labels - in gaussian data this is only if the current point is 
@@ -2387,6 +2354,38 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
       categorical_record.col((i - burn) / thinning) = cluster_labels_categorical;
       context_similarity_record((i - burn) / thinning) = context_similarity;
       outlier_probs_saved.col((i - burn) / thinning) = outlier_vec;
+      
+      
+      
+      // char gauss_lab_file[64] = "gaussian_labels_iter_";
+      // char i_str[32];
+      // sprintf(i_str, "%d", i);
+      // strcat(gauss_lab_file, i_str);
+      // 
+      // cluster_labels_gaussian.save(gauss_lab_file);
+      // cluster_labels_categorical.save(gauss_lab_file);
+      // context_similarity.save(gauss_lab_file);
+      // outlier_vec.save(gauss_lab_file);
+      
+      for(arma::uword j = 0; j < num_clusters_gaussian; j++){
+        
+        // std::cout << "Recording params" << j << "\n";
+        
+        mu((i - burn) / thinning, j) = loc_mu_variance(1).slice(j);
+        variance((i - burn) / thinning, j) = loc_mu_variance(0).slice(j);
+      }
+      
+      for(arma::uword j = 0; j < num_clusters_categorical; j++){
+        // std::cout << "\nYes";
+        for(arma::uword k = 0; k < num_cols_cat; k++){
+          // std::cout << "Further yes\n";
+          // comp_class_probs(k) = class_probabilities(k).row(j);
+          // std::cout << "\nClass probs:\n" << class_probabilities << "\n";
+          
+          class_probabilities_saved(j)(k).row((i - burn) / thinning) = class_probabilities(k).row(j);
+        }
+        
+      }
     }
     
 
@@ -2405,6 +2404,9 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                       Named("similarity_2") = cat_sim,
                       Named("class_record_1") = gaussian_record,
                       Named("class_record_2") = categorical_record,
+                      Named("mean_posterior") = mu,
+                      Named("variance_posterior") = variance,
+                      Named("class_prob_posterior") = class_probabilities_saved,
                       Named("context_similarity") = context_similarity_record,
                       Named("entropy") = entropy_cw,
                       Named("outlier") = outlier_probs_saved);
