@@ -3310,13 +3310,13 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                          double u_1 = 2,
                          double v_1 = 10,
                          arma::uword rate_gauss_0 = 1,
-                         arma::uword rate_cat_0 = 1
+                         arma::uword rate_cat_0 = 1,
+                         bool save_results = false
 ){
   
   // As we tend to iterate to less than num_iter, add 1 to itself
   // Done here as many objects are sized based on this.
   num_iter++;
-    
   
   // Declare the sample size and dimensionality of the continuous and 
   // categorical data
@@ -3706,17 +3706,22 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
         // outlier_probs_saved.col(record_iter) = outlier_vec;
         
         
-        // Save to file
-        i_str = std::to_string(record_iter);
-        
-        gauss_lab_file_loc = gauss_lab_file + i_str;
-        cat_lab_file_loc = cat_lab_file + i_str;
-        out_lab_file_loc = out_lab_file + i_str;
-        
-        cluster_labels_gaussian.save(gauss_lab_file_loc);
-        cluster_labels_categorical.save(cat_lab_file_loc);
-        outlier_vec.save(out_lab_file_loc);
-        
+        if(save_results){
+          // Save to file
+          i_str = std::to_string(record_iter);
+          
+          gauss_lab_file_loc = gauss_lab_file + i_str;
+          cat_lab_file_loc = cat_lab_file + i_str;
+          out_lab_file_loc = out_lab_file + i_str;
+          
+          cluster_labels_gaussian.save(gauss_lab_file_loc);
+          cluster_labels_categorical.save(cat_lab_file_loc);
+          outlier_vec.save(out_lab_file_loc);
+        } else {
+          gaussian_record.col(record_iter) = cluster_labels_gaussian;
+          categorical_record.col(record_iter) = cluster_labels_categorical;
+          outlier_probs_saved.col(record_iter) = outlier_vec;
+        }
         // Record posteriors of parameters for Gaussian and Categorical
         // distributions
         if(record_posteriors){
@@ -3737,19 +3742,22 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
     
     // Loading posterior objects
     for(arma::uword i = 0; i < eff_count; i++){
-      i_str = std::to_string(record_iter);
       
-      gauss_lab_file_loc = gauss_lab_file + i_str;
-      cat_lab_file_loc = cat_lab_file + i_str;
-      out_lab_file_loc = out_lab_file + i_str;
-      
-      cluster_labels_gaussian.load(gauss_lab_file_loc);
-      cluster_labels_categorical.load(cat_lab_file_loc);
-      outlier_vec.load(out_lab_file_loc);
-      
-      gaussian_record.col(i) = cluster_labels_gaussian;
-      categorical_record.col(i) = cluster_labels_categorical;
-      outlier_probs_saved.col(i) = outlier_vec;
+      if(save_results){
+        i_str = std::to_string(record_iter);
+        
+        gauss_lab_file_loc = gauss_lab_file + i_str;
+        cat_lab_file_loc = cat_lab_file + i_str;
+        out_lab_file_loc = out_lab_file + i_str;
+        
+        cluster_labels_gaussian.load(gauss_lab_file_loc);
+        cluster_labels_categorical.load(cat_lab_file_loc);
+        outlier_vec.load(out_lab_file_loc);
+        
+        gaussian_record.col(i) = cluster_labels_gaussian;
+        categorical_record.col(i) = cluster_labels_categorical;
+        outlier_probs_saved.col(i) = outlier_vec;
+      }
       
       // if(record_posteriors){
       //   for(arma::uword j = 0; j < num_clusters_gaussian; j++){
@@ -3829,6 +3837,7 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
                            double v_2 = 10,
                            arma::uword rate_1_0 = 1,
                            arma::uword rate_2_0 = 1,
+                           bool save_results = false,
                            std::string lab_file_1 = "allocation_1/labels_1_iter_",
                            std::string lab_file_2 = "allocation_2/labels_2_iter_",
                            std::string out_lab_file_1 = "outlier_allocation_1/outlier_1_labels_iter_",
@@ -4290,15 +4299,13 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
     
     // if current iteration is a recorded iteration, save the labels
     if (i >= burn && (i - burn) % thinning == 0) {
-      record_1.col((i - burn) / thinning) = clust_labels_1;
-      record_2.col((i - burn) / thinning) = clust_labels_2;
+      
       phi_record((i - burn) / thinning) = phi;
-      outlier_probs_saved_1.col((i - burn) / thinning) = outlier_vec_1;
-      outlier_probs_saved_2.col((i - burn) / thinning) = outlier_vec_2;
       
       // Variable to create correct iteration for filenames
       record_iter = (i - burn) / thinning;
       
+      if(save_results){
       // Save to file
       i_str = std::to_string(record_iter);
       
@@ -4314,6 +4321,14 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
       
       outlier_vec_1.save(out_lab_file_1_loc);
       outlier_vec_2.save(out_lab_file_2_loc);
+      } else {
+        
+        record_1.col((i - burn) / thinning) = clust_labels_1;
+        record_2.col((i - burn) / thinning) = clust_labels_2;
+        outlier_probs_saved_1.col((i - burn) / thinning) = outlier_vec_1;
+        outlier_probs_saved_2.col((i - burn) / thinning) = outlier_vec_2;
+        
+      }
       
       // Record posteriors of parameters for Gaussian and Categorical
       // distributions
