@@ -675,11 +675,19 @@ mdi <- function(data_1, data_2, args_1, args_2,
   data_2 <- as.matrix(data_2)
 
   # Declare the cluster weights if not declared in advance
-  cluster_weight_0_1 <- declare_cluster_weights(fix_vec_1, labels_0_1, n_clust_1,
+  # cluster_weight_0_1 <- declare_cluster_weights(fix_vec_1, labels_0_1, n_clust_1,
+  #   weight_0 = cluster_weight_0_1
+  # )
+
+  cluster_weight_0_1 <- declare_cluster_weights(c(0, 0), labels_0_1, n_clust_1,
     weight_0 = cluster_weight_0_1
   )
 
   cluster_weight_0_2 <- declare_cluster_weights(fix_vec_2, labels_0_2, n_clust_2,
+    weight_0 = cluster_weight_0_2
+  )
+
+  cluster_weight_0_2 <- declare_cluster_weights(c(0, 0), labels_0_2, n_clust_2,
     weight_0 = cluster_weight_0_2
   )
 
@@ -1117,8 +1125,12 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
   sort_col <- enquo(sort_col)
 
   # select the variable of interest for sorting
-  col_of_interest <- annotation_row %>%
-    dplyr::select(!!sort_col)
+  if (ncol(annotation_row) > 1) {
+    col_of_interest <- annotation_row %>%
+      dplyr::select(!!sort_col)
+  } else {
+    col_of_interest <- annotation_row
+  }
 
   # Create new order
   new_order <- order(col_of_interest)
@@ -1128,6 +1140,10 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
   annotation_row <- annotation_row[new_order, ]
   row_names <- row_names[new_order]
 
+  if (!is.data.frame(annotation_row)) {
+    annotation_row <- as.data.frame(annotation_row)
+  }
+
   # print(col_of_interest)
 
   # Arrange the annotation data frame based on the sort column
@@ -1135,8 +1151,13 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
   # dplyr::arrange(!!sort_col)
 
   # Select the sort column to find the location for the gaps
-  col_of_interest <- annotation_row %>%
-    dplyr::select(!!sort_col)
+
+  if (ncol(annotation_row) > 1) {
+    col_of_interest <- annotation_row %>%
+      dplyr::select(!!sort_col)
+  } else {
+    col_of_interest <- annotation_row
+  }
 
   # Col of interest has row names, remove these and replace with numbers
   row.names(col_of_interest) <- 1:nrow(col_of_interest)
@@ -1166,6 +1187,11 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
   num_data <- num_data[ordering, ]
   annotation_row <- annotation_row[ordering, ]
   row_names <- row_names[ordering]
+
+  # If single column data frame this re-ordering converts to a vector
+  if (!is.data.frame(annotation_row)) {
+    annotation_row <- as.data.frame(annotation_row)
+  }
 
   # Re-impose the row names to enable correct annotation
   row.names(num_data) <- row_names
