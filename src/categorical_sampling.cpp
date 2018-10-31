@@ -3488,7 +3488,8 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   arma::uword v_a_0 = 1;
   arma::uword v_b_0 = 1;
   
-  v = arma::randg( arma::distr_param(v_a_0, 1.0/(v_b_0) ) );
+  v = 1.0;
+  // v = arma::randg( arma::distr_param(v_a_0, 1.0/(v_b_0) ) );
 
   for(arma::uword i = 0; i < num_iter; i++){
     
@@ -3533,8 +3534,8 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                                    num_clusters_gaussian,
                                                    num_clusters_categorical,
                                                    cluster_weights_categorical,
-                                                   cluster_labels_gaussian,
-                                                   // relevant_labels,
+                                                   // cluster_labels_gaussian,
+                                                   relevant_labels,
                                                    cluster_labels_categorical,
                                                    context_similarity);
     
@@ -3562,7 +3563,8 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
     // std::cout << "Calculated normalising constant.\n";
     
     // sample the strategic latent variable, v
-    v = arma::randg( arma::distr_param(v_a_0 + n, 1.0/(v_b_0 + Z) ) );
+    // v = arma::randg( arma::distr_param(v_a_0 + n, 1.0/(v_b_0 + Z) ) );
+    v = arma::randg( arma::distr_param(n, 1.0/Z ) );
     
     // std::cout << "Sampled strategic latent variable.\n";
     
@@ -4034,8 +4036,8 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
   arma::uword v_a_0 = 1;
   arma::uword v_b_0 = 1;
   
-  v = arma::randg( arma::distr_param(v_a_0, 1.0/(v_b_0) ) );
-  
+  // v = arma::randg( arma::distr_param(v_a_0, 1.0/(v_b_0) ) );
+  v = 1.0;
   
   
   for(arma::uword i = 0; i < num_iter; i++){
@@ -4091,7 +4093,7 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
                                           n_clust_1,
                                           n_clust_2,
                                           clust_weights_2,
-                                          clust_labels_1,
+                                          relevant_labels_1,
                                           clust_labels_2,
                                           phi);
     
@@ -4101,7 +4103,7 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
                                           n_clust_2,
                                           n_clust_1,
                                           clust_weights_1,
-                                          clust_labels_2,
+                                          relevant_labels_2,
                                           clust_labels_1,
                                           phi);
     
