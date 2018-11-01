@@ -606,14 +606,14 @@ arma::uword cluster_predictor(arma::vec probabilities){
 // The actual categorical clustering all wrapped up in one function
 // [[Rcpp::export]]
 Rcpp::List categorical_clustering(arma::umat data,
-                                 arma::field<arma::vec> phi_prior,
-                                 arma::uvec cluster_labels,
-                                 arma::uvec fix_vec,
-                                 arma::vec cluster_weight_priors,
-                                 arma::uword num_clusters,
-                                 arma::uword num_iter,
-                                 arma::uword burn,
-                                 arma::uword thinning){
+                                  arma::field<arma::vec> phi_prior,
+                                  arma::uvec cluster_labels,
+                                  arma::uvec fix_vec,
+                                  arma::vec cluster_weight_priors,
+                                  arma::uword num_clusters,
+                                  arma::uword num_iter,
+                                  arma::uword burn,
+                                  arma::uword thinning){
   
   arma::uword n = data.n_rows;
   arma::uword num_cols = data.n_cols;
@@ -1229,7 +1229,7 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
     
     // std::cout << "\nRelevant labels:\n" << relevant_labels << "\n";
     
-    class_weights = dirichlet_posterior(concentration_0, class_labels, k);
+    class_weights = dirichlet_posterior(concentration_0, relevant_labels, k);
     
     // std::cout << class_weights << "\n\n";
     // std::cout << "\nENTROPY";
@@ -1715,6 +1715,30 @@ double comp(arma::uword n,
   }
   
   return score;
+}
+
+// The loglikelihood of the current clustering of MDI
+// Eqn 4 of the supplement to the original MDI paper
+double MDI_log_likelihood(double v,
+                          arma::uword n,
+                          double Z,
+                          double phi,
+                          arma::vec cluster_weights_1,
+                          arma::vec cluster_weights_2,
+                          arma::uvec cluster_labels_1,
+                          arma::uvec cluster_labels_2){
+  double log_likelihood = 0.0;
+  
+  // The coefficient outside the product
+  log_likelihood += (n - 1) * log(v) - (v*Z) -log_factorial(n - 1);
+  for(arma::uword i = 0; i < n; i++){
+    // The observation specific update
+    log_likelihood += log(cluster_weights_1(cluster_labels_1(i) - 1))
+      + log(cluster_weights_2(cluster_labels_2(i) - 1))
+      + log(1 + phi * (cluster_labels_1(i) == cluster_labels_2(i)));
+  }
+  
+  return log_likelihood;
 }
 
 //  Have to create a function for label swapping
@@ -3484,9 +3508,15 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   // Declare the variable to hold the likelihood of bein non-outlier
   double predicted_norm_likelihood = 0.0;
   
+  // For holding the log-likelihood of each recorded iteration
+  arma::vec mdi_recorded_likelihood(eff_count);
+  mdi_recorded_likelihood.zeros();
+  double mdi_likelihood = 0.0;
+  double log_gamma_n = log_factorial(n - 1);
+  
   // Initialise v based on the prior
-  arma::uword v_a_0 = 1;
-  arma::uword v_b_0 = 1;
+  // arma::uword v_a_0 = 1;
+  // arma::uword v_b_0 = 1;
   
   v = 1.0;
   // v = arma::randg( arma::distr_param(v_a_0, 1.0/(v_b_0) ) );
@@ -3582,6 +3612,8 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
     
     // std::cout << "Sampled context similarity parameter.\n";
     
+    mdi_likelihood = (n - 1) * log(v) - (v * Z) - log_gamma_n;
+    
     // sample class for each observation
     for(arma::uword j = 0; j < n; j++){
       
@@ -3661,6 +3693,10 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
           cluster_labels_categorical(j) = cluster_predictor(curr_categorical_prob_vec);
         }
         
+        mdi_likelihood += log(cluster_weights_gaussian(cluster_labels_gaussian(i) - 1))
+          + log(cluster_weights_categorical(cluster_labels_categorical(i) - 1))
+          + log(1 + context_similarity * (cluster_labels_gaussian(i) == cluster_labels_categorical(i)));
+        
       }
       
       if(outlier){
@@ -3706,6 +3742,10 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
         // categorical_record.col(record_iter) = cluster_labels_categorical;
         context_similarity_record(record_iter) = context_similarity;
         // outlier_probs_saved.col(record_iter) = outlier_vec;
+        
+        // Record the current iteration's score (note this does not account for
+        // label flipping)
+        mdi_recorded_likelihood(record_iter) = mdi_likelihood;
         
         
         if(save_results){
@@ -3791,7 +3831,8 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                       Named("class_prob_posterior") = class_probabilities_saved,
                       Named("context_similarity") = context_similarity_record,
                       Named("entropy") = entropy_cw,
-                      Named("outlier") = outlier_probs_saved);
+                      Named("outlier") = outlier_probs_saved,
+                      Named("likelihood") = mdi_recorded_likelihood);
 }
 
 
