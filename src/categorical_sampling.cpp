@@ -3511,6 +3511,13 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   // For holding the log-likelihood of each recorded iteration
   arma::vec mdi_recorded_likelihood(eff_count);
   mdi_recorded_likelihood.zeros();
+  
+  // The total likelihood of the gaussian model in the current iteration
+  double gaussian_score = 0.0;
+  
+  // The total likelihood of the categorical model in the current iteration
+  double cat_score = 0.0;
+  
   double mdi_likelihood = 0.0;
   double log_gamma_n = log_factorial(n - 1);
   
@@ -3660,6 +3667,10 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
           curr_outlier_prob = curr_outlier_prob / sum(curr_outlier_prob);
           
           predicted_outlier = cluster_predictor(curr_outlier_prob) - 1; // as +1 to handle R
+          
+          gaussian_score += predicted_norm_likelihood * predicted_outlier 
+            + curr_outlier_likelihood * (1 - predicted_outlier);
+          // gaussian_score = gaussian_score / sum(cluster_weights_gaussian)
         }
         
         curr_categorical_prob_vec = mdi_cat_clust_prob(j,
@@ -3693,9 +3704,9 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
           cluster_labels_categorical(j) = cluster_predictor(curr_categorical_prob_vec);
         }
         
-        mdi_likelihood += log(cluster_weights_gaussian(cluster_labels_gaussian(i) - 1))
-          + log(cluster_weights_categorical(cluster_labels_categorical(i) - 1))
-          + log(1 + context_similarity * (cluster_labels_gaussian(i) == cluster_labels_categorical(i)));
+        // mdi_likelihood += log(cluster_weights_gaussian(cluster_labels_gaussian(i) - 1))
+        //   + log(cluster_weights_categorical(cluster_labels_categorical(i) - 1))
+        //   + log(1 + context_similarity * (cluster_labels_gaussian(i) == cluster_labels_categorical(i)));
         
       }
       
@@ -3731,8 +3742,20 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
       cluster_weights_categorical = labels_weights_phi.subvec(n, n + num_clusters_categorical - 1);
       context_similarity = arma::as_scalar(labels_weights_phi(n + num_clusters_categorical));
       
+      
+      
       // if current iteration is a recorded iteration, save the labels
       if (i >= burn && (i - burn) % thinning == 0) {
+        
+        // The log likelihood for the current iteration
+        mdi_likelihood = MDI_log_likelihood(v,
+                                            n,
+                                            Z,
+                                            context_similarity,
+                                            cluster_weights_gaussian,
+                                            cluster_weights_categorical,
+                                            cluster_labels_gaussian,
+                                            cluster_labels_categorical);
         
         // std::cout << "Record output.\n";
         
