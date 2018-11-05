@@ -94,8 +94,10 @@ MS_dataset <- function(MS_object, train = NULL) {
 
   nk <- tabulate(fData(markerMSnSet(MS_object))[, "markers"])
 
-  mydata_no_labels$markers <- NA
-
+  if(nrow(mydata_no_labels) > 0){
+    mydata_no_labels$markers <- NA
+  }
+  
   if (is.null(train)) {
     row_names <- c(rownames(mydata_labels), rownames(mydata_no_labels))
     mydata <- suppressWarnings(bind_rows(mydata_labels, mydata_no_labels))
@@ -1447,7 +1449,11 @@ mcmc_out <- function(MS_object,
   mydata <- MS_data$data
   nk <- MS_data$nk
   row_names <- MS_data$row_names
-  fix_vec_1 <- MS_data$fix_vec
+  
+  if(is.null(fix_vec_1)){
+    fix_vec_1 <- MS_data$fix_vec
+  }
+  
   
   class_labels <- data.frame(Class = mydata$markers)
   
@@ -1576,6 +1582,14 @@ mcmc_out <- function(MS_object,
   
   eff_iter <- ceiling((num_iter - burn) / thinning)
 
+  # Key to transforming from int to class
+  class_labels_key <- data.frame(Class = classes_present) # , Class_num = 1:k)
+  class_labels_key %<>%
+    arrange(Class) %>%
+    dplyr::mutate(Class_key = as.numeric(Class))
+  
+  class_labels %<>%
+    mutate(Class_ind = as.numeric(mydata$markers))
   
   # Create a column Class_key containing an integer in 1:k representing the most
   # common class allocation, and a Count column with the proportion of times the
@@ -2063,3 +2077,54 @@ mcmc_out <- function(MS_object,
 
 
 # === Cross-Validation =========================================================
+
+gibbs_predictor <- function(MS_object, class_record){
+  # Key to transforming from int to class
+  
+  MS_data <- MS_dataset(MS_object)
+  mydata <- MS_data$data
+
+  class_labels <- data.frame(Class = mydata$markers)
+  
+  classes_present <- unique(fData(markerMSnSet(MS_object))[, "markers"])
+  
+  rownames(class_labels) <- rownames(mydata)
+  
+  class_labels_key <- data.frame(Class = classes_present) # , Class_num = 1:k)
+  class_labels_key %<>%
+    arrange(Class) %>%
+    dplyr::mutate(Class_key = as.numeric(Class))
+  
+  class_labels %<>%
+    mutate(Class_ind = as.numeric(mydata$markers))
+  
+  class_allocation_table <- with(
+    stack(data.frame(t(class_record))),
+    table(ind, values)
+  )
+  
+  # Create a column Class_key containing an integer in 1:k representing the most
+  # common class allocation, and a Count column with the proportion of times the
+  # entry was allocated to said class
+  predicted_classes <- data.frame(
+    Class_key =
+      as.numeric(colnames(class_allocation_table)
+                 [apply(
+                   class_allocation_table,
+                   1,
+                   which.max
+                 )]),
+    Count = apply(class_allocation_table, 1, max) / eff_iter
+  )
+  
+  # Change the prediction to NA for any entry with a proportion below the input
+  # threshold
+  predicted_classes[predicted_classes$Count < prediction_threshold, ] <- NA
+  
+  predicted_classes$Class <- class_labels_key$Class[match(
+    predicted_classes$Class_key,
+    class_labels_key$Class_key
+  )]
+  
+  predicted_classes
+}
