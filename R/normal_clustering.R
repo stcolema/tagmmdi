@@ -1,24 +1,6 @@
 #!/usr/bin/env Rscript
 
 # === Functions ================================================================
-#' @title Prepare cat data
-#' @description Converts categorical data to numerical format appropriate for
-#' analysis (i.e. integers with a null class of 0)
-#'
-#' @param data  A data frame or matrix of categorical data
-#' @return A matrix of integers where the lowest class fval
-prepare_cat_data <- function(data) {
-  data <- data %>%
-    as.data.frame() %>%
-    lapply(as.character) %>%
-    lapply(as.factor) %>%
-    lapply(as.numeric) %>%
-    do.call(rbind, .) %>%
-    "-"(1) %>%
-    t()
-}
-
-
 
 # --- MCMC analysis ------------------------------------------------------------
 #' @title entropy_window
@@ -66,14 +48,109 @@ entropy_window <- function(entropy_vec,
     # If the differences are less than the predefined tolerances, return this
     # iteration as the point to burn up to
     if ((abs(mean_1 - mean_2) < mean_tolerance)
-    + (abs(sd_1 - sd_2) < sd_tolerance)
+    & (abs(sd_1 - sd_2) < sd_tolerance)
     ) {
       return(i)
     }
   }
 }
 
-# --- Gibbs sampling -----------------------------------------------------------
+# === PRE-PROCESSING ===========================================================
+
+# Functions to prepare the data and various parameters for the sampling
+
+# --- Data preparation ---------------------------------------------------------
+
+#' @title MS dataset
+#' @description Given an MS object from pRolocData, returns the numerical data,
+#' the count of each class and the vector recording which labels are fixed (i.e
+#' from the training set) and unfixed.
+#'
+#' @param MS_object A dataset in the format used by pRolocdata.
+#' @param train: instruction to include all data (NULL), labelled data (TRUE) or
+#' unlabelled data (FALSE). Default is NULL.
+#' @examples
+#' data("hyperLOPIT2015") # MS object from pRolocData
+#' MS_data <- MS_dataset(hyperLOPIT2015)
+MS_dataset <- function(MS_object, train = NULL) {
+  # Data with labels
+  mydata_labels <- pRoloc:::subsetAsDataFrame(
+    object = MS_object,
+    fcol = "markers",
+    train = TRUE
+  )
+
+  # fixed <- rep(TRUE, nrow(mydata_labels))
+  fixed <- rep(1, nrow(mydata_labels))
+
+  mydata_no_labels <- pRoloc:::subsetAsDataFrame(
+    object = MS_object,
+    fcol = "markers",
+    train = FALSE
+  )
+
+  # not_fixed <- rep(FALSE, nrow(mydata_no_labels))
+  not_fixed <- rep(0, nrow(mydata_no_labels))
+
+  nk <- tabulate(fData(markerMSnSet(MS_object))[, "markers"])
+
+  mydata_no_labels$markers <- NA
+
+  if (is.null(train)) {
+    row_names <- c(rownames(mydata_labels), rownames(mydata_no_labels))
+    mydata <- suppressWarnings(bind_rows(mydata_labels, mydata_no_labels))
+    fix_vec <- c(fixed, not_fixed)
+  } else if (isTRUE(train)) {
+    row_names <- c(rownames(mydata_labels))
+    mydata <- mydata_labels
+    fix_vec <- fixed
+  } else {
+    row_names <- c(rownames(mydata_no_labels))
+    mydata <- mydata_no_labels
+    fix_vec <- not_fixed
+  }
+  return(list(data = mydata, fix_vec = fix_vec, row_names = row_names, nk = nk))
+}
+
+#' @title Prepare cat data
+#' @description Converts categorical data to numerical format appropriate for
+#' analysis (i.e. integers with a null class of 0)
+#'
+#' @param data  A data frame or matrix of categorical data
+#' @return A matrix of integers where the lowest class fval
+prepare_cat_data <- function(data) {
+  data <- data %>%
+    as.data.frame() %>%
+    lapply(as.character) %>%
+    lapply(as.factor) %>%
+    lapply(as.numeric) %>%
+    do.call(rbind, .) %>%
+    "-"(1) %>%
+    t()
+}
+
+# --- Parameters  --------------------------------------------------------------
+
+#' @title Thinning warning
+#' @description Generates an error or warning if the relative values of
+#' thinning, num_iter and burn (the arguments controlling the number of recorded
+#' MCMC samples) are strange.
+#' @return None.
+thinning_warning <- function(thinning, num_iter, burn) {
+  if (thinning > (num_iter - burn)) {
+    if (thinning > (num_iter - burn) & thinning < 5 * (num_iter - burn)) {
+      stop("Thinning factor exceeds iterations feasibly recorded. Stopping.")
+    } else if (thinning > 5 * (num_iter - burn) & thinning < 10 * (num_iter - burn)) {
+      stop("Thinning factor relatively large to effective iterations. Stopping algorithm.")
+    } else {
+      warning(paste0(
+        "Thinning factor relatively large to effective iterations.",
+        "\nSome samples recorded. Continuing but please check input"
+      ))
+    }
+  }
+}
+
 #' Generates priors for the mean, degrees of freedom and scale parameters if not
 #' set.
 #'
@@ -100,10 +177,10 @@ empirical_bayes_gaussian <- function(data, mu_0, df_0, scale_0, N, k, d,
   }
 
   if (is.null(scale_0)) {
-    scale_0 <- diag(colSums((data - mean(data))^2) / N) / (k^(1 / d))
-    if (any(is.na(scale_0))) {
-      scale_0 <- diag(d) / (k^(1 / d))
-    }
+    # scale_0 <- diag(colSums((data - mean(data))^2) / N) / (k^(1 / d))
+    # if (any(is.na(scale_0))) {
+    scale_0 <- diag(d) / (k^(1 / d))
+    # }
   }
   parameters$mu_0 <- mu_0
   parameters$df_0 <- df_0
@@ -111,6 +188,81 @@ empirical_bayes_gaussian <- function(data, mu_0, df_0, scale_0, N, k, d,
   parameters$lambda_0 <- lambda_0
 
   return(parameters)
+}
+
+#' @title Phi prior
+#' @description Generates a prior for the phi vector for each variable for the Dirichlet
+#' distribution
+#' @param matrix_data A matrix of data.
+#' @return A list of vectors of the proportion of each level across all of
+#' matrix_data.
+phi_prior <- function(matrix_data) {
+
+  # lambda function applies ``table'' to each column of matr_data before
+  # removing names. This ensures the same output type for the case when all
+  # variables have the same number of levels and when they do not (rather than
+  # merely using one or two lapply's of table)
+  unnamed_list_prop <- lapply(
+    1:ncol(matrix_data),
+    function(i) {
+      table(matrix_data[, i])
+    }
+  ) %>%
+    unname() %>%
+    lapply("/", nrow(matrix_data))
+}
+
+
+#' @title Gaussian arguments
+#' @description Creates a named list of the priors required for a mixture of
+#' Gaussians. If the user provides values the function will wrap them in a
+#' single object appropriate for input into the MDI function. If values are not
+#' given the priors are generated using an empirical method (hence the need for
+#' inputting the data and the number of clusters).
+#' @param data A matrix of continuous values.
+#' @param n_clust A unsigned integer; the number of clusters to be used in the
+#' clustering method.
+#' @param mu_0 A d-vector where d is the number of columns in data representing
+#' the prior beliefs about the mean for data. Defaults to the mean of data if
+#' given value is NULL.
+#' @param scale_0 A positive definite matrix. The prior for the scale parameter
+#' of the inverse wishart distribution; if NULL defaults to a diagonal matrix.
+#' @param lambda_0 A positive real number; the shrinkage prior for the mean.
+#' @param df_0 An integer. The degrees of freedom used in the inverse Wishart
+#' distribution from which the variance is sampled. If NULL defaults to d + 2.
+#' @return A named list ready to be used as input into the MDI function.
+#' @examples
+#' args <- gaussian_arguments(data, 5)
+gaussian_arguments <- function(data, n_clust,
+                               mu_0 = NULL,
+                               scale_0 = NULL,
+                               lambda_0 = NULL,
+                               df_0 = NULL) {
+  N <- nrow(data)
+  d <- ncol(data)
+
+  if (is.null(lambda_0)) {
+    lambda_0 <- 0.01
+  }
+
+  args <- empirical_bayes_gaussian(data, mu_0, df_0, scale_0, N, n_clust, d,
+    lambda_0 = lambda_0
+  )
+
+  args
+}
+
+#' @title Categorical arguments
+#' @description Creates a named list of the priors required for a mixture of
+#' Dirichlets. The priors are generated using an empirical method (hence the
+#' need for inputting the data and the number of clusters).
+#' @param data A matrix of continuous values.
+#' @param n_clust A unsigned integer; the number of clusters to be used in the
+#' clustering method.
+#' @return A named list ready to be used as input into the MDI function.
+categorical_arguments <- function(data, n_clust) {
+  args <- list(phi = phi_prior(data))
+  args
 }
 
 #' @title Cluster weight prior
@@ -129,6 +281,77 @@ cluster_weight_prior <- function(train_data, outlier = FALSE) {
 
   weights
 }
+
+#' @title Declare cluster weights
+#' @description Creates a vector for the mass parameter for cluster weights.
+#' @param fix_vec Vector of 1's and 0's indicating if the corresponding entry in
+#' the data is a fixed label
+#' @param clust_labels A vector of unsigned integers representing the current
+#' labelling of points in the data
+#' @param n_clust A unsigned integer; the number of clusters to be used in the
+#' clustering method.
+#' @param weight_0 One of an int or a p-vector where p = n_clust. If an int
+#' defaults to a p-vector of p repetitions of said int.
+#' @return A vector of values to be used as the mass parameters for the weights
+#' for the clusters.
+declare_cluster_weights <- function(fix_vec, clust_labels, n_clust,
+                                    weight_0 = NULL) {
+  if (any(fix_vec == 1) & is.null(weight_0)) {
+    relevant_labels <- clust_labels[fix_vec == 1]
+    weight_0 <- unname(table(relevant_labels) / sum(table(relevant_labels)))
+  } else {
+    if (is.null(weight_0)) {
+      weight_0 <- 1
+    }
+    if (length(weight_0) < n_clust) {
+      print(paste0(
+        "Creating vector of ", n_clust, " repetitions of ", weight_0,
+        " for mass parameter prior."
+      ))
+      weight_0 <- rep(weight_0, n_clust)
+    }
+  }
+  weight_0
+}
+
+#' @title Cluster label prior
+#' @description Generates a vector of labels if required
+#' @param class_labels_0 An optional prior for clusters in MS_object. If NULL
+#' defaults to a randomly generated set using the proportion in the labelled
+#' data.
+#' @param nk Table of the frequency of the classes in the datset
+#' @param train A NULL, TRUE or FALSE value informing if supervised (TRUE),
+#' semi-supervised (NULL) or unsupervised (FALSE)
+#' @param MS_object The MS object from pRolocData being analysed
+#' @param k The number of clusters in the dataset
+#' @param N The number of observations
+#' @return A vector of integers corresponding to the cluster allocation of the N
+#' observations
+cluster_label_prior <- function(class_labels_0,
+                                nk,
+                                train,
+                                MS_object,
+                                k,
+                                N) {
+  # Generate class labels
+  if (is.null(class_labels_0)) {
+    class_weights <- nk / sum(nk)
+    if (is.null(train)) {
+      fixed_labels <- as.numeric(fData(markerMSnSet(MS_object))[, "markers"])
+      class_labels_0 <- c(fixed_labels, sample(1:k, N - length(fixed_labels),
+        replace = T # ,
+        # prob = class_weights # Remove this as not a good assumption
+      ))
+    } else if (isTRUE(train)) {
+      class_labels_0 <- as.numeric(fData(markerMSnSet(MS_object))[, "markers"])
+    } else {
+      class_labels_0 <- sample(1:k, N, replace = T) # , prob = class_weights)
+    }
+  }
+  return(class_labels_0)
+}
+
+# === Sampling methods =========================================================
 
 #' @title Gibbs sampling
 #' @description Carries out gibbs sampling of data and returns a similarity matrix for points
@@ -175,7 +398,7 @@ gibbs_sampling <- function(data, k, class_labels,
                            mu_0 = NULL,
                            df_0 = NULL,
                            scale_0 = NULL,
-                           lambda_0 = 0.01,
+                           lambda_0 = NULL,
                            concentration_0 = NULL,
                            a0 = 1.0,
                            b0 = 0.2,
@@ -205,11 +428,18 @@ gibbs_sampling <- function(data, k, class_labels,
   data <- as.matrix(data)
 
   # Empirical Bayes
-  parameters_0 <- empirical_bayes_gaussian(data, mu_0, df_0, scale_0, N, k, d)
+  parameters_0 <- gaussian_arguments(data, k,
+                     mu_0 = mu_0,
+                     scale_0 = scale_0,
+                     lambda_0 = lambda_0,
+                     df_0 = df_0)
+  
+  # parameters_0 <- empirical_bayes_gaussian(data, mu_0, df_0, scale_0, N, k, d)
 
   mu_0 <- parameters_0$mu_0
   df_0 <- parameters_0$df_0
   scale_0 <- parameters_0$scale_0
+  lambda_0  <- parameters_0$lambda_0
 
 
   # Prior on mass parameter for cluster  weights
@@ -224,68 +454,30 @@ gibbs_sampling <- function(data, k, class_labels,
       cluster_weight_priors_categorical <- rep(cluster_weight_priors_categorical, num_clusters_cat)
     }
 
-    if (is.null(phi_0)) {
-      phi_0 <- phi_prior(cat_data)
-    }
-
-    if (is.null(c_clusters_label_0)) {
-      c_clusters_label_0 <- sample(1:num_clusters_cat,
-        size = N,
-        replace = T,
-        prob = cluster_weight_priors_categorical
-      )
-    }
   }
 
-  if (is.null(cat_data)) {
-    sim <- gaussian_clustering(
-      num_iter,
-      concentration_0,
-      scale_0,
-      class_labels,
-      fix_vec,
-      mu_0,
-      lambda_0,
-      data,
-      df_0,
-      k,
-      burn,
-      thinning,
-      outlier,
-      t_df,
-      record_posteriors,
-      normalise,
-      2,
-      10
-    )
-  } else {
-    sim <- mdi_gauss_cat(
-      data,
-      cat_data,
-      mu_0,
-      lambda_0,
-      scale_0,
-      df_0,
-      a0,
-      b0,
-      concentration_0,
-      cluster_weight_priors_categorical,
-      phi_0,
-      class_labels,
-      c_clusters_label_0,
-      k,
-      num_clusters_cat,
-      fix_vec,
-      rep(F, N),
-      num_iter,
-      burn,
-      thinning,
-      outlier,
-      t_df,
-      record_posteriors,
-      normalise
-    )
-  }
+  # Gaussian clustering
+  sim <- gaussian_clustering(
+    num_iter,
+    concentration_0,
+    scale_0,
+    class_labels,
+    fix_vec,
+    mu_0,
+    lambda_0,
+    data,
+    df_0,
+    k,
+    burn,
+    thinning,
+    outlier,
+    t_df,
+    record_posteriors,
+    normalise,
+    2,
+    10
+  )
+  
   sim
 }
 
@@ -623,7 +815,9 @@ mdi_gauss_cat_clustering <- function(data, cat_data, k, class_labels, fix_vec,
 #' posterior distributions of the mean and variance for each cluster
 #' (default is FALSE)
 #' @return A named list of the relevant outputs from the MDI MCMC.
-mdi <- function(data_1, data_2, args_1, args_2,
+mdi <- function(data_1, data_2,
+                args_1 = NULL,
+                args_2 = NULL,
                 type_1 = "Gaussian",
                 type_2 = "Categorical",
                 n_clust_1 = 50,
@@ -668,7 +862,28 @@ mdi <- function(data_1, data_2, args_1, args_2,
   }
 
   thinning_warning(thinning, num_iter, burn)
-
+  
+  # Declare arguments if not given already
+  if (is.null(args_1) & is.null(args_2)) {
+    if ((type_1 == "Gaussian" | type_1 == "G")
+    & (type_2 == "Categorical" | type_2 == "C")) {
+      args_1 <- gaussian_arguments(data_1, n_clust_1)
+      args_2 <- categorical_arguments(data_2, n_clust_2)
+    } else if ((type_1 == "Gaussian" | type_1 == "G")
+    & (type_2 == "Gaussian" | type_2 == "G")) {
+      args_1 <- gaussian_arguments(data_1, n_clust_1)
+      args_2 <- gaussian_arguments(data_2, n_clust_2)
+    } else if ((type_1 == "Categorical" | type_1 == "C")
+    & (type_2 == "Categorical" | type_2 == "C")) {
+      args_1 <- categorical_arguments(data_1, n_clust_1)
+      args_2 <- categorical_arguments(data_2, n_clust_2)
+    } else if ((type_1 == "Categorical" | type_1 == "C")
+    & (type_2 == "Gaussian" | type_2 == "G")) {
+      args_1 <- categorical_arguments(data_1, n_clust_1)
+      args_2 <- gaussian_arguments(data_2, n_clust_2)
+    }
+  }
+  
   # Convert data to matrix format (maybe should just let it hit an error if this
   # isn't done in advance)
   data_1 <- as.matrix(data_1)
@@ -683,9 +898,9 @@ mdi <- function(data_1, data_2, args_1, args_2,
     weight_0 = cluster_weight_0_1
   )
 
-  cluster_weight_0_2 <- declare_cluster_weights(fix_vec_2, labels_0_2, n_clust_2,
-    weight_0 = cluster_weight_0_2
-  )
+  # cluster_weight_0_2 <- declare_cluster_weights(fix_vec_2, labels_0_2, n_clust_2,
+  #   weight_0 = cluster_weight_0_2
+  # )
 
   cluster_weight_0_2 <- declare_cluster_weights(c(0, 0), labels_0_2, n_clust_2,
     weight_0 = cluster_weight_0_2
@@ -695,16 +910,16 @@ mdi <- function(data_1, data_2, args_1, args_2,
   if (is.null(labels_0_1)) {
     labels_0_1 <- sample(1:n_clust_1,
       size = N,
-      replace = T,
-      prob = cluster_weight_0_1
+      replace = T #,
+      # prob = cluster_weight_0_1
     )
   }
 
   if (is.null(labels_0_2)) {
     labels_0_2 <- sample(1:n_clust_2,
       size = N,
-      replace = T,
-      prob = cluster_weight_0_2
+      replace = T #,
+      # prob = cluster_weight_0_2
     )
   }
 
@@ -717,9 +932,7 @@ mdi <- function(data_1, data_2, args_1, args_2,
     lambda_0 <- args_1$lambda_0
 
     phi_0 <- args_2$phi
-
-    # print()
-
+    
     sim <- mdi_gauss_cat(
       data_1,
       data_2,
@@ -818,136 +1031,12 @@ mdi <- function(data_1, data_2, args_1, args_2,
   sim
 }
 
-#' @title Gaussian arguments
-#' @description Creates a named list of the priors required for a mixture of
-#' Gaussians. If the user provides values the function will wrap them in a
-#' single object appropriate for input into the MDI function. If values are not
-#' given the priors are generated using an empirical method (hence the need for
-#' inputting the data and the number of clusters).
-#' @param data A matrix of continuous values.
-#' @param n_clust A unsigned integer; the number of clusters to be used in the
-#' clustering method.
-#' @param mu_0 A d-vector where d is the number of columns in data representing
-#' the prior beliefs about the mean for data. Defaults to the mean of data if
-#' given value is NULL.
-#' @param scale_0 A positive definite matrix. The prior for the scale parameter
-#' of the inverse wishart distribution; if NULL defaults to a diagonal matrix.
-#' @param lambda_0 A positive real number; the shrinkage prior for the mean.
-#' @param df_0 An integer. The degrees of freedom used in the inverse Wishart
-#' distribution from which the variance is sampled. If NULL defaults to d + 2.
-#' @return A named list ready to be used as input into the MDI function.
-#' @examples
-#' args <- gaussian_arguments(data, 5)
-gaussian_arguments <- function(data, n_clust,
-                               mu_0 = NULL,
-                               scale_0 = NULL,
-                               lambda_0 = NULL,
-                               df_0 = NULL) {
-  N <- nrow(data)
-  d <- ncol(data)
-
-  if (is.null(lambda_0)) {
-    lambda_0 <- 0.01
-  }
-
-  args <- empirical_bayes_gaussian(data, mu_0, df_0, scale_0, N, n_clust, d,
-    lambda_0 = lambda_0
-  )
-
-  args
-}
-
-#' @title Categorical arguments
-#' @description Creates a named list of the priors required for a mixture of
-#' Dirichlets. The priors are generated using an empirical method (hence the
-#' need for inputting the data and the number of clusters).
-#' @param data A matrix of continuous values.
-#' @param n_clust A unsigned integer; the number of clusters to be used in the
-#' clustering method.
-#' @return A named list ready to be used as input into the MDI function.
-categorical_arguments <- function(data, n_clust) {
-  args <- list(phi = phi_prior(data))
-  args
-}
-
-#' @title Thinning warning
-#' @description Generates an error or warning if the relative values of
-#' thinning, num_iter and burn (the arguments controlling the number of recorded
-#' MCMC samples) are strange.
-#' @return None.
-thinning_warning <- function(thinning, num_iter, burn) {
-  if (thinning > (num_iter - burn)) {
-    if (thinning > (num_iter - burn) & thinning < 5 * (num_iter - burn)) {
-      stop("Thinning factor exceeds iterations feasibly recorded. Stopping.")
-    } else if (thinning > 5 * (num_iter - burn) & thinning < 10 * (num_iter - burn)) {
-      stop("Thinning factor relatively large to effective iterations. Stopping algorithm.")
-    } else {
-      warning(paste0(
-        "Thinning factor relatively large to effective iterations.",
-        "\nSome samples recorded. Continuing but please check input"
-      ))
-    }
-  }
-}
-
-#' @title Declare cluster weights
-#' @description Creates a vector for the mass parameter for cluster weights.
-#' @param fix_vec Vector of 1's and 0's indicating if the corresponding entry in
-#' the data is a fixed label
-#' @param clust_labels A vector of unsigned integers representing the current
-#' labelling of points in the data
-#' @param n_clust A unsigned integer; the number of clusters to be used in the
-#' clustering method.
-#' @param weight_0 One of an int or a p-vector where p = n_clust. If an int
-#' defaults to a p-vector of p repetitions of said int.
-#' @return A vector of values to be used as the mass parameters for the weights
-#' for the clusters.
-declare_cluster_weights <- function(fix_vec, clust_labels, n_clust,
-                                    weight_0 = NULL) {
-  if (any(fix_vec == 1) & is.null(weight_0)) {
-    relevant_labels <- clust_labels[fix_vec == 1]
-    weight_0 <- unname(table(relevant_labels) / sum(table(relevant_labels)))
-  } else {
-    if (is.null(weight_0)) {
-      weight_0 <- 1
-    }
-    if (length(weight_0) < n_clust) {
-      print(paste0(
-        "Creating vector of ", n_clust, " repetitions of ", weight_0,
-        " for mass parameter prior."
-      ))
-      weight_0 <- rep(weight_0, n_clust)
-    }
-  }
-  weight_0
-}
 
 
 
 
 
-# --- Categorical clustering ---------------------------------------------------
-#' @title Phi prior
-#' @description Generates a prior for the phi vector for each variable for the Dirichlet
-#' distribution
-#' @param matrix_data A matrix of data.
-#' @return A list of vectors of the proportion of each level across all of
-#' matrix_data.
-phi_prior <- function(matrix_data) {
-
-  # lambda function applies ``table'' to each column of matr_data before
-  # removing names. This ensures the same output type for the case when all
-  # variables have the same number of levels and when they do not (rather than
-  # merely using one or two lapply's of table)
-  unnamed_list_prop <- lapply(
-    1:ncol(matrix_data),
-    function(i) {
-      table(matrix_data[, i])
-    }
-  ) %>%
-    unname() %>%
-    lapply("/", nrow(matrix_data))
-}
+# === OUTPUT ===================================================================
 
 # --- Heatmap ------------------------------------------------------------------
 #' @title Annotated Heatmap
@@ -1313,20 +1402,31 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
 #'                   sense_check_map = F
 #' )
 mcmc_out <- function(MS_object,
-                     class_labels_0 = NULL,
-                     mu_0 = NULL,
-                     df_0 = NULL,
-                     scale_0 = NULL,
-                     lambda_0 = 0.01,
-                     concentration_0 = NULL,
-                     cat_data = NULL,
-                     cluster_weight_priors_categorical = 1,
-                     phi_0 = NULL,
-                     c_clusters_label_0 = NULL,
-                     num_clusters_cat = 100,
+                     labels_0_1 = NULL,
+                     args_1 = NULL,
+                     cluster_weight_0_1 = NULL,
+                     data_2 = NULL,
+                     type_1 = "Gaussian",
+                     type_2 = "Categorical",
+                     cluster_weight_0_2 = 1,
+                     args_2 = NULL,
+                     labels_0_2 = NULL,
+                     # n_clust_1 = NULL,
+                     n_clust_2 = 50,
+                     fix_vec_1 = NULL,
+                     fix_vec_2 = rep(0, nrow(data_2)),
+                     a_0 = 1,
+                     b_0 = 0.2,
+                     outlier_1 = FALSE,
+                     t_df_1 = 4.0,
+                     normalise_1 = FALSE,
+                     outlier_2 = FALSE,
+                     t_df_2 = 4.0,
+                     normalise_2 = FALSE,
+                     record_posteriors = FALSE,
                      train = NULL,
                      num_iter = NULL,
-                     burn = NULL,
+                     burn = floor(num_iter / 10),
                      thinning = 25,
                      heat_plot = TRUE,
                      main = "heatmap_for_similarity",
@@ -1340,236 +1440,251 @@ mcmc_out <- function(MS_object,
                      mean_tolerance = 0.0005,
                      sd_tolerance = 0.0005,
                      sense_check_map = TRUE,
-                     outlier = FALSE,
-                     t_df = 4.0,
-                     prediction_threshold = 0.6,
-                     record_posteriors = FALSE,
-                     normalise = FALSE) {
+                     prediction_threshold = 0.5) {
   # MS data
   MS_data <- MS_dataset(MS_object, train = train)
-
+  
   mydata <- MS_data$data
   nk <- MS_data$nk
   row_names <- MS_data$row_names
-  fix_vec <- MS_data$fix_vec
-
+  fix_vec_1 <- MS_data$fix_vec
+  
   class_labels <- data.frame(Class = mydata$markers)
-
+  
   classes_present <- unique(fData(markerMSnSet(MS_object))[, "markers"])
-
+  
   rownames(class_labels) <- rownames(mydata)
-
+  
   # Numerical data of interest for clustering
   num_data <- mydata %>%
     dplyr::select(-markers)
-
+  
   # Parameters
-  k <- length(classes_present)
+  n_clust_1 <- length(classes_present)
   N <- nrow(num_data)
   d <- ncol(num_data)
-
+  
   # Key to transforming from int to class
   class_labels_key <- data.frame(Class = classes_present) # , Class_num = 1:k)
   class_labels_key %<>%
     arrange(Class) %>%
     dplyr::mutate(Class_key = as.numeric(Class))
-
+  
   class_labels %<>%
     mutate(Class_ind = as.numeric(mydata$markers))
-
-  if (outlier) {
-    outlier_row <- data.frame(Class = c("Outlier"), Class_key = c(k + 1))
-    class_labels_key <- suppressWarnings(bind_rows(class_labels_key, outlier_row))
-  }
-
-  # if(outlier){
-  # fixed_labels <- as.numeric(fData(markerMSnSet(MS_object))[, "markers"])
-  # unfixed_labels <- rep(k + outlier, N - length(fixed_labels))
-  # class_labels_0 <- c(fixed_labels, unfixed_labels)
-  # } else {
-  class_labels_0 <- cluster_label_prior(class_labels_0, nk, train, MS_object, k, N)
-  # }
-
-
+  
+  labels_0_1 <- cluster_label_prior(labels_0_1, nk, train, MS_object, n_clust_1, N)
+  
+  
   if (is.null(num_iter)) {
     num_iter <- floor(min((d^2) * 1000 / sqrt(N), 10000))
   }
-
+  
   if (is.null(burn)) {
     burn <- floor(num_iter / 10)
   }
-
+  
   if (burn > num_iter) {
     stop("Burn in exceeds total iterations. None will be recorded.\nStopping.")
   }
-
-  if (thinning > (num_iter - burn)) {
-    if (thinning > (num_iter - burn) & thinning < 5 * (num_iter - burn)) {
-      stop("Thinning factor exceeds iterations feasibly recorded. Stopping.")
-    } else if (thinning > 5 * (num_iter - burn) & thinning < 10 * (num_iter - burn)) {
-      stop("Thinning factor relatively large to effective iterations. Stopping algorithm.")
-    } else {
-      warning(paste0(
-        "Thinning factor relatively large to effective iterations.",
-        "\nSome samples recorded. Continuing but please check input"
-      ))
-    }
-  }
-
+  
+  # Warning if thinning is too high compared to num_iter - burn
+  thinning_warning(thinning, num_iter, burn)
+  
   # Prior on mass parameter for cluster  weights
-  if (is.null(concentration_0)) {
-    if (is.null(train) | isTRUE(train)) {
-      concentration_0 <- cluster_weight_prior(mydata$markers, outlier = outlier)
-    } else {
-      concentration_0 <- rep(0.1, k + outlier)
-    }
-    concentration_0 <- rep(0.1, (k + outlier))
-  } else if (length(concentration_0) < (k + outlier)) {
+  if (is.null(cluster_weight_0_1)) {
     print(paste0(
-      "Creating vector of ", k + outlier, " repetitions of ", concentration_0,
-      " for concentration prior."
+      "Creating vector of ", n_clust_1, " repetitions of ", 1,
+      " for mass parameter prior for dataset 1."
     ))
-    concentration_0 <- rep(concentration_0, k + outlier)
+    cluster_weight_0_1 <- rep(1, (n_clust_1))
+  } else if (length(cluster_weight_0_1) < (n_clust_1)) {
+    print(paste0(
+      "Creating vector of ", n_clust_1, " repetitions of ", cluster_weight_0_1,
+      " for mass parameter prior for dataset 1."
+    ))
+    cluster_weight_0_1 <- rep(cluster_weight_0_1, n_clust_1)
   }
+  
+  # Convert to matrix format
+  num_data_mat <- as.matrix(num_data)
+  data_2_mat <- as.matrix(data_2)
+  
+  if (is.null(data_2)) {
+    
+    gibbs <- gibbs_sampling(num_data_mat, n_clust_1, labels_0_1, fix_vec_1,
+                            d = d,
+                            N = N,
+                            num_iter = num_iter,
+                            burn = burn,
+                            mu_0 = args_1$mu_0,
+                            df_0 = args_1$df_0,
+                            scale_0 = args_1$scale_0,
+                            lambda_0 = args_1$lambda_0,
+                            concentration_0 = cluster_weight_0_1,
+                            thinning = thinning,
+                            outlier = outlier_1,
+                            t_df = t_df_1,
+                            record_posteriors = record_posteriors,
+                            normalise = normalise_1
+    )
+  } else {
 
-  gibbs <- gibbs_sampling(num_data, k, class_labels_0, fix_vec,
-    d = d,
-    N = N,
-    num_iter = num_iter,
-    burn = burn,
-    mu_0 = mu_0,
-    df_0 = df_0,
-    scale_0 = scale_0,
-    lambda_0 = lambda_0,
-    concentration_0 = concentration_0,
-    cat_data = cat_data,
-    cluster_weight_priors_categorical = cluster_weight_priors_categorical,
-    phi_0 = phi_0,
-    c_clusters_label_0 = c_clusters_label_0,
-    num_clusters_cat = num_clusters_cat,
-    thinning = thinning,
-    outlier = outlier,
-    t_df = t_df,
-    record_posteriors = record_posteriors,
-    normalise = normalise
-  )
-
+    gibbs <- mdi(num_data_mat, data_2_mat,
+                 args_1 = args_1,
+                 args_2 = args_2,
+                 type_1 = type_1,
+                 type_2 = type_2,
+                 n_clust_1 = n_clust_1,
+                 n_clust_2 = n_clust_2,
+                 labels_0_1 = labels_0_1,
+                 labels_0_2 = labels_0_2,
+                 d = d,
+                 N = N,
+                 a_0 = 1,
+                 b_0 = 0.2,
+                 fix_vec_1 = fix_vec_1,
+                 fix_vec_2 = fix_vec_2,
+                 cluster_weight_0_1 = cluster_weight_0_1,
+                 cluster_weight_0_2 = cluster_weight_0_2,
+                 num_iter = num_iter,
+                 burn = burn,
+                 thinning = thinning,
+                 outlier_1 = outlier_1,
+                 t_df_1 = t_df_1,
+                 normalise_1 = normalise_1,
+                 outlier_2 = outlier_2,
+                 t_df_2 = t_df_2,
+                 normalise_2 = normalise_2,
+                 record_posteriors = record_posteriors
+    )
+  }
+  
   print("Gibbs sampling complete")
-  # return(gibbs)
-
-  if (is.null(cat_data)) {
+  
+  if (is.null(data_2)) {
     class_record <- gibbs$class_record
   } else {
     class_record <- gibbs$class_record_1
   }
-
+  
   # Create a dataframe for the predicted class
   class_allocation_table <- with(
     stack(data.frame(t(class_record))),
     table(ind, values)
   )
-
+  
   eff_iter <- ceiling((num_iter - burn) / thinning)
 
+  
   # Create a column Class_key containing an integer in 1:k representing the most
   # common class allocation, and a Count column with the proportion of times the
   # entry was allocated to said class
   predicted_classes <- data.frame(
     Class_key =
       as.numeric(colnames(class_allocation_table)
-      [apply(
-          class_allocation_table,
-          1,
-          which.max
-        )]),
+                 [apply(
+                   class_allocation_table,
+                   1,
+                   which.max
+                 )]),
     Count = apply(class_allocation_table, 1, max) / eff_iter
   )
-
+  
   # Change the prediction to NA for any entry with a proportion below the input
   # threshold
   predicted_classes[predicted_classes$Count < prediction_threshold, ] <- NA
-
+  
   predicted_classes$Class <- class_labels_key$Class[match(
     predicted_classes$Class_key,
     class_labels_key$Class_key
   )]
-
+  
   gibbs$predicted_class <- predicted_classes
-
+  
   # Example input for annotation_row in pheatmap
   annotation_row <- class_labels %>% dplyr::select(Class)
   annotation_row %<>%
     mutate(Predicted_class = predicted_classes$Class)
-
+  
   rownames(num_data) <- row_names
   # print(rownames(mydata[1:10,]))
-
+  
   rownames(annotation_row) <- rownames(num_data)
-
+  
   col_pal <- RColorBrewer::brewer.pal(9, "Blues")
-
+  
   if (sense_check_map) {
-    pauls_heatmap <- annotated_heatmap(num_data, annotation_row,
-      sort_by_col = Predicted_class,
-      train = train,
-      main = "Paul's sense check heatmap",
-      cluster_row = FALSE,
-      cluster_cols = FALSE,
-      color = col_pal,
-      fontsize = fontsize,
-      fontsize_row = fontsize_row,
-      fontsize_col = fontsize_col
+    # pauls_heatmap <- annotated_heatmap(num_data, annotation_row,
+    #   sort_by_col = Predicted_class,
+    #   train = train,
+    #   main = "Paul's sense check heatmap",
+    #   cluster_row = FALSE,
+    #   cluster_cols = FALSE,
+    #   color = col_pal,
+    #   fontsize = fontsize,
+    #   fontsize_row = fontsize_row,
+    #   fontsize_col = fontsize_col
+    # )
+
+    pauls_heatmap <- pheatmap_cluster_by_col(num_data, annotation_row, Predicted_class,
+                                             main = "Paul's sense check heatmap",
+                                             color = col_pal,
+                                             fontsize = fontsize,
+                                             fontsize_row = fontsize_row,
+                                             fontsize_col = fontsize_col
     )
+    
   }
-
+  
   # return(pauls_heatmap)
-
+  
   all_data <- dplyr::bind_cols(num_data, dplyr::select(gibbs$predicted_class, Class))
-  all_data$Fixed <- fix_vec
+  all_data$Fixed <- fix_vec_1
   all_data$Protein <- rownames(num_data)
-
+  
   # rownames(all_data) <- rownames(num_data)
-
+  
   if (heat_plot) {
-
+    
     # dissimilarity matrix
-    if (is.null(cat_data)) {
+    if (is.null(data_2)) {
       sim <- gibbs$similarity
     } else {
       sim <- gibbs$similarity_1
     }
-
+    
     dissim <- 1 - sim
-
+    
     # Require names to associate data in annotation columns with original data
     colnames(dissim) <- rownames(num_data)
     rownames(dissim) <- rownames(num_data)
-
+    
     col_pal <- RColorBrewer::brewer.pal(9, "Blues")
-
+    
     heat_map <- annotated_heatmap(dissim, annotation_row,
-      train = train,
-      main = main,
-      cluster_row = cluster_row,
-      cluster_cols = cluster_cols,
-      color = col_pal,
-      fontsize = fontsize,
-      fontsize_row = fontsize_row,
-      fontsize_col = fontsize_col
+                                  train = train,
+                                  main = main,
+                                  cluster_row = cluster_row,
+                                  cluster_cols = cluster_cols,
+                                  color = col_pal,
+                                  fontsize = fontsize,
+                                  fontsize_row = fontsize_row,
+                                  fontsize_col = fontsize_col
     )
   }
   if (entropy_plot) {
-    entropy_data <- data.frame(Index = 1:num_iter, Entropy = gibbs$entropy)
-
+    entropy_data <- data.frame(Index = 1:(num_iter + 1), Entropy = gibbs$entropy)
+    
     rec_burn <- entropy_window(gibbs$entropy,
-      window_length = window_length,
-      mean_tolerance = mean_tolerance,
-      sd_tolerance = sd_tolerance
+                               window_length = window_length,
+                               mean_tolerance = mean_tolerance,
+                               sd_tolerance = sd_tolerance
     )
-
+    
     # Check if instantly ok
     rec_burn <- ifelse(is.null(rec_burn), 1, rec_burn)
-
+    
     entropy_scatter <- ggplot(data = entropy_data, mapping = aes(x = Index, y = Entropy)) +
       geom_point() +
       geom_vline(mapping = aes(xintercept = rec_burn, colour = "Reccomended"), lty = 2) +
@@ -1605,158 +1720,346 @@ mcmc_out <- function(MS_object,
       data = all_data
     ))
   }
-
-  return(list(gibbs = gibbs, data = all_data))
-}
-
-#' @title MS dataset
-#' @description Given an MS object from pRolocData, returns the numerical data,
-#' the count of each class and the vector recording which labels are fixed (i.e
-#' from the training set) and unfixed.
-#'
-#' @param MS_object A dataset in the format used by pRolocdata.
-#' @param train: instruction to include all data (NULL), labelled data (TRUE) or
-#' unlabelled data (FALSE). Default is NULL.
-#' @examples
-#' data("hyperLOPIT2015") # MS object from pRolocData
-#' MS_data <- MS_dataset(hyperLOPIT2015)
-MS_dataset <- function(MS_object, train = NULL) {
-  # Data with labels
-  mydata_labels <- pRoloc:::subsetAsDataFrame(
-    object = MS_object,
-    fcol = "markers",
-    train = TRUE
-  )
-
-  # fixed <- rep(TRUE, nrow(mydata_labels))
-  fixed <- rep(1, nrow(mydata_labels))
-
-  mydata_no_labels <- pRoloc:::subsetAsDataFrame(
-    object = MS_object,
-    fcol = "markers",
-    train = FALSE
-  )
-
-  # not_fixed <- rep(FALSE, nrow(mydata_no_labels))
-  not_fixed <- rep(0, nrow(mydata_no_labels))
-
-  nk <- tabulate(fData(markerMSnSet(MS_object))[, "markers"])
-
-  mydata_no_labels$markers <- NA
-
-  if (is.null(train)) {
-    row_names <- c(rownames(mydata_labels), rownames(mydata_no_labels))
-    mydata <- suppressWarnings(bind_rows(mydata_labels, mydata_no_labels))
-    fix_vec <- c(fixed, not_fixed)
-  } else if (isTRUE(train)) {
-    row_names <- c(rownames(mydata_labels))
-    mydata <- mydata_labels
-    fix_vec <- fixed
-  } else {
-    row_names <- c(rownames(mydata_no_labels))
-    mydata <- mydata_no_labels
-    fix_vec <- not_fixed
-  }
-  return(list(data = mydata, fix_vec = fix_vec, row_names = row_names, nk = nk))
+  
+  return(list(gibbs = gibbs, data = all_data, data_2 = data_2))
 }
 
 
 
-#' @title Cluster label prior
-#' @description Generates a vector of labels if required
-#' @param class_labels_0 An optional prior for clusters in MS_object. If NULL
-#' defaults to a randomly generated set using the proportion in the labelled
-#' data.
-#' @param nk Table of the frequency of the classes in the datset
-#' @param train A NULL, TRUE or FALSE value informing if supervised (TRUE),
-#' semi-supervised (NULL) or unsupervised (FALSE)
-#' @param MS_object The MS object from pRolocData being analysed
-#' @param k The number of clusters in the dataset
-#' @param N The number of observations
-#' @return A vector of integers corresponding to the cluster allocation of the N
-#' observations
-cluster_label_prior <- function(class_labels_0,
-                                nk,
-                                train,
-                                MS_object,
-                                k,
-                                N) {
-  # Generate class labels
-  if (is.null(class_labels_0)) {
-    class_weights <- nk / sum(nk)
-    if (is.null(train)) {
-      fixed_labels <- as.numeric(fData(markerMSnSet(MS_object))[, "markers"])
-      class_labels_0 <- c(fixed_labels, sample(1:k, N - length(fixed_labels),
-        replace = T,
-        prob = class_weights
-      ))
-    } else if (isTRUE(train)) {
-      class_labels_0 <- as.numeric(fData(markerMSnSet(MS_object))[, "markers"])
-    } else {
-      class_labels_0 <- sample(1:k, N, replace = T, prob = class_weights)
-    }
-  }
-  return(class_labels_0)
-}
 
-# === Olly =====================================================================
-#
-# set.seed(5)
-#
-# # MS object
-# data("HEK293T2011") # Human Embroyonic Kidney dataset
-# data("hyperLOPIT2015") # Olly's normal data I think
-# t1 <- Sys.time()
-#
-# stuff <- mcmc_out(HEK293T2011,
-#   num_iter = 10000,
-#   burn = 1000,
-#   thinning = 50,
-#   outlier = TRUE,
-#   heat_plot = TRUE,
-#   main = "Gene clustering by organelle",
-#   prediction_threshold = 0.5
-# )
-#
-# t2 <- Sys.time()
-#
-# t2 - t1 # how long does it take
-#
-# # To plot the entropy over iterations
-# # stuff$entropy_plot
-# # str(stuff$gibbs$class_prob)
-# #
-# # str(stuff$gibbs$class_record)
-# #
-# # stuff$gibbs$predicted_class
-# #
-# # y <- stuff$gibbs$class_record
-# # z <- with(stack(data.frame(t(y))), table(ind, values))
-# # predicted_classes <- data.frame(Class_key = as.numeric(colnames(z)[apply(z, 1, which.max)]),
-# #                                 Count = apply(z, 1, max))
-# #
-# # predicted_classes$Class <- df2$B[match(df1$Class_key, df2$Class_key)]
-# #
-# # predicted_classes %<>%
-# #   dplyr::mutate(Class = 0)
-# #
-# # summary(stuff$gibbs$predicted_class)
-#
-#
-# # stuff$Protein <- rownames(stuff)
-# z <- melt(stuff$data, id.vars = c("Protein", "Class", "Fixed"))
-# # z$Fixed <- as.numeric(z$Fixed)
-#
-# curr_data <- z %>%
-#   filter(Class %in% c("Cytosol", "PM"))
-#
-# curr_data %<>% group_by(Protein)
-#
-# ggplot(data = curr_data,
-#        aes(x = variable, y = value, colour = Class, group = Protein)
-#        ) +
-#   geom_point() +
-#   geom_line(aes(linetype = Fixed)) +
-#   # gghighlight(! Fixed, use_direct_label = FALSE) +
-#   NULL
-#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# mcmc_out <- function(MS_object,
+#                      class_labels_0 = NULL,
+#                      mu_0 = NULL,
+#                      df_0 = NULL,
+#                      scale_0 = NULL,
+#                      lambda_0 = 0.01,
+#                      concentration_0 = NULL,
+#                      cat_data = NULL,
+#                      cluster_weight_priors_categorical = 1,
+#                      phi_0 = NULL,
+#                      c_clusters_label_0 = NULL,
+#                      num_clusters_cat = 100,
+#                      train = NULL,
+#                      num_iter = NULL,
+#                      burn = floor(num_iter / 10),
+#                      thinning = 25,
+#                      heat_plot = TRUE,
+#                      main = "heatmap_for_similarity",
+#                      cluster_row = T,
+#                      cluster_cols = T,
+#                      fontsize = 10,
+#                      fontsize_row = 6,
+#                      fontsize_col = 6,
+#                      entropy_plot = TRUE,
+#                      window_length = min(25, num_iter / 5),
+#                      mean_tolerance = 0.0005,
+#                      sd_tolerance = 0.0005,
+#                      sense_check_map = TRUE,
+#                      outlier = FALSE,
+#                      t_df = 4.0,
+#                      prediction_threshold = 0.6,
+#                      record_posteriors = FALSE,
+#                      normalise = FALSE) {
+#   # MS data
+#   MS_data <- MS_dataset(MS_object, train = train)
+# 
+#   mydata <- MS_data$data
+#   nk <- MS_data$nk
+#   row_names <- MS_data$row_names
+#   fix_vec <- MS_data$fix_vec
+# 
+#   class_labels <- data.frame(Class = mydata$markers)
+# 
+#   classes_present <- unique(fData(markerMSnSet(MS_object))[, "markers"])
+# 
+#   rownames(class_labels) <- rownames(mydata)
+# 
+#   # Numerical data of interest for clustering
+#   num_data <- mydata %>%
+#     dplyr::select(-markers)
+# 
+#   # Parameters
+#   k <- length(classes_present)
+#   N <- nrow(num_data)
+#   d <- ncol(num_data)
+# 
+#   # Key to transforming from int to class
+#   class_labels_key <- data.frame(Class = classes_present) # , Class_num = 1:k)
+#   class_labels_key %<>%
+#     arrange(Class) %>%
+#     dplyr::mutate(Class_key = as.numeric(Class))
+# 
+#   class_labels %<>%
+#     mutate(Class_ind = as.numeric(mydata$markers))
+# 
+#   # if (outlier) {
+#   #   outlier_row <- data.frame(Class = c("Outlier"), Class_key = c(k + 1))
+#   #   class_labels_key <- suppressWarnings(bind_rows(class_labels_key, outlier_row))
+#   # }
+#   #
+#   # if(outlier){
+#   # fixed_labels <- as.numeric(fData(markerMSnSet(MS_object))[, "markers"])
+#   # unfixed_labels <- rep(k + outlier, N - length(fixed_labels))
+#   # class_labels_0 <- c(fixed_labels, unfixed_labels)
+#   # } else {
+# 
+#   class_labels_0 <- cluster_label_prior(class_labels_0, nk, train, MS_object, k, N)
+#   # }
+# 
+# 
+#   if (is.null(num_iter)) {
+#     num_iter <- floor(min((d^2) * 1000 / sqrt(N), 10000))
+#   }
+# 
+#   if (is.null(burn)) {
+#     burn <- floor(num_iter / 10)
+#   }
+# 
+#   if (burn > num_iter) {
+#     stop("Burn in exceeds total iterations. None will be recorded.\nStopping.")
+#   }
+# 
+#   # Warning if thinning is too high compared to num_iter - burn
+#   thinning_warning(thinning, num_iter, burn)
+# 
+#   # Prior on mass parameter for cluster  weights
+#   if (is.null(concentration_0)) {
+#     # if (is.null(train) | isTRUE(train)) {
+#     #   concentration_0 <- cluster_weight_prior(mydata$markers, outlier = outlier)
+#     # } else {
+#     #   concentration_0 <- rep(0.1, k)
+#     # }
+#     concentration_0 <- rep(1, (k))
+#   } else if (length(concentration_0) < (k)) {
+#     print(paste0(
+#       "Creating vector of ", k, " repetitions of ", concentration_0,
+#       " for concentration prior."
+#     ))
+#     concentration_0 <- rep(concentration_0, k)
+#   }
+# 
+#   gibbs <- gibbs_sampling(num_data, k, class_labels_0, fix_vec,
+#     d = d,
+#     N = N,
+#     num_iter = num_iter,
+#     burn = burn,
+#     mu_0 = mu_0,
+#     df_0 = df_0,
+#     scale_0 = scale_0,
+#     lambda_0 = lambda_0,
+#     concentration_0 = concentration_0,
+#     cat_data = cat_data,
+#     cluster_weight_priors_categorical = cluster_weight_priors_categorical,
+#     phi_0 = phi_0,
+#     c_clusters_label_0 = c_clusters_label_0,
+#     num_clusters_cat = num_clusters_cat,
+#     thinning = thinning,
+#     outlier = outlier,
+#     t_df = t_df,
+#     record_posteriors = record_posteriors,
+#     normalise = normalise
+#   )
+# 
+#   if (!is.null(cat_data)) {
+#     gibbs <- mdi(num_data, cat_data,
+#       args_1 = args_1,
+#       args_2 = args_2,
+#       type_1 = "Gaussian",
+#       type_2 = "Categorical",
+#       n_clust_1 = k,
+#       n_clust_2 = num_clusters_cat,
+#       labels_0_1 = class_labels_0,
+#       labels_0_2 = c_clusters_label_0,
+#       d = d,
+#       N = N,
+#       a_0 = 1,
+#       b_0 = 0.2,
+#       fix_vec_1 = fix_vec,
+#       fix_vec_2 = rep(0, nrow(cat_data)),
+#       cluster_weight_0_1 = concentration_0,
+#       cluster_weight_0_2 = cluster_weight_priors_categorical,
+#       num_iter = num_iter,
+#       burn = burn,
+#       thinning = thinning,
+#       outlier_1 = outlier,
+#       t_df_1 = t_df,
+#       normalise_1 = normalise,
+#       outlier_2 = FALSE,
+#       t_df_2 = 4.0,
+#       normalise_2 = FALSE,
+#       record_posteriors = record_posteriors
+#     )
+#   }
+# 
+# 
+# 
+#   print("Gibbs sampling complete")
+# 
+#   if (is.null(cat_data)) {
+#     class_record <- gibbs$class_record
+#   } else {
+#     class_record <- gibbs$class_record_1
+#   }
+# 
+#   # Create a dataframe for the predicted class
+#   class_allocation_table <- with(
+#     stack(data.frame(t(class_record))),
+#     table(ind, values)
+#   )
+# 
+#   eff_iter <- ceiling((num_iter - burn) / thinning)
+# 
+#   # Create a column Class_key containing an integer in 1:k representing the most
+#   # common class allocation, and a Count column with the proportion of times the
+#   # entry was allocated to said class
+#   predicted_classes <- data.frame(
+#     Class_key =
+#       as.numeric(colnames(class_allocation_table)
+#       [apply(
+#           class_allocation_table,
+#           1,
+#           which.max
+#         )]),
+#     Count = apply(class_allocation_table, 1, max) / eff_iter
+#   )
+# 
+#   # Change the prediction to NA for any entry with a proportion below the input
+#   # threshold
+#   predicted_classes[predicted_classes$Count < prediction_threshold, ] <- NA
+# 
+#   predicted_classes$Class <- class_labels_key$Class[match(
+#     predicted_classes$Class_key,
+#     class_labels_key$Class_key
+#   )]
+# 
+#   gibbs$predicted_class <- predicted_classes
+# 
+#   # Example input for annotation_row in pheatmap
+#   annotation_row <- class_labels %>% dplyr::select(Class)
+#   annotation_row %<>%
+#     mutate(Predicted_class = predicted_classes$Class)
+# 
+#   rownames(num_data) <- row_names
+#   # print(rownames(mydata[1:10,]))
+# 
+#   rownames(annotation_row) <- rownames(num_data)
+# 
+#   col_pal <- RColorBrewer::brewer.pal(9, "Blues")
+# 
+#   if (sense_check_map) {
+#     pauls_heatmap <- annotated_heatmap(num_data, annotation_row,
+#       sort_by_col = Predicted_class,
+#       train = train,
+#       main = "Paul's sense check heatmap",
+#       cluster_row = FALSE,
+#       cluster_cols = FALSE,
+#       color = col_pal,
+#       fontsize = fontsize,
+#       fontsize_row = fontsize_row,
+#       fontsize_col = fontsize_col
+#     )
+#   }
+# 
+#   # return(pauls_heatmap)
+# 
+#   all_data <- dplyr::bind_cols(num_data, dplyr::select(gibbs$predicted_class, Class))
+#   all_data$Fixed <- fix_vec
+#   all_data$Protein <- rownames(num_data)
+# 
+#   # rownames(all_data) <- rownames(num_data)
+# 
+#   if (heat_plot) {
+# 
+#     # dissimilarity matrix
+#     if (is.null(cat_data)) {
+#       sim <- gibbs$similarity
+#     } else {
+#       sim <- gibbs$similarity_1
+#     }
+# 
+#     dissim <- 1 - sim
+# 
+#     # Require names to associate data in annotation columns with original data
+#     colnames(dissim) <- rownames(num_data)
+#     rownames(dissim) <- rownames(num_data)
+# 
+#     col_pal <- RColorBrewer::brewer.pal(9, "Blues")
+# 
+#     heat_map <- annotated_heatmap(dissim, annotation_row,
+#       train = train,
+#       main = main,
+#       cluster_row = cluster_row,
+#       cluster_cols = cluster_cols,
+#       color = col_pal,
+#       fontsize = fontsize,
+#       fontsize_row = fontsize_row,
+#       fontsize_col = fontsize_col
+#     )
+#   }
+#   if (entropy_plot) {
+#     entropy_data <- data.frame(Index = 1:num_iter, Entropy = gibbs$entropy)
+# 
+#     rec_burn <- entropy_window(gibbs$entropy,
+#       window_length = window_length,
+#       mean_tolerance = mean_tolerance,
+#       sd_tolerance = sd_tolerance
+#     )
+# 
+#     # Check if instantly ok
+#     rec_burn <- ifelse(is.null(rec_burn), 1, rec_burn)
+# 
+#     entropy_scatter <- ggplot(data = entropy_data, mapping = aes(x = Index, y = Entropy)) +
+#       geom_point() +
+#       geom_vline(mapping = aes(xintercept = rec_burn, colour = "Reccomended"), lty = 2) +
+#       geom_vline(mapping = aes(xintercept = burn, colour = "Implemented"), lty = 4) +
+#       ggtitle("Entropy over iterations including recommended and implemented burn") +
+#       xlab("Iteration") + ylab("Entropy") +
+#       scale_color_manual(name = "Burn", values = c(
+#         Reccomended = "red",
+#         Implemented = "blue"
+#       ))
+#   }
+#   if (heat_plot & entropy_plot) {
+#     return(list(
+#       gibbs = gibbs,
+#       heat_map = heat_map,
+#       entropy_plot = entropy_scatter,
+#       rec_burn = rec_burn,
+#       data = all_data
+#     ))
+#   }
+#   if (heat_plot) {
+#     return(list(
+#       gibbs = gibbs,
+#       heatmap = heat_map,
+#       data = all_data
+#     ))
+#   }
+#   if (entropy_plot) {
+#     return(list(
+#       gibbs = gibbs,
+#       entropy_plot = entropy_scatter,
+#       rec_burn = rec_burn,
+#       data = all_data
+#     ))
+#   }
+# 
+#   return(list(gibbs = gibbs, data = all_data))
+# }
+
+
+# === Cross-Validation =========================================================
