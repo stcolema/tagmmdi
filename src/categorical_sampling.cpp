@@ -615,6 +615,9 @@ Rcpp::List categorical_clustering(arma::umat data,
                                   arma::uword burn,
                                   arma::uword thinning){
   
+  // To allow using < and keeping in line with object sizes
+  num_iter++;
+  
   arma::uword n = data.n_rows;
   arma::uword num_cols = data.n_cols;
   
@@ -1118,6 +1121,9 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
   arma::uword num_cols;
   N = data.n_rows;
   num_cols = data.n_cols;
+  
+  // To allow using < and keeping in line with object sizes
+  num_iter++;
   
   //  Normalise the continuous data
   if(normalise){
