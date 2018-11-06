@@ -94,10 +94,10 @@ MS_dataset <- function(MS_object, train = NULL) {
 
   nk <- tabulate(fData(markerMSnSet(MS_object))[, "markers"])
 
-  if(nrow(mydata_no_labels) > 0){
+  if (nrow(mydata_no_labels) > 0) {
     mydata_no_labels$markers <- NA
   }
-  
+
   if (is.null(train)) {
     row_names <- c(rownames(mydata_labels), rownames(mydata_no_labels))
     mydata <- suppressWarnings(bind_rows(mydata_labels, mydata_no_labels))
@@ -181,7 +181,7 @@ empirical_bayes_gaussian <- function(data, mu_0, df_0, scale_0, N, k, d,
   if (is.null(scale_0)) {
     scale_0 <- diag(colSums((data - mean(data))^2) / N) / (k^(1 / d))
     if (any(is.na(scale_0))) {
-      scale_0 <- diag(d)  / (k^(1 / d))
+      scale_0 <- diag(d) / (k^(1 / d))
     }
   }
   parameters$mu_0 <- mu_0
@@ -431,17 +431,18 @@ gibbs_sampling <- function(data, k, class_labels,
 
   # Empirical Bayes
   parameters_0 <- gaussian_arguments(data, k,
-                     mu_0 = mu_0,
-                     scale_0 = scale_0,
-                     lambda_0 = lambda_0,
-                     df_0 = df_0)
-  
+    mu_0 = mu_0,
+    scale_0 = scale_0,
+    lambda_0 = lambda_0,
+    df_0 = df_0
+  )
+
   # parameters_0 <- empirical_bayes_gaussian(data, mu_0, df_0, scale_0, N, k, d)
 
   mu_0 <- parameters_0$mu_0
   df_0 <- parameters_0$df_0
   scale_0 <- parameters_0$scale_0
-  lambda_0  <- parameters_0$lambda_0
+  lambda_0 <- parameters_0$lambda_0
 
 
   # Prior on mass parameter for cluster  weights
@@ -455,7 +456,6 @@ gibbs_sampling <- function(data, k, class_labels,
       ))
       cluster_weight_priors_categorical <- rep(cluster_weight_priors_categorical, num_clusters_cat)
     }
-
   }
 
   # Gaussian clustering
@@ -479,7 +479,7 @@ gibbs_sampling <- function(data, k, class_labels,
     2,
     10
   )
-  
+
   sim
 }
 
@@ -864,7 +864,7 @@ mdi <- function(data_1, data_2,
   }
 
   thinning_warning(thinning, num_iter, burn)
-  
+
   # Declare arguments if not given already
   if (is.null(args_1) & is.null(args_2)) {
     if ((type_1 == "Gaussian" | type_1 == "G")
@@ -885,7 +885,7 @@ mdi <- function(data_1, data_2,
       args_2 <- gaussian_arguments(data_2, n_clust_2)
     }
   }
-  
+
   # Convert data to matrix format (maybe should just let it hit an error if this
   # isn't done in advance)
   data_1 <- as.matrix(data_1)
@@ -912,7 +912,7 @@ mdi <- function(data_1, data_2,
   if (is.null(labels_0_1)) {
     labels_0_1 <- sample(1:n_clust_1,
       size = N,
-      replace = T #,
+      replace = T # ,
       # prob = cluster_weight_0_1
     )
   }
@@ -920,7 +920,7 @@ mdi <- function(data_1, data_2,
   if (is.null(labels_0_2)) {
     labels_0_2 <- sample(1:n_clust_2,
       size = N,
-      replace = T #,
+      replace = T # ,
       # prob = cluster_weight_0_2
     )
   }
@@ -934,7 +934,7 @@ mdi <- function(data_1, data_2,
     lambda_0 <- args_1$lambda_0
 
     phi_0 <- args_2$phi
-    
+
     sim <- mdi_gauss_cat(
       data_1,
       data_2,
@@ -1446,58 +1446,58 @@ mcmc_out <- function(MS_object,
                      prediction_threshold = 0.5) {
   # MS data
   MS_data <- MS_dataset(MS_object, train = train)
-  
+
   mydata <- MS_data$data
   nk <- MS_data$nk
   row_names <- MS_data$row_names
-  
-  if(is.null(fix_vec_1)){
+
+  if (is.null(fix_vec_1)) {
     fix_vec_1 <- MS_data$fix_vec
   }
-  
-  
+
+
   class_labels <- data.frame(Class = mydata$markers)
-  
+
   classes_present <- unique(fData(markerMSnSet(MS_object))[, "markers"])
-  
+
   rownames(class_labels) <- rownames(mydata)
-  
+
   # Numerical data of interest for clustering
   num_data <- mydata %>%
     dplyr::select(-markers)
-  
+
   # Parameters
   n_clust_1 <- length(classes_present)
   N <- nrow(num_data)
   d <- ncol(num_data)
-  
+
   # Key to transforming from int to class
   class_labels_key <- data.frame(Class = classes_present) # , Class_num = 1:k)
   class_labels_key %<>%
     arrange(Class) %>%
     dplyr::mutate(Class_key = as.numeric(Class))
-  
+
   class_labels %<>%
     mutate(Class_ind = as.numeric(mydata$markers))
-  
+
   labels_0_1 <- cluster_label_prior(labels_0_1, nk, train, MS_object, n_clust_1, N)
-  
-  
+
+
   if (is.null(num_iter)) {
     num_iter <- floor(min((d^2) * 1000 / sqrt(N), 10000))
   }
-  
+
   if (is.null(burn)) {
     burn <- floor(num_iter / 10)
   }
-  
+
   if (burn > num_iter) {
     stop("Burn in exceeds total iterations. None will be recorded.\nStopping.")
   }
-  
+
   # Warning if thinning is too high compared to num_iter - burn
   thinning_warning(thinning, num_iter, burn)
-  
+
   # Prior on mass parameter for cluster  weights
   if (is.null(cluster_weight_0_1)) {
     print(paste0(
@@ -1512,75 +1512,73 @@ mcmc_out <- function(MS_object,
     ))
     cluster_weight_0_1 <- rep(cluster_weight_0_1, n_clust_1)
   }
-  
+
   # Convert to matrix format
   num_data_mat <- as.matrix(num_data)
   data_2_mat <- as.matrix(data_2)
-  
+
   if (is.null(data_2)) {
-    
     gibbs <- gibbs_sampling(num_data_mat, n_clust_1, labels_0_1, fix_vec_1,
-                            d = d,
-                            N = N,
-                            num_iter = num_iter,
-                            burn = burn,
-                            mu_0 = args_1$mu_0,
-                            df_0 = args_1$df_0,
-                            scale_0 = args_1$scale_0,
-                            lambda_0 = args_1$lambda_0,
-                            concentration_0 = cluster_weight_0_1,
-                            thinning = thinning,
-                            outlier = outlier_1,
-                            t_df = t_df_1,
-                            record_posteriors = record_posteriors,
-                            normalise = normalise_1
+      d = d,
+      N = N,
+      num_iter = num_iter,
+      burn = burn,
+      mu_0 = args_1$mu_0,
+      df_0 = args_1$df_0,
+      scale_0 = args_1$scale_0,
+      lambda_0 = args_1$lambda_0,
+      concentration_0 = cluster_weight_0_1,
+      thinning = thinning,
+      outlier = outlier_1,
+      t_df = t_df_1,
+      record_posteriors = record_posteriors,
+      normalise = normalise_1
     )
   } else {
-
     gibbs <- mdi(num_data_mat, data_2_mat,
-                 args_1 = args_1,
-                 args_2 = args_2,
-                 type_1 = type_1,
-                 type_2 = type_2,
-                 n_clust_1 = n_clust_1,
-                 n_clust_2 = n_clust_2,
-                 labels_0_1 = labels_0_1,
-                 labels_0_2 = labels_0_2,
-                 d = d,
-                 N = N,
-                 a_0 = 1,
-                 b_0 = 0.2,
-                 fix_vec_1 = fix_vec_1,
-                 fix_vec_2 = fix_vec_2,
-                 cluster_weight_0_1 = cluster_weight_0_1,
-                 cluster_weight_0_2 = cluster_weight_0_2,
-                 num_iter = num_iter,
-                 burn = burn,
-                 thinning = thinning,
-                 outlier_1 = outlier_1,
-                 t_df_1 = t_df_1,
-                 normalise_1 = normalise_1,
-                 outlier_2 = outlier_2,
-                 t_df_2 = t_df_2,
-                 normalise_2 = normalise_2,
-                 record_posteriors = record_posteriors
+      args_1 = args_1,
+      args_2 = args_2,
+      type_1 = type_1,
+      type_2 = type_2,
+      n_clust_1 = n_clust_1,
+      n_clust_2 = n_clust_2,
+      labels_0_1 = labels_0_1,
+      labels_0_2 = labels_0_2,
+      d = d,
+      N = N,
+      a_0 = 1,
+      b_0 = 0.2,
+      fix_vec_1 = fix_vec_1,
+      fix_vec_2 = fix_vec_2,
+      cluster_weight_0_1 = cluster_weight_0_1,
+      cluster_weight_0_2 = cluster_weight_0_2,
+      num_iter = num_iter,
+      burn = burn,
+      thinning = thinning,
+      outlier_1 = outlier_1,
+      t_df_1 = t_df_1,
+      normalise_1 = normalise_1,
+      outlier_2 = outlier_2,
+      t_df_2 = t_df_2,
+      normalise_2 = normalise_2,
+      record_posteriors = record_posteriors
     )
   }
-  
+
   print("Gibbs sampling complete")
-  
+
   if (is.null(data_2)) {
     class_record <- gibbs$class_record
   } else {
     class_record <- gibbs$class_record_1
   }
-  
+
   # Create a dataframe for the predicted class
   class_allocation_table <- with(
     stack(data.frame(t(class_record))),
     table(ind, values)
   )
-  
+
   eff_iter <- ceiling((num_iter - burn) / thinning)
 
   # Key to transforming from int to class
@@ -1588,109 +1586,107 @@ mcmc_out <- function(MS_object,
   class_labels_key %<>%
     arrange(Class) %>%
     dplyr::mutate(Class_key = as.numeric(Class))
-  
+
   class_labels %<>%
     mutate(Class_ind = as.numeric(mydata$markers))
-  
+
   # Create a column Class_key containing an integer in 1:k representing the most
   # common class allocation, and a Count column with the proportion of times the
   # entry was allocated to said class
   predicted_classes <- data.frame(
     Class_key =
       as.numeric(colnames(class_allocation_table)
-                 [apply(
-                   class_allocation_table,
-                   1,
-                   which.max
-                 )]),
+      [apply(
+          class_allocation_table,
+          1,
+          which.max
+        )]),
     Count = apply(class_allocation_table, 1, max) / eff_iter
   )
-  
+
   # Change the prediction to NA for any entry with a proportion below the input
   # threshold
   predicted_classes[predicted_classes$Count < prediction_threshold, ] <- NA
-  
+
   predicted_classes$Class <- class_labels_key$Class[match(
     predicted_classes$Class_key,
     class_labels_key$Class_key
   )]
-  
+
   gibbs$predicted_class <- predicted_classes
-  
+
   # Example input for annotation_row in pheatmap
   annotation_row <- class_labels %>% dplyr::select(Class)
   annotation_row %<>%
     mutate(Predicted_class = predicted_classes$Class)
-  
+
   rownames(num_data) <- row_names
   # print(rownames(mydata[1:10,]))
-  
-  rownames(annotation_row) <- rownames(num_data)
-  
-  col_pal <- RColorBrewer::brewer.pal(9, "Blues")
-  
-  if (sense_check_map) {
 
-    component_heat_map <- pheatmap_cluster_by_col(num_data, 
-                                                  annotation_row,
-                                                  Predicted_class,
-                                             main = sense_check_main,
-                                             color = col_pal,
-                                             fontsize = fontsize,
-                                             fontsize_row = fontsize_row,
-                                             fontsize_col = fontsize_col
+  rownames(annotation_row) <- rownames(num_data)
+
+  col_pal <- RColorBrewer::brewer.pal(9, "Blues")
+
+  if (sense_check_map) {
+    component_heat_map <- pheatmap_cluster_by_col(num_data,
+      annotation_row,
+      Predicted_class,
+      main = sense_check_main,
+      color = col_pal,
+      fontsize = fontsize,
+      fontsize_row = fontsize_row,
+      fontsize_col = fontsize_col
     )
-    
   }
-  
+
   # return(pauls_heatmap)
-  
+
   all_data <- dplyr::bind_cols(num_data, dplyr::select(gibbs$predicted_class, Class))
   all_data$Fixed <- fix_vec_1
   all_data$Protein <- rownames(num_data)
-  
+
   # rownames(all_data) <- rownames(num_data)
-  
+
   if (heat_plot) {
-    
+
     # dissimilarity matrix
     if (is.null(data_2)) {
       sim <- gibbs$similarity
     } else {
       sim <- gibbs$similarity_1
     }
-    
+
     dissim <- 1 - sim
-    
+
     # Require names to associate data in annotation columns with original data
     colnames(dissim) <- rownames(num_data)
     rownames(dissim) <- rownames(num_data)
-    
+
     col_pal <- RColorBrewer::brewer.pal(9, "Blues")
-    
+
     heat_map <- annotated_heatmap(dissim, annotation_row,
-                                  train = train,
-                                  main = main,
-                                  cluster_row = cluster_row,
-                                  cluster_cols = cluster_cols,
-                                  color = col_pal,
-                                  fontsize = fontsize,
-                                  fontsize_row = fontsize_row,
-                                  fontsize_col = fontsize_col
+      train = train,
+      main = main,
+      cluster_row = cluster_row,
+      cluster_cols = cluster_cols,
+      color = col_pal,
+      fontsize = fontsize,
+      fontsize_row = fontsize_row,
+      fontsize_col = fontsize_col
     )
   }
   if (entropy_plot) {
     entropy_data <- data.frame(Index = 1:(num_iter + 1), Entropy = gibbs$entropy)
-    
+
     rec_burn <- entropy_window(gibbs$entropy,
-                               window_length = window_length,
-                               mean_tolerance = mean_tolerance,
-                               sd_tolerance = sd_tolerance
+      window_length = window_length,
+      mean_tolerance = mean_tolerance,
+      sd_tolerance = sd_tolerance
     )
-    
+
     # Check if instantly ok
     rec_burn <- ifelse(is.null(rec_burn), 1, rec_burn)
-    
+
     entropy_scatter <- ggplot(data = entropy_data, mapping = aes(x = Index, y = Entropy)) +
       geom_point() +
       geom_vline(mapping = aes(xintercept = rec_burn, colour = "Reccomended"), lty = 2) +
@@ -1702,7 +1698,7 @@ mcmc_out <- function(MS_object,
         Implemented = "blue"
       ))
   }
-  if(sense_check_map & heat_plot & entropy_plot){
+  if (sense_check_map & heat_plot & entropy_plot) {
     return(list(
       gibbs = gibbs,
       cluster_map = component_heat_map,
@@ -1712,7 +1708,7 @@ mcmc_out <- function(MS_object,
       data = all_data
     ))
   }
-  if (sense_check_map & heat_plot){
+  if (sense_check_map & heat_plot) {
     return(list(
       gibbs = gibbs,
       cluster_map = component_heat_map,
@@ -1721,7 +1717,7 @@ mcmc_out <- function(MS_object,
       data = all_data
     ))
   }
-  if (sense_check_map & entropy_plot){
+  if (sense_check_map & entropy_plot) {
     return(list(
       gibbs = gibbs,
       cluster_map = component_heat_map,
@@ -1761,60 +1757,60 @@ mcmc_out <- function(MS_object,
       data = all_data
     ))
   }
-  
+
   return(list(gibbs = gibbs, data = all_data, data_2 = data_2))
 }
 
 # === Cross-Validation =========================================================
 
-gibbs_predictor <- function(MS_object, class_record){
+gibbs_predictor <- function(MS_object, class_record) {
   # Key to transforming from int to class
-  
+
   MS_data <- MS_dataset(MS_object)
   mydata <- MS_data$data
 
   class_labels <- data.frame(Class = mydata$markers)
-  
+
   classes_present <- unique(fData(markerMSnSet(MS_object))[, "markers"])
-  
+
   rownames(class_labels) <- rownames(mydata)
-  
+
   class_labels_key <- data.frame(Class = classes_present) # , Class_num = 1:k)
   class_labels_key %<>%
     arrange(Class) %>%
     dplyr::mutate(Class_key = as.numeric(Class))
-  
+
   class_labels %<>%
     mutate(Class_ind = as.numeric(mydata$markers))
-  
+
   class_allocation_table <- with(
     stack(data.frame(t(class_record))),
     table(ind, values)
   )
-  
+
   # Create a column Class_key containing an integer in 1:k representing the most
   # common class allocation, and a Count column with the proportion of times the
   # entry was allocated to said class
   predicted_classes <- data.frame(
     Class_key =
       as.numeric(colnames(class_allocation_table)
-                 [apply(
-                   class_allocation_table,
-                   1,
-                   which.max
-                 )]),
+      [apply(
+          class_allocation_table,
+          1,
+          which.max
+        )]),
     Count = apply(class_allocation_table, 1, max) / eff_iter
   )
-  
+
   # Change the prediction to NA for any entry with a proportion below the input
   # threshold
   predicted_classes[predicted_classes$Count < prediction_threshold, ] <- NA
-  
+
   predicted_classes$Class <- class_labels_key$Class[match(
     predicted_classes$Class_key,
     class_labels_key$Class_key
   )]
-  
+
   predicted_classes
 }
 
@@ -1826,9 +1822,9 @@ gibbs_predictor <- function(MS_object, class_record){
 #' @param MS_object A dataset in the format used by pRolocdata.
 #' @param MS_object A second dataset in the format used by pRolocdata.
 #' @param times An integer; the number of folds to run.
-#' @param test_size A fraction between 0 and 1; the proportion of the known 
+#' @param test_size A fraction between 0 and 1; the proportion of the known
 #' points to use as a test set in each fold.
-#' @param num_iter An integer; the number of iterations to use in each MDI 
+#' @param num_iter An integer; the number of iterations to use in each MDI
 #' sampling.
 #' @param burn The number of iterations to record after (i.e. the burn-in).
 #' @param thinning The step between iterations for which results are recorded in
@@ -1844,109 +1840,115 @@ mdi_cross_validate <- function(MS_object, MS_cat_object,
                                num_iter = 1000,
                                burn = floor(num_iter / 10),
                                thinning = 25,
-                               ...){
-  
+                               ...) {
   marker.data <- markerMSnSet(MS_object)
   marker.data.cat <- markerMSnSet(MS_cat_object)
-  
+
   X <- pRoloc:::subsetAsDataFrame(marker.data, "markers", train = TRUE)
-  
+
   K <- length(getMarkerClasses(MS_object))
-  
+
   .testPartitions <- .cmMatrices <- vector("list", length = times)
-  
+
   f1score <- matrix(0, times)
   .f1Matrices <- matrix(0, times)
   cmlist <- vector("list", length = times)
   quadloss <- vector("list", length = times)
-  
-  
+
+
   for (i in seq_along(cmlist)) {
     # get sizes
     .size <- ceiling(table(fData(marker.data)$markers) * test_size)
-    
+
     # strata needs size to be ordered as they appear in data
     .size <- .size[unique(fData(marker.data)$markers)]
-    
-    # get strata indexes
+
+    # get strata indices
     test.idx <- strata(X, "markers", size = .size, method = "srswor")$ID_unit
-    
+
     ## 'unseen' test set
     .test1 <- MSnSet(
       exprs(marker.data)[test.idx, ],
       fData(marker.data[test.idx, ]),
       pData(marker.data)
     )
-    
+
     .test2 <- MSnSet(
       exprs(marker.data.cat)[test.idx, ],
       fData(marker.data.cat[test.idx, ]),
       pData(marker.data.cat)
     )
-    
+
     ## 'seen' training set
     .train1 <- MSnSet(
       exprs(marker.data)[-test.idx, ],
       fData(marker.data[-test.idx, ]),
       pData(marker.data)
     )
-    
+
     .train2 <- MSnSet(
       exprs(marker.data.cat)[-test.idx, ],
       fData(marker.data.cat[-test.idx, ]),
       pData(marker.data.cat)
     )
-    
-    
+
+
     # save true marker labels
-    test.markers <- fData(.test1)$markers 
-    
+    test.markers <- fData(.test1)$markers
+
     # create new combined MSnset
     mydata <- combine(.test1, .train1)
     cat_data <- combine(.test2, .train2)
     cat_data <- exprs(cat_data)
-    
+
     # Set levels of markers cateogries
     levels(fData(mydata)$markers) <- c(levels(fData(mydata)$markers), "unknown")
-    
+
     # hide marker labels
     fData(mydata)[rownames(.test1), "markers"] <- "unknown"
-    
-    
+
+    # Fix training points, allow test points to move component
     fix_vec_1 <- c(rep(0, nrow(exprs(.test1))), rep(1, nrow(exprs(.train1))))
-    
-    params <- mcmc_out(mydata, 
-                       fix_vec_1 = fix_vec_1,
-                       data_2 = cat_data,
-                       n_clust_2 = 20,
-                       num_iter = num_iter,
-                       burn = burn,
-                       thinning = thinning,
-                       heat_plot = F,
-                       sense_check_map = F,
-                       entropy_plot = F,
-                       outlier_1 = T,
-                       prediction_threshold = 0.0001,
-                       ...)
-    
-    data <- factor(params$gibbs$predicted_class$Class, 
-                   levels = getMarkerClasses(mydata))[1:nrow(exprs(.test1))]
-    
+
+    # MDI
+    params <- mcmc_out(mydata,
+      fix_vec_1 = fix_vec_1,
+      data_2 = cat_data,
+      n_clust_2 = 20,
+      num_iter = num_iter,
+      burn = burn,
+      thinning = thinning,
+      heat_plot = F,
+      sense_check_map = F,
+      entropy_plot = F,
+      outlier_1 = T,
+      prediction_threshold = 0.0001,
+      ...
+    )
+
+    # Allocation for test data
+    data <- factor(params$gibbs$predicted_class$Class,
+      levels = getMarkerClasses(mydata)
+    )[1:nrow(exprs(.test1))]
+
+    # True allocation for test data
     reference <- factor(test.markers, levels = getMarkerClasses(mydata))
+
+    # Confusion matrix for current fold
     cmlist[[i]] <- conf <- confusionMatrix(data = data, reference = reference)$table
-    
-    test_alloc <- matrix(0,length(test.idx), length(getMarkerClasses(mydata)))
-    allocmatrix <- matrix(0,length(test.idx), length(getMarkerClasses(mydata)))
-    
-    #create allocation matrix
-    for(j in seq_along(test.idx)){
-      allocmatrix[j, as.numeric(factor(test.markers), seq(1,length(unique(test.markers))))[j]] <- 1
+
+    # Create allocation matrices for truth and prediction
+    test_alloc <- matrix(0, length(test.idx), length(getMarkerClasses(mydata)))
+    allocmatrix <- matrix(0, length(test.idx), length(getMarkerClasses(mydata)))
+
+    # create allocation matrix
+    for (j in seq_along(test.idx)) {
+      allocmatrix[j, as.numeric(factor(test.markers), seq(1, length(unique(test.markers))))[j]] <- 1
       test_alloc[j, as.numeric(data[j])] <- 1
     }
-    
-    quadloss[[i]] <- sum((allocmatrix - test_alloc)^2) #compute quad loss
-    
+
+    # Compute quadratic loss
+    quadloss[[i]] <- sum((allocmatrix - test_alloc)^2)
   }
   list(cmlist = cmlist, quadloss = quadloss)
 }
-
