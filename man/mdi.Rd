@@ -4,11 +4,11 @@
 \alias{mdi}
 \title{MDI gibbs sampling}
 \usage{
-mdi(data_1, data_2, args_1, args_2, type_1 = "Gaussian",
-  type_2 = "Categorical", n_clust_1 = 50, n_clust_2 = 50,
-  labels_0_1 = NULL, labels_0_2 = NULL, d = ncol(data_1),
-  N = nrow(data_1), a_0 = 1, b_0 = 0.2, fix_vec_1 = rep(0,
-  nrow(data_1)), fix_vec_2 = rep(0, nrow(data_2)),
+mdi(data_1, data_2, args_1 = NULL, args_2 = NULL,
+  type_1 = "Gaussian", type_2 = "Categorical", n_clust_1 = 50,
+  n_clust_2 = 50, labels_0_1 = NULL, labels_0_2 = NULL,
+  d = ncol(data_1), N = nrow(data_1), a_0 = 1, b_0 = 0.2,
+  fix_vec_1 = rep(0, nrow(data_1)), fix_vec_2 = rep(0, nrow(data_2)),
   cluster_weight_0_1 = NULL, cluster_weight_0_2 = NULL,
   num_iter = NULL, burn = floor(num_iter/10), thinning = 25,
   outlier_1 = FALSE, t_df_1 = 4, normalise_1 = FALSE,

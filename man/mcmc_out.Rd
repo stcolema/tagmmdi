@@ -4,21 +4,55 @@
 \alias{mcmc_out}
 \title{MCMC out}
 \usage{
-mcmc_out(MS_object, class_labels_0 = NULL, mu_0 = NULL, df_0 = NULL,
-  scale_0 = NULL, lambda_0 = 0.01, concentration_0 = NULL,
-  cat_data = NULL, cluster_weight_priors_categorical = 1,
-  phi_0 = NULL, c_clusters_label_0 = NULL, num_clusters_cat = 100,
-  train = NULL, num_iter = NULL, burn = NULL, thinning = 25,
-  heat_plot = TRUE, main = "heatmap_for_similarity", cluster_row = T,
-  cluster_cols = T, fontsize = 10, fontsize_row = 6,
-  fontsize_col = 6, entropy_plot = TRUE, window_length = min(25,
-  num_iter/5), mean_tolerance = 5e-04, sd_tolerance = 5e-04,
-  sense_check_map = TRUE, outlier = FALSE, t_df = 4,
-  prediction_threshold = 0.6, record_posteriors = FALSE,
-  normalise = FALSE)
+mcmc_out(MS_object, labels_0_1 = NULL, args_1 = NULL,
+  cluster_weight_0_1 = NULL, data_2 = NULL, type_1 = "Gaussian",
+  type_2 = "Categorical", cluster_weight_0_2 = 1, args_2 = NULL,
+  labels_0_2 = NULL, n_clust_2 = 50, fix_vec_1 = NULL,
+  fix_vec_2 = rep(0, nrow(data_2)), a_0 = 1, b_0 = 0.2,
+  outlier_1 = FALSE, t_df_1 = 4, normalise_1 = FALSE,
+  outlier_2 = FALSE, t_df_2 = 4, normalise_2 = FALSE,
+  record_posteriors = FALSE, train = NULL, num_iter = NULL,
+  burn = floor(num_iter/10), thinning = 25, heat_plot = TRUE,
+  main = "heatmap_for_similarity", cluster_row = T, cluster_cols = T,
+  fontsize = 10, fontsize_row = 6, fontsize_col = 6,
+  entropy_plot = TRUE, window_length = min(25, num_iter/5),
+  mean_tolerance = 5e-04, sd_tolerance = 5e-04,
+  sense_check_map = TRUE, prediction_threshold = 0.5)
 }
 \arguments{
 \item{MS_object}{A dataset in the format used by pRolocdata.}
+
+\item{record_posteriors}{A bool instructing the mcmc function to record the
+posterior distributions of the mean and variance for each cluster
+(default is FALSE)}
+
+\item{num_iter}{The number of iterations to sample over.}
+
+\item{burn}{The number of iterations to record after (i.e. the burn-in).}
+
+\item{thinning}{The step between iterations for which results are recorded in
+the mcmc output.}
+
+\item{heat_plot}{A bool. Instructs saving and printing of heatmap of
+similarity matrix from Gibbs sampling. Default is TRUE.}
+
+\item{main}{String. The title for heatmap, default is "heatmap_for_similarity".}
+
+\item{cluster_row}{A bool. Instructs pheatmap to cluster rows using a tree.}
+
+\item{entropy_plot}{A bool instructing function to save a plot of the entropy
+across all iterations. Default is TRUE.}
+
+\item{window_length}{A number. Input to entropy ploy function. Default is
+min(25, num_iter / 5).}
+
+\item{mean_tolerance}{Input to entropy ploy function. Default is 0.0005.}
+
+\item{sd_tolerance}{Input to entropy ploy function. Default is 0.0005.}
+
+\item{prediction_threshold}{The minimum proportion of recorded iterations
+for which a point is in its most common cluster for which a prediction is
+returned. If below this predicted class is NA.}
 
 \item{class_labels_0}{An optional prior for clusters in MS_object. If NULL
 defaults to a randomly generated set using the proportion in the labelled
@@ -51,47 +85,6 @@ categorical data.}
 \item{num_clusters_cat}{Integer of the number of clusters to have as a
 maximum in the categorical dataset. Default is 100.}
 
-\item{num_iter}{The number of iterations to sample over.}
-
-\item{burn}{The number of iterations to record after (i.e. the burn-in).}
-
-\item{thinning}{The step between iterations for which results are recorded in
-the mcmc output.}
-
-\item{heat_plot}{A bool. Instructs saving and printing of heatmap of
-similarity matrix from Gibbs sampling. Default is TRUE.}
-
-\item{main}{String. The title for heatmap, default is "heatmap_for_similarity".}
-
-\item{cluster_row}{A bool. Instructs pheatmap to cluster rows using a tree.}
-
-\item{entropy_plot}{A bool instructing function to save a plot of the entropy
-across all iterations. Default is TRUE.}
-
-\item{window_length}{A number. Input to entropy ploy function. Default is
-min(25, num_iter / 5).}
-
-\item{mean_tolerance}{Input to entropy ploy function. Default is 0.0005.}
-
-\item{sd_tolerance}{Input to entropy ploy function. Default is 0.0005.}
-
-\item{outlier}{A bool instructing the sampler to consider an additional
-outlier cluster following a t-distribution}
-
-\item{t_df}{The degrees of freedom for the outlier t-distribution (default
-is 4)}
-
-\item{prediction_threshold}{The minimum proportion of recorded iterations
-for which a point is in its most common cluster for which a prediction is
-returned. If below this predicted class is NA.}
-
-\item{record_posteriors}{A bool instructing the mcmc function to record the
-posterior distributions of the mean and variance for each cluster
-(default is FALSE)}
-
-\item{normalise}{Bool instructing normalisation of continuous data (default
-is false)}
-
 \item{train:}{instruction to include all data (NULL), labelled data (TRUE) or
 unlabelled data (FALSE). Default is NULL.}
 
@@ -103,6 +96,15 @@ tree.}
 \item{fontsize_row:}{The fontsize in rows in pheatmap.}
 
 \item{fontsize_col:}{The fontsize in columns in pheatmap.}
+
+\item{outlier}{A bool instructing the sampler to consider an additional
+outlier cluster following a t-distribution}
+
+\item{t_df}{The degrees of freedom for the outlier t-distribution (default
+is 4)}
+
+\item{normalise}{Bool instructing normalisation of continuous data (default
+is false)}
 }
 \value{
 A named list including at least the output from the gibbs sampler,

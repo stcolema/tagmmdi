@@ -7,7 +7,7 @@
 gibbs_sampling(data, k, class_labels, fix_vec = rep(F, nrow(data)),
   d = ncol(data), N = nrow(data), num_iter = NULL, burn = NULL,
   thinning = 25, mu_0 = NULL, df_0 = NULL, scale_0 = NULL,
-  lambda_0 = 0.01, concentration_0 = NULL, a0 = 1, b0 = 0.2,
+  lambda_0 = NULL, concentration_0 = NULL, a0 = 1, b0 = 0.2,
   cat_data = NULL, cluster_weight_priors_categorical = 1,
   phi_0 = NULL, c_clusters_label_0 = NULL, num_clusters_cat = 100,
   outlier = FALSE, t_df = 4, record_posteriors = FALSE,
