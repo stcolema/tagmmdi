@@ -24,9 +24,9 @@ Imports:
     attempt,
     reshape,
     mcclust,
-    pRoloc
+    sampling,
+    caret
 Suggests: 
-    pRolocData,
     testthat,
     covr,
     spelling
