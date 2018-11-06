@@ -11,12 +11,14 @@ mdi_cross_validate(MS_object, MS_cat_object, times = 10,
 \arguments{
 \item{MS_object}{A dataset in the format used by pRolocdata.}
 
+\item{MS_cat_object}{A second dataset in the format used by pRolocdata.}
+
 \item{times}{An integer; the number of folds to run.}
 
-\item{test_size}{A fraction between 0 and 1; the proportion of the known 
+\item{test_size}{A fraction between 0 and 1; the proportion of the known
 points to use as a test set in each fold.}
 
-\item{num_iter}{An integer; the number of iterations to use in each MDI 
+\item{num_iter}{An integer; the number of iterations to use in each MDI
 sampling.}
 
 \item{burn}{The number of iterations to record after (i.e. the burn-in).}
@@ -25,8 +27,6 @@ sampling.}
 the mcmc output.}
 
 \item{...}{Any other inputs applicable to mcmc_out.}
-
-\item{MS_object}{A second dataset in the format used by pRolocdata.}
 }
 \value{
 A named list of the confusion matrix for allocaitons across each fold

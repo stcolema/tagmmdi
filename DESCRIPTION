@@ -14,7 +14,9 @@ Description: Implementation of Multiple Dataset Integration including an option
 License: MIT + file LICENSE
 biocViews:
     pRoloc,
-    pRolocData
+    pRolocData,
+    BiocGenerics,
+    MSnbase
 Imports: 
     Rcpp (>= 0.12.18),
     ggplot2,

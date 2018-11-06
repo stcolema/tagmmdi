@@ -17,14 +17,90 @@ mcmc_out(MS_object, labels_0_1 = NULL, args_1 = NULL,
   fontsize = 10, fontsize_row = 6, fontsize_col = 6,
   entropy_plot = TRUE, window_length = min(25, num_iter/5),
   mean_tolerance = 5e-04, sd_tolerance = 5e-04,
-  sense_check_map = TRUE, prediction_threshold = 0.5)
+  sense_check_map = TRUE,
+  sense_check_main = "component_level_clustering",
+  prediction_threshold = 0.5)
 }
 \arguments{
 \item{MS_object}{A dataset in the format used by pRolocdata.}
 
+\item{labels_0_1}{An optional prior for clusters in MS_object. If NULL
+defaults to a randomly generated set using the proportion in the labelled
+data.}
+
+\item{args_1}{A named list containing the relevant objects for the data type 
+of MS_object. If NULL this is generated based on the input type_1 and using 
+the function gaussian_arguments or categorical arguments.}
+
+\item{cluster_weight_0_1}{The prior for dirichlet distribution of cluster
+weights.}
+
+\item{data_2}{Second dataset for MDI. Either a matrix of continuous data,
+categorical data or NULL (in which case MDI is not used).
+Default is NULL in which case a generic mixture of Gaussians is used.}
+
+\item{type_1}{String denoting the type of data in MS_object. One of 
+"Gaussian" or "Categorical" (shorthand "G" and "C" also suffice). Default is 
+"Gaussian".}
+
+\item{type_2}{String denoting the type of data in MS_object. One of 
+"Gaussian" or "Categorical" (shorthand "G" and "C" also suffice). Default is 
+"Categorical".}
+
+\item{cluster_weight_0_2}{Vector of the prior on cluster
+weights in the categorical data. If a single number is given a uniform vector
+is generated.}
+
+\item{args_2}{A named list containing the relevant objects for the data type 
+of data_2. If NULL this is generated based on the input type_1 and using 
+the function gaussian_arguments or categorical arguments.}
+
+\item{labels_0_2}{Vector of labels for the prior clustering of the
+categorical data.}
+
+\item{n_clust_2}{Integer of the number of clusters to have as a
+maximum in the categorical dataset. Default is 100.}
+
+\item{fix_vec_1}{A vector of 0's and 1's indicating which points are fixed in
+their initial allocation in dataset 1. Default of NULL means that the 
+information in MS_object is used to define this (any labelled points in the
+dataset are held in this allocation).}
+
+\item{fix_vec_2}{A vector of 0's and 1's indicating which points are fixed in
+their initial allocation for dataset 2. Default of all points unfixed.}
+
+\item{a_0}{Prior shape parameter for gamma distribution of strategic latent 
+variable, v, in MDI. Default is 1.}
+
+\item{b_0}{Prior rate parameter for gamma distribution of strategic latent 
+variable, v, in MDI. Default is 0.2.}
+
+\item{outlier_1}{A bool instructing the sampler to consider an outlier
+cluster following a t-distribution (i.e. implementing TAGM). Only 
+applicable to gaussian datasets.}
+
+\item{t_df_1}{The degrees of freedom for the outlier t-distribution (default
+is 4).}
+
+\item{normalise_1}{Bool instructing normalisation of continuous data in 
+dataset 1 (default is false).}
+
+\item{outlier_2}{A bool instructing the sampler to consider an outlier
+cluster following a t-distribution (i.e. implementing TAGM). Only 
+applicable to gaussian datasets.}
+
+\item{t_df_2}{The degrees of freedom for the outlier t-distribution (default
+is 4).}
+
+\item{normalise_2}{Bool instructing normalisation of continuous data in 
+dataset 2 (default is false).}
+
 \item{record_posteriors}{A bool instructing the mcmc function to record the
 posterior distributions of the mean and variance for each cluster
 (default is FALSE)}
+
+\item{train}{instruction to include all data (NULL), labelled data (TRUE) or
+unlabelled data (FALSE). Default is NULL.}
 
 \item{num_iter}{The number of iterations to sample over.}
 
@@ -40,6 +116,15 @@ similarity matrix from Gibbs sampling. Default is TRUE.}
 
 \item{cluster_row}{A bool. Instructs pheatmap to cluster rows using a tree.}
 
+\item{cluster_cols}{A bool. instructs pheatmap to cluster columns using a
+tree.}
+
+\item{fontsize}{The size of font in pheatmap.}
+
+\item{fontsize_row}{The fontsize in rows in pheatmap.}
+
+\item{fontsize_col}{The fontsize in columns in pheatmap.}
+
 \item{entropy_plot}{A bool instructing function to save a plot of the entropy
 across all iterations. Default is TRUE.}
 
@@ -50,61 +135,15 @@ min(25, num_iter / 5).}
 
 \item{sd_tolerance}{Input to entropy ploy function. Default is 0.0005.}
 
+\item{sense_check_map}{A bool instructing function to save a heatmap of the 
+componenet level clusterings.}
+
+\item{sense_check_main}{String. Title for sense_check_map. Default is 
+"component_level_clustering".}
+
 \item{prediction_threshold}{The minimum proportion of recorded iterations
 for which a point is in its most common cluster for which a prediction is
 returned. If below this predicted class is NA.}
-
-\item{class_labels_0}{An optional prior for clusters in MS_object. If NULL
-defaults to a randomly generated set using the proportion in the labelled
-data.}
-
-\item{mu_0}{A d-vector; prior on mean. If NULL defaults to mean of data.}
-
-\item{df_0}{The prior on the degrees of freedom. if NULL defaults to d + 2.}
-
-\item{scale_0}{The prior on the scale for the Inverse Wishart. If NULL
-generated using an empirical method.}
-
-\item{lambda_0}{The prior of shrinkage for mean distribution.}
-
-\item{concentration_0}{The prior for dirichlet distribution of cluster
-weights.}
-
-\item{cat_data}{Matrix of 1's and 0's used for multiple dataset integration,
-Default is NULL in which case a generic mixture of Gaussians is used.}
-
-\item{cluster_weight_priors_categorical}{Vector of the prior on cluster
-weights in the categorical data.}
-
-\item{phi_0}{List of vectors, the prior on the distribution of the classes
-over clusters.}
-
-\item{c_clusters_label_0}{Vector of labels for the prior clustering of the
-categorical data.}
-
-\item{num_clusters_cat}{Integer of the number of clusters to have as a
-maximum in the categorical dataset. Default is 100.}
-
-\item{train:}{instruction to include all data (NULL), labelled data (TRUE) or
-unlabelled data (FALSE). Default is NULL.}
-
-\item{cluster_cols:}{A bool. instructs pheatmap to cluster columns using a
-tree.}
-
-\item{fontsize:}{The size of font in pheatmap.}
-
-\item{fontsize_row:}{The fontsize in rows in pheatmap.}
-
-\item{fontsize_col:}{The fontsize in columns in pheatmap.}
-
-\item{outlier}{A bool instructing the sampler to consider an additional
-outlier cluster following a t-distribution}
-
-\item{t_df}{The degrees of freedom for the outlier t-distribution (default
-is 4)}
-
-\item{normalise}{Bool instructing normalisation of continuous data (default
-is false)}
 }
 \value{
 A named list including at least the output from the gibbs sampler,

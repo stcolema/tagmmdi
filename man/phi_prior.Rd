@@ -14,6 +14,6 @@ A list of vectors of the proportion of each level across all of
 matrix_data.
 }
 \description{
-Generates a prior for the phi vector for each variable for the Dirichlet
-distribution
+Generates a prior for the phi vector for each variable for the
+Dirichlet distribution
 }
