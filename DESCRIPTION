@@ -9,8 +9,8 @@ Authors@R: c(
   person("Paul", "Kirk", email = "paul.kirk@mrc-bsu.cam.ac.uk",
   role = "ctb")
   )
-Description: Tools for clustering categorical and normal data using priors of 
-    the Dirichlet and the Normal Inverse Wishart respectively.
+Description: Implementation of Multiple Dataset Integration including an option
+    to use a t-augmented Gaussian mixture model
 License: MIT + file LICENSE
 biocViews:
     pRoloc,
