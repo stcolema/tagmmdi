@@ -180,10 +180,10 @@ empirical_bayes_gaussian <- function(data, mu_0, df_0, scale_0, N, k, d,
   }
 
   if (is.null(scale_0)) {
-    scale_0 <- diag(BiocGenerics::colMeans((data - mean(data))^2) / N) / (k^(1 / d))
-    if (any(is.na(scale_0))) {
+    # scale_0 <- diag(BiocGenerics::colMeans((data - mean(data))^2) / N) / (k^(1 / d))
+    # if (any(is.na(scale_0))) {
       scale_0 <- diag(d) / (k^(1 / d))
-    }
+    # }
   }
   parameters$mu_0 <- mu_0
   parameters$df_0 <- df_0
@@ -1842,7 +1842,7 @@ mdi_cross_validate <- function(MS_object, MS_cat_object,
     # create allocation matrix
     for (j in seq_along(test.idx)) {
       allocmatrix[j, as.numeric(factor(test.markers), seq(1, length(unique(test.markers))))[j]] <- 1
-      test_alloc[j, as.numeric(data[j])] <- 1
+      test_alloc[j, as.numeric(factor(data), seq(1,length(unique(test.markers))))[j]] <- 1
     }
 
     # Compute quadratic loss
