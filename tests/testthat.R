@@ -1,4 +1,4 @@
-library(testthat)
-library(tagmmdi)
-
-test_check("tagmmdi")
+# library(testthat)
+# library(tagmmdi)
+# 
+# test_check("tagmmdi")
