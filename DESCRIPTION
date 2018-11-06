@@ -25,7 +25,8 @@ Imports:
     reshape,
     mcclust,
     sampling,
-    caret
+    caret,
+    magrittr
 Suggests: 
     testthat,
     covr,
