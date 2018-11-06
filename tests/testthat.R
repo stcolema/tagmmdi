@@ -1,4 +1,4 @@
 library(testthat)
-library(BayesicGibbs)
+library(tagmmdi)
 
-test_check("BayesicGibbs")
+test_check("tagmmdi")
