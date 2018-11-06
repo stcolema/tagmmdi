@@ -1,6 +1,6 @@
 # include <RcppArmadillo.h>
 # include <iostream>
-# include <fstream>      // std::ofstream // ofstream::open / ofstream::close
+# include <fstream>
 
 // [[Rcpp::depends(RcppArmadillo)]]
 

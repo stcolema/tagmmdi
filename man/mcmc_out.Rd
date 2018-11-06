@@ -155,34 +155,28 @@ Returns mean, variance and similarity posteriors from Gibbs sampling with
 option of pheatmap
 }
 \examples{
+Single dataset clustering
 data("hyperLOPIT2015") # MS object from pRolocData
 mcmc_object <- mcmc_out(hyperLOPIT2015,
   num_iter = 10000,
   burn = 1000,
   thinning = 50,
-  outlier = TRUE,
+  outlier_1 = TRUE,
   heat_plot = TRUE,
   main = "Gene clustering by organelle",
   prediction_threshold = 0.5
 )
 
-Generate some nonsense categorical data
-cat_data <- matrix(nrow = 1371, ncol = 5)
-cat_data[, 1] <- c(rep(1, 300), rep(0, 1071))
-cat_data[, 2] <- c(rep(0, 300), rep(1, 300), rep(0, 771))
-cat_data[, 3] <- c(rep(0, 600), rep(1, 300), rep(0, 471))
-cat_data[, 4] <- c(rep(0, 800), rep(1, 300), rep(0, 271))
-cat_data[, 5] <- c(rep(0, 1100), rep(1, 271))
+Use some categorical data
+cat_data <- as.matrix(exprs(tan2009r1goCC))
 
-# Complete noise
-cat_data <-  matrix(sample(0:1, 1371 * 10, replace=TRUE), nrow = 1371, ncol = 10)
-
-stuff <- mcmc_out(HEK293T2011,
-                  cat_data = cat_data,
+Implement MDI
+stuff <- mcmc_out(tan2009r1,
+                  data_2 = cat_data,
                   num_iter = 10,
                   burn = 1,
                   thinning = 1,
-                  outlier = TRUE,
+                  outlier_1 = TRUE,
                   heat_plot = T,
                   main = "Gene clustering by organelle",
                   prediction_threshold = 0.4,
