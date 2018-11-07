@@ -3446,12 +3446,20 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   std::string gauss_lab_file = "gaussian_allocation/gaussian_labels_iter_";
   std::string cat_lab_file = "categorical_allocation/categorical_labels_iter_";
   std::string out_lab_file = "outlier_allocation/outlier_labels_iter_";
+  
+  std::string mean_file = "mean/mean_";
+  std::string var_file = "variance/var_";
+  
   std::string i_str;
+  std::string comp_str;
   
   std::string gauss_lab_file_loc;
   std::string cat_lab_file_loc;
   std::string out_lab_file_loc;
   
+  std::string mu_file_loc;
+  std::string var_file_loc;
+
   arma::uword record_iter = 0;
   
   // To hold output of label flipping function
@@ -3577,8 +3585,8 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                                    num_clusters_gaussian,
                                                    num_clusters_categorical,
                                                    cluster_weights_categorical,
-                                                   // cluster_labels_gaussian,
-                                                   relevant_labels,
+                                                   cluster_labels_gaussian,
+                                                   // relevant_labels,
                                                    cluster_labels_categorical,
                                                    context_similarity);
     
@@ -3604,10 +3612,17 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                        num_clusters_categorical);
     
     // std::cout << "Calculated normalising constant.\n";
+    // if(Z < 0.001 | Z > 250) {
+    //   std::cout << "\nNormalising constant: " << Z << "\n";
+    // }
     
     // sample the strategic latent variable, v
     // v = arma::randg( arma::distr_param(v_a_0 + n, 1.0/(v_b_0 + Z) ) );
     v = arma::randg( arma::distr_param(n, 1.0/Z ) );
+    
+    // if(v < 0.001 | v > 250) {
+    //   std::cout << "\nStrategic latent variable: " << v << "\n";
+    // }
     
     // std::cout << "Sampled strategic latent variable.\n";
     
@@ -3625,7 +3640,7 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
     
     // std::cout << "Sampled context similarity parameter.\n";
     
-    mdi_likelihood = (n - 1) * log(v) - (v * Z) - log_gamma_n;
+    // mdi_likelihood = (n - 1) * log(v) - (v * Z) - log_gamma_n;
     
     // sample class for each observation
     for(arma::uword j = 0; j < n; j++){
@@ -3797,13 +3812,35 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
         // distributions
         if(record_posteriors){
           for(arma::uword j = 0; j < num_clusters_gaussian; j++){
-            mu(record_iter, j) = loc_mu_variance(1).slice(j);
-            variance(record_iter, j) = loc_mu_variance(0).slice(j);
+            if(save_results){
+              // Save to file
+              
+              // The current component
+              comp_str = std::to_string(j);
+              mu_file_loc = mean_file + comp_str + "/iter_" + i_str;
+              var_file_loc = var_file + comp_str + "/iter_" + i_str;
+              
+              loc_mu_variance(1).slice(j).save(mu_file_loc);
+              loc_mu_variance(0).slice(j).save(var_file_loc);
+            } else {
+              mu(record_iter, j) = loc_mu_variance(1).slice(j);
+              variance(record_iter, j) = loc_mu_variance(0).slice(j);
+            }
           }
           
           for(arma::uword j = 0; j < num_clusters_categorical; j++){
             for(arma::uword k = 0; k < num_cols_cat; k++){
-              class_probabilities_saved(j)(k).row(record_iter) = class_probabilities(k).row(j);
+              // if(save_results){
+              //   
+              //   comp_str = std::to_string(j);
+              //   clust_str = std::to_string(k);
+              //   
+              //   class_probs_param_file = phi_file + comp_str + "m";
+              //   
+              //   
+              // } else{
+                class_probabilities_saved(j)(k).row(record_iter) = class_probabilities(k).row(j);
+              // }
             }
           }
         }
