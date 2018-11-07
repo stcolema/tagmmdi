@@ -2,6 +2,18 @@
 
 # === Functions ================================================================
 
+# Pipes
+
+#' Pipe operator
+#'
+#' @name %>%
+#' @rdname pipe
+#' @keywords internal
+#' @export
+#' @importFrom magrittr %>%
+#' @usage lhs \%>\% rhs
+NULL
+
 # --- MCMC analysis ------------------------------------------------------------
 #' @title entropy_window
 #' @description  Find the point at which entropy stabilises in the iterations.
@@ -72,6 +84,7 @@ entropy_window <- function(entropy_vec,
 #' @examples
 #' data("hyperLOPIT2015") # MS object from pRolocData
 #' MS_data <- MS_dataset(hyperLOPIT2015)
+#' @importFrom dplyr bind_rows
 MS_dataset <- function(MS_object, train = NULL) {
   # Data with labels
   mydata_labels <- pRoloc:::subsetAsDataFrame(
@@ -100,7 +113,7 @@ MS_dataset <- function(MS_object, train = NULL) {
 
   if (is.null(train)) {
     row_names <- c(rownames(mydata_labels), rownames(mydata_no_labels))
-    mydata <- suppressWarnings(bind_rows(mydata_labels, mydata_no_labels))
+    mydata <- suppressWarnings(dplyr::bind_rows(mydata_labels, mydata_no_labels))
     fix_vec <- c(fixed, not_fixed)
   } else if (isTRUE(train)) {
     row_names <- c(rownames(mydata_labels))
@@ -167,7 +180,6 @@ thinning_warning <- function(thinning, num_iter, burn) {
 #' @param lambda_0 A positive real number; the shrinkage prior for the mean.
 #' @return A named list of the three hyperparameters, mean, scale and degrees of
 #'  freedom
-#' @importFrom BiocGenerics colMeans
 empirical_bayes_gaussian <- function(data, mu_0, df_0, scale_0, N, k, d,
                                      lambda_0 = 0.01) {
   parameters <- list()
@@ -270,7 +282,6 @@ categorical_arguments <- function(data, n_clust) {
 
 #' @title Cluster weight prior
 #' @description Produces a vector of prior weights for clusters
-#'
 cluster_weight_prior <- function(train_data, outlier = FALSE) {
   weights <- train_data %>%
     table() %>%
@@ -307,13 +318,13 @@ declare_cluster_weights <- function(fix_vec, clust_labels, n_clust,
       weight_0 <- 1
     }
     if (length(weight_0) < n_clust) {
-      print(paste0(
-        "Creating vector of ",
-        n_clust,
-        " repetitions of ",
-        weight_0,
-        " for mass parameter prior."
-      ))
+      # print(paste0(
+      #   "Creating vector of ",
+      #   n_clust,
+      #   " repetitions of ",
+      #   weight_0,
+      #   " for mass parameter prior."
+      # ))
       weight_0 <- rep(weight_0, n_clust)
     }
   }
@@ -456,13 +467,13 @@ gibbs_sampling <- function(data, k, class_labels,
     if (is.null(cluster_weight_priors_categorical)) {
       cluster_weight_priors_categorical <- rep(1, num_clusters_cat)
     } else if (length(cluster_weight_priors_categorical) < num_clusters_cat) {
-      print(paste0(
-        "Creating vector of ",
-        num_clusters_cat,
-        " repetitions of ",
-        cluster_weight_priors_categorical,
-        " for categorical cluster weights prior."
-      ))
+      # print(paste0(
+      #   "Creating vector of ",
+      #   num_clusters_cat,
+      #   " repetitions of ",
+      #   cluster_weight_priors_categorical,
+      #   " for categorical cluster weights prior."
+      # ))
       cluster_weight_priors_categorical <- rep(
         cluster_weight_priors_categorical,
         num_clusters_cat
@@ -549,13 +560,13 @@ categorical_gibbs_sampling <- function(data,
   if (is.null(cluster_weight_priors_categorical)) {
     cluster_weight_priors_categorical <- rep(1, num_clusters_cat)
   } else if (length(cluster_weight_priors_categorical) < num_clusters_cat) {
-    print(paste0(
-      "Creating vector of ",
-      num_clusters_cat,
-      " repetitions of ",
-      cluster_weight_priors_categorical,
-      " for categorical cluster weights prior."
-    ))
+    # print(paste0(
+    #   "Creating vector of ",
+    #   num_clusters_cat,
+    #   " repetitions of ",
+    #   cluster_weight_priors_categorical,
+    #   " for categorical cluster weights prior."
+    # ))
     cluster_weight_priors_categorical <- rep(
       cluster_weight_priors_categorical,
       num_clusters_cat
@@ -874,14 +885,11 @@ mdi <- function(data_1, data_2,
 #' @param ... The usual inputs for pheatmap.
 #' @return An annotated pheatmap from the pheatmap package
 #' @importFrom attempt try_catch
-#' @importFrom dplyr select
-#' @importFrom grDevices rainbow
-#' @importFrom RColorBrewer brewer.pal
-#' @importFrom attempt try_catch
 #' @importFrom dplyr select arrange one_of bind_cols
 #' @importFrom grDevices rainbow
 #' @importFrom pheatmap pheatmap
 #' @importFrom RColorBrewer brewer.pal
+#' @importFrom rlang enquo quo_text
 annotated_heatmap <- function(input_data, annotation_row = NULL,
                               sort_by_col = NULL,
                               train = NULL,
@@ -889,20 +897,20 @@ annotated_heatmap <- function(input_data, annotation_row = NULL,
   if (is.null(annotation_row) & !(isTRUE(train) | is.null(train))) {
     stop("If data")
   }
+  
   dissim <- input_data
 
   sort_by_col <- attempt::try_catch(
-    expr = enquo(sort_by_col),
+    expr = rlang::enquo(sort_by_col),
     .e = NULL,
     .w = NULL
   )
-
-  # print(sort_by_col)
-
-  if (sort_by_col != quo(NULL)) {
-    # print("HIII")
-
-    # sort_col <- enquo(sort_by_col)
+  
+  # If the sort_by_col contains something other than NULL
+  
+  # has rlang been updated? this line no longer works
+  # if(! is.null(!!sort_by_col)){
+  if (rlang::quo_text(sort_by_col) != "NULL"){
 
     # Declare row names ro ensure re-ordered correctly
     row_names <- data.frame(Names = row.names(annotation_row))
@@ -1031,9 +1039,12 @@ annotated_heatmap <- function(input_data, annotation_row = NULL,
 #' @param main The default title for the heatmap
 #' @param ... The usual inputs for pheatmap.
 #' @return An annotated pheatmap from the pheatmap package
-
 #' @importFrom dplyr select
-#' @importFrom dplyr enquo select
+#' @importFrom rlang enquo
+#' @importFrom stats hclust
+#' @importFrom dplyr select
+#' @importFrom rlang enquo
+#' @importFrom stats hclust
 pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
                                     main = "sense_check",
                                     use_col_gaps = TRUE,
@@ -1043,7 +1054,7 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
   row_names <- row.names(num_data)
 
   # Enclose the column name using tidy evaluation
-  sort_col <- dplyr::enquo(sort_col)
+  sort_col <- rlang::enquo(sort_col)
 
   # select the variable of interest for sorting
   if (ncol(annotation_row) > 1) {
@@ -1052,7 +1063,7 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
   } else {
     col_of_interest <- annotation_row
   }
-
+  
   # Create new order
   new_order <- order(col_of_interest)
 
@@ -1088,7 +1099,7 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
   # Iterate over the data frame clustering the points between gaps
   for (i in 2:length(loc_gapping)) {
     # Cluster the points in the current gap
-    hc <- hclust(dist(num_data[(loc_gapping[i - 1] + 1):loc_gapping[i], ])^2, "cen")
+    hc <- stats::hclust(dist(num_data[(loc_gapping[i - 1] + 1):loc_gapping[i], ])^2, "cen")
 
     # Update the order from hclust to match the position in the original data frame
     curr_order <- loc_gapping[i - 1] + hc$order
@@ -1248,8 +1259,6 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
 #'                   prediction_threshold = 0.4,
 #'                   sense_check_map = F
 #' )
-#' @importFrom dplyr select mutate bind_cols
-#' @importFrom RColorBrewer brewer.pal
 #' @importFrom dplyr select arrange mutate bind_cols
 #' @importFrom ggplot2 aes geom_point geom_vline ggtitle xlab ylab scale_color_manual
 #' @importFrom MSnbase fData
@@ -1323,12 +1332,11 @@ mcmc_out <- function(MS_object,
   d <- ncol(num_data)
 
   # Key to transforming from int to class
-  class_labels_key <- data.frame(Class = classes_present) # , Class_num = 1:k)
-  class_labels_key %<>%
+  class_labels_key <- data.frame(Class = classes_present) %>%
     dplyr::arrange(Class) %>%
     dplyr::mutate(Class_key = as.numeric(Class))
 
-  class_labels %<>%
+  class_labels <- class_labels %>% 
     dplyr::mutate(Class_ind = as.numeric(mydata$markers))
 
   labels_0_1 <- cluster_label_prior(
@@ -1358,16 +1366,16 @@ mcmc_out <- function(MS_object,
 
   # Prior on mass parameter for cluster  weights
   if (is.null(cluster_weight_0_1)) {
-    print(paste0(
-      "Creating vector of ", n_clust_1, " repetitions of ", 1,
-      " for mass parameter prior for dataset 1."
-    ))
+    # print(paste0(
+    #   "Creating vector of ", n_clust_1, " repetitions of ", 1,
+    #   " for mass parameter prior for dataset 1."
+    # ))
     cluster_weight_0_1 <- rep(1, (n_clust_1))
   } else if (length(cluster_weight_0_1) < (n_clust_1)) {
-    print(paste0(
-      "Creating vector of ", n_clust_1, " repetitions of ", cluster_weight_0_1,
-      " for mass parameter prior for dataset 1."
-    ))
+    # print(paste0(
+    #   "Creating vector of ", n_clust_1, " repetitions of ", cluster_weight_0_1,
+    #   " for mass parameter prior for dataset 1."
+    # ))
     cluster_weight_0_1 <- rep(cluster_weight_0_1, n_clust_1)
   }
 
@@ -1423,7 +1431,7 @@ mcmc_out <- function(MS_object,
     )
   }
 
-  print("Gibbs sampling complete")
+  # print("Gibbs sampling complete")
 
   if (is.null(data_2)) {
     class_record <- gibbs$class_record
@@ -1440,12 +1448,11 @@ mcmc_out <- function(MS_object,
   eff_iter <- ceiling((num_iter - burn) / thinning)
 
   # Key to transforming from int to class
-  class_labels_key <- data.frame(Class = classes_present) # , Class_num = 1:k)
-  class_labels_key %<>%
+  class_labels_key <- data.frame(Class = classes_present) %>% 
     arrange(Class) %>%
     dplyr::mutate(Class_key = as.numeric(Class))
 
-  class_labels %<>%
+  class_labels <- class_labels %>%
     mutate(Class_ind = as.numeric(mydata$markers))
 
   # Create a column Class_key containing an integer in 1:k representing the most
@@ -1474,8 +1481,7 @@ mcmc_out <- function(MS_object,
   gibbs$predicted_class <- predicted_classes
 
   # Example input for annotation_row in pheatmap
-  annotation_row <- class_labels %>% dplyr::select(Class)
-  annotation_row %<>%
+  annotation_row <- class_labels %>% dplyr::select(Class) %>% 
     mutate(Predicted_class = predicted_classes$Class)
 
   rownames(num_data) <- row_names
@@ -1496,8 +1502,6 @@ mcmc_out <- function(MS_object,
       fontsize_col = fontsize_col
     )
   }
-
-  # return(pauls_heatmap)
 
   all_data <- dplyr::bind_cols(
     num_data,
@@ -1536,6 +1540,7 @@ mcmc_out <- function(MS_object,
       fontsize_col = fontsize_col
     )
   }
+  
   if (entropy_plot) {
     entropy_data <- data.frame(
       Index = 1:(num_iter + 1),
@@ -1642,7 +1647,7 @@ mcmc_out <- function(MS_object,
 
 # === Cross-Validation =========================================================
 
-#' @importFrom dplyr mutate
+
 #' @importFrom dplyr arrange mutate
 #' @importFrom MSnbase fData
 gibbs_predictor <- function(MS_object, class_record) {
@@ -1653,16 +1658,15 @@ gibbs_predictor <- function(MS_object, class_record) {
 
   class_labels <- data.frame(Class = mydata$markers)
 
-  classes_present <- unique(fData(MSnbase::fData(MS_object))[, "markers"])
+  classes_present <- unique(MSnbase::fData(MSnbase::fData(MS_object))[, "markers"])
 
   rownames(class_labels) <- rownames(mydata)
 
-  class_labels_key <- data.frame(Class = classes_present) # , Class_num = 1:k)
-  class_labels_key %<>%
+  class_labels_key <- data.frame(Class = classes_present) %>% 
     dplyr::arrange(Class) %>%
     dplyr::mutate(Class_key = as.numeric(Class))
 
-  class_labels %<>%
+  class_labels <- class_labels %>%
     dplyr::mutate(Class_ind = as.numeric(mydata$markers))
 
   class_allocation_table <- with(
@@ -1721,7 +1725,8 @@ gibbs_predictor <- function(MS_object, class_record) {
 #' @importFrom MSnbase fData MSnSet exprs pData
 #' @importFrom pRoloc markerMSnSet getMarkerClasses
 #' @importFrom sampling strata
-mdi_cross_validate <- function(MS_object, MS_cat_object,
+mdi_cross_validate <- function(MS_object, 
+                               MS_cat_object = NULL,
                                times = 10,
                                test_size = 0.2,
                                num_iter = 1000,
@@ -1729,7 +1734,10 @@ mdi_cross_validate <- function(MS_object, MS_cat_object,
                                thinning = 25,
                                ...) {
   marker.data <- markerMSnSet(MS_object)
-  marker.data.cat <- pRoloc::markerMSnSet(MS_cat_object)
+  
+  if(! is.null(MS_cat_object)){
+    marker.data.cat <- pRoloc::markerMSnSet(MS_cat_object)
+  }
 
   X <- pRoloc:::subsetAsDataFrame(marker.data, "markers", train = TRUE)
 
@@ -1762,13 +1770,7 @@ mdi_cross_validate <- function(MS_object, MS_cat_object,
       MSnbase::fData(marker.data[test.idx, ]),
       MSnbase::pData(marker.data)
     )
-
-    # .test2 <- MSnbase::MSnSet(
-    #   MSnbase::exprs(marker.data.cat)[test.idx, ],
-    #   MSnbase::fData(marker.data.cat[test.idx, ]),
-    #   MSnbase::pData(marker.data.cat)
-    # )
-
+    
     ## 'seen' training set
     .train1 <- MSnbase::MSnSet(
       MSnbase::exprs(marker.data)[-test.idx, ],
@@ -1776,20 +1778,17 @@ mdi_cross_validate <- function(MS_object, MS_cat_object,
       MSnbase::pData(marker.data)
     )
 
-    # .train2 <- MSnbase::MSnSet(
-    #   MSnbase::exprs(marker.data.cat)[-test.idx, ],
-    #   MSnbase::fData(marker.data.cat[-test.idx, ]),
-    #   MSnbase::pData(marker.data.cat)
-    # )
-
-
     # save true marker labels
     test.markers <- MSnbase::fData(.test1)$markers
 
     # create new combined MSnset
     mydata <- BiocGenerics::combine(.test1, .train1)
-    # cat_data <- BiocGenerics::combine(.test2, .train2)
-    cat_data <- MSnbase::exprs(marker.data.cat)
+    
+    if(! is.null(MS_cat_object)){
+      cat_data <- MSnbase::exprs(marker.data.cat)
+    } else {
+      cat_data <- NULL
+    }
 
     # Set levels of markers cateogries
     levels(MSnbase::fData(mydata)$markers) <- c(

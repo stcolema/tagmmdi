@@ -19,16 +19,17 @@ biocViews:
     MSnbase
 Imports: 
     Rcpp (>= 0.12.18),
-    ggplot2,
+    attempt,
+    caret,
     dplyr,
+    ggplot2,
+    magrittr,
+    mcclust,
     pheatmap,
     RColorBrewer,
-    attempt,
     reshape,
-    mcclust,
-    sampling,
-    caret,
-    magrittr
+    rlang,
+    sampling
 Suggests: 
     testthat,
     covr,
