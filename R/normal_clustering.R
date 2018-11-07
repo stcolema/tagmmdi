@@ -194,7 +194,7 @@ empirical_bayes_gaussian <- function(data, mu_0, df_0, scale_0, N, k, d,
   if (is.null(scale_0)) {
     # scale_0 <- diag(BiocGenerics::colMeans((data - mean(data))^2) / N) / (k^(1 / d))
     # if (any(is.na(scale_0))) {
-      scale_0 <- diag(d) / (k^(1 / d))
+    scale_0 <- diag(d) / (k^(1 / d))
     # }
   }
   parameters$mu_0 <- mu_0
@@ -897,7 +897,7 @@ annotated_heatmap <- function(input_data, annotation_row = NULL,
   if (is.null(annotation_row) & !(isTRUE(train) | is.null(train))) {
     stop("If data")
   }
-  
+
   dissim <- input_data
 
   sort_by_col <- attempt::try_catch(
@@ -905,12 +905,12 @@ annotated_heatmap <- function(input_data, annotation_row = NULL,
     .e = NULL,
     .w = NULL
   )
-  
+
   # If the sort_by_col contains something other than NULL
-  
+
   # has rlang been updated? this line no longer works
   # if(! is.null(!!sort_by_col)){
-  if (rlang::quo_text(sort_by_col) != "NULL"){
+  if (rlang::quo_text(sort_by_col) != "NULL") {
 
     # Declare row names ro ensure re-ordered correctly
     row_names <- data.frame(Names = row.names(annotation_row))
@@ -1063,7 +1063,7 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
   } else {
     col_of_interest <- annotation_row
   }
-  
+
   # Create new order
   new_order <- order(col_of_interest)
 
@@ -1149,53 +1149,53 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
 #' @param labels_0_1 An optional prior for clusters in MS_object. If NULL
 #' defaults to a randomly generated set using the proportion in the labelled
 #' data.
-#' @param args_1 A named list containing the relevant objects for the data type 
-#' of MS_object. If NULL this is generated based on the input type_1 and using 
+#' @param args_1 A named list containing the relevant objects for the data type
+#' of MS_object. If NULL this is generated based on the input type_1 and using
 #' the function gaussian_arguments or categorical arguments.
 #' @param cluster_weight_0_1 The prior for dirichlet distribution of cluster
 #' weights.
 #' @param data_2 Second dataset for MDI. Either a matrix of continuous data,
 #' categorical data or NULL (in which case MDI is not used).
 #' Default is NULL in which case a generic mixture of Gaussians is used.
-#' @param type_1 String denoting the type of data in MS_object. One of 
-#' "Gaussian" or "Categorical" (shorthand "G" and "C" also suffice). Default is 
+#' @param type_1 String denoting the type of data in MS_object. One of
+#' "Gaussian" or "Categorical" (shorthand "G" and "C" also suffice). Default is
 #' "Gaussian".
-#' @param type_2 String denoting the type of data in MS_object. One of 
-#' "Gaussian" or "Categorical" (shorthand "G" and "C" also suffice). Default is 
+#' @param type_2 String denoting the type of data in MS_object. One of
+#' "Gaussian" or "Categorical" (shorthand "G" and "C" also suffice). Default is
 #' "Categorical".
 #' @param cluster_weight_0_2 Vector of the prior on cluster
 #' weights in the categorical data. If a single number is given a uniform vector
 #' is generated.
-#' @param args_2 A named list containing the relevant objects for the data type 
-#' of data_2. If NULL this is generated based on the input type_1 and using 
+#' @param args_2 A named list containing the relevant objects for the data type
+#' of data_2. If NULL this is generated based on the input type_1 and using
 #' the function gaussian_arguments or categorical arguments.
 #' @param labels_0_2 Vector of labels for the prior clustering of the
 #' categorical data.
 #' @param n_clust_2 Integer of the number of clusters to have as a
 #' maximum in the categorical dataset. Default is 100.
 #' @param fix_vec_1 A vector of 0's and 1's indicating which points are fixed in
-#' their initial allocation in dataset 1. Default of NULL means that the 
+#' their initial allocation in dataset 1. Default of NULL means that the
 #' information in MS_object is used to define this (any labelled points in the
 #' dataset are held in this allocation).
 #' @param fix_vec_2 A vector of 0's and 1's indicating which points are fixed in
 #' their initial allocation for dataset 2. Default of all points unfixed.
-#' @param a_0 Prior shape parameter for gamma distribution of strategic latent 
+#' @param a_0 Prior shape parameter for gamma distribution of strategic latent
 #' variable, v, in MDI. Default is 1.
-#' @param b_0 Prior rate parameter for gamma distribution of strategic latent 
+#' @param b_0 Prior rate parameter for gamma distribution of strategic latent
 #' variable, v, in MDI. Default is 0.2.
 #' @param outlier_1 A bool instructing the sampler to consider an outlier
-#' cluster following a t-distribution (i.e. implementing TAGM). Only 
+#' cluster following a t-distribution (i.e. implementing TAGM). Only
 #' applicable to gaussian datasets.
 #' @param t_df_1 The degrees of freedom for the outlier t-distribution (default
 #' is 4).
-#' @param normalise_1 Bool instructing normalisation of continuous data in 
+#' @param normalise_1 Bool instructing normalisation of continuous data in
 #' dataset 1 (default is false).
 #' @param outlier_2 A bool instructing the sampler to consider an outlier
-#' cluster following a t-distribution (i.e. implementing TAGM). Only 
+#' cluster following a t-distribution (i.e. implementing TAGM). Only
 #' applicable to gaussian datasets.
 #' @param t_df_2 The degrees of freedom for the outlier t-distribution (default
 #' is 4).
-#' @param normalise_2 Bool instructing normalisation of continuous data in 
+#' @param normalise_2 Bool instructing normalisation of continuous data in
 #' dataset 2 (default is false).
 #' @param record_posteriors A bool instructing the mcmc function to record the
 #' posterior distributions of the mean and variance for each cluster
@@ -1221,9 +1221,9 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
 #' min(25, num_iter / 5).
 #' @param mean_tolerance Input to entropy ploy function. Default is 0.0005.
 #' @param sd_tolerance Input to entropy ploy function. Default is 0.0005.
-#' @param sense_check_map A bool instructing function to save a heatmap of the 
+#' @param sense_check_map A bool instructing function to save a heatmap of the
 #' componenet level clusterings.
-#' @param sense_check_main String. Title for sense_check_map. Default is 
+#' @param sense_check_main String. Title for sense_check_map. Default is
 #' "component_level_clustering".
 #' @param prediction_threshold The minimum proportion of recorded iterations
 #' for which a point is in its most common cluster for which a prediction is
@@ -1246,7 +1246,7 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
 #'
 #' Use some categorical data
 #' cat_data <- as.matrix(exprs(tan2009r1goCC))
-#' 
+#'
 #' Implement MDI
 #' stuff <- mcmc_out(tan2009r1,
 #'                   data_2 = cat_data,
@@ -1316,10 +1316,10 @@ mcmc_out <- function(MS_object,
   }
 
 
-  if(! is.null(data_2) & is.null(fix_vec_2)){
+  if (!is.null(data_2) & is.null(fix_vec_2)) {
     fix_vec_2 <- rep(0, nrow(data_2))
   }
-  
+
   class_labels <- data.frame(Class = mydata$markers)
 
   classes_present <- unique(MSnbase::fData(pRoloc::markerMSnSet(MS_object))[, "markers"])
@@ -1340,7 +1340,7 @@ mcmc_out <- function(MS_object,
     dplyr::arrange(Class) %>%
     dplyr::mutate(Class_key = as.numeric(Class))
 
-  class_labels <- class_labels %>% 
+  class_labels <- class_labels %>%
     dplyr::mutate(Class_ind = as.numeric(mydata$markers))
 
   labels_0_1 <- cluster_label_prior(
@@ -1385,8 +1385,8 @@ mcmc_out <- function(MS_object,
 
   # Convert to matrix format
   num_data_mat <- as.matrix(num_data)
-  
-  if(! is.null(data_2)){
+
+  if (!is.null(data_2)) {
     data_2_mat <- as.matrix(data_2)
   }
 
@@ -1455,7 +1455,7 @@ mcmc_out <- function(MS_object,
   eff_iter <- ceiling((num_iter - burn) / thinning)
 
   # Key to transforming from int to class
-  class_labels_key <- data.frame(Class = classes_present) %>% 
+  class_labels_key <- data.frame(Class = classes_present) %>%
     arrange(Class) %>%
     dplyr::mutate(Class_key = as.numeric(Class))
 
@@ -1488,7 +1488,8 @@ mcmc_out <- function(MS_object,
   gibbs$predicted_class <- predicted_classes
 
   # Example input for annotation_row in pheatmap
-  annotation_row <- class_labels %>% dplyr::select(Class) %>% 
+  annotation_row <- class_labels %>%
+    dplyr::select(Class) %>%
     mutate(Predicted_class = predicted_classes$Class)
 
   rownames(num_data) <- row_names
@@ -1547,7 +1548,7 @@ mcmc_out <- function(MS_object,
       fontsize_col = fontsize_col
     )
   }
-  
+
   if (entropy_plot) {
     entropy_data <- data.frame(
       Index = 1:(num_iter + 1),
@@ -1669,7 +1670,7 @@ gibbs_predictor <- function(MS_object, class_record) {
 
   rownames(class_labels) <- rownames(mydata)
 
-  class_labels_key <- data.frame(Class = classes_present) %>% 
+  class_labels_key <- data.frame(Class = classes_present) %>%
     dplyr::arrange(Class) %>%
     dplyr::mutate(Class_key = as.numeric(Class))
 
@@ -1732,7 +1733,7 @@ gibbs_predictor <- function(MS_object, class_record) {
 #' @importFrom MSnbase fData MSnSet exprs pData
 #' @importFrom pRoloc markerMSnSet getMarkerClasses
 #' @importFrom sampling strata
-mdi_cross_validate <- function(MS_object, 
+mdi_cross_validate <- function(MS_object,
                                MS_cat_object = NULL,
                                times = 10,
                                test_size = 0.2,
@@ -1741,8 +1742,8 @@ mdi_cross_validate <- function(MS_object,
                                thinning = 25,
                                ...) {
   marker.data <- markerMSnSet(MS_object)
-  
-  if(! is.null(MS_cat_object)){
+
+  if (!is.null(MS_cat_object)) {
     marker.data.cat <- pRoloc::markerMSnSet(MS_cat_object)
   }
 
@@ -1777,7 +1778,7 @@ mdi_cross_validate <- function(MS_object,
       MSnbase::fData(marker.data[test.idx, ]),
       MSnbase::pData(marker.data)
     )
-    
+
     ## 'seen' training set
     .train1 <- MSnbase::MSnSet(
       MSnbase::exprs(marker.data)[-test.idx, ],
@@ -1790,8 +1791,8 @@ mdi_cross_validate <- function(MS_object,
 
     # create new combined MSnset
     mydata <- BiocGenerics::combine(.test1, .train1)
-    
-    if(! is.null(MS_cat_object)){
+
+    if (!is.null(MS_cat_object)) {
       cat_data <- MSnbase::exprs(marker.data.cat)
     } else {
       cat_data <- NULL
@@ -1848,7 +1849,7 @@ mdi_cross_validate <- function(MS_object,
     # create allocation matrix
     for (j in seq_along(test.idx)) {
       allocmatrix[j, as.numeric(factor(test.markers), seq(1, length(unique(test.markers))))[j]] <- 1
-      test_alloc[j, as.numeric(factor(data), seq(1,length(unique(test.markers))))[j]] <- 1
+      test_alloc[j, as.numeric(factor(data), seq(1, length(unique(test.markers))))[j]] <- 1
     }
 
     # Compute quadratic loss
