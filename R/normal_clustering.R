@@ -1276,7 +1276,7 @@ mcmc_out <- function(MS_object,
                      labels_0_2 = NULL,
                      n_clust_2 = 50,
                      fix_vec_1 = NULL,
-                     fix_vec_2 = rep(0, nrow(data_2)),
+                     fix_vec_2 = NULL,
                      a_0 = 1,
                      b_0 = 0.2,
                      outlier_1 = FALSE,
@@ -1316,6 +1316,10 @@ mcmc_out <- function(MS_object,
   }
 
 
+  if(! is.null(data_2) & is.null(fix_vec_2)){
+    fix_vec_2 <- rep(0, nrow(data_2))
+  }
+  
   class_labels <- data.frame(Class = mydata$markers)
 
   classes_present <- unique(MSnbase::fData(pRoloc::markerMSnSet(MS_object))[, "markers"])
@@ -1381,7 +1385,10 @@ mcmc_out <- function(MS_object,
 
   # Convert to matrix format
   num_data_mat <- as.matrix(num_data)
-  data_2_mat <- as.matrix(data_2)
+  
+  if(! is.null(data_2)){
+    data_2_mat <- as.matrix(data_2)
+  }
 
   if (is.null(data_2)) {
     gibbs <- gibbs_sampling(num_data_mat, n_clust_1, labels_0_1, fix_vec_1,
@@ -1642,7 +1649,7 @@ mcmc_out <- function(MS_object,
     ))
   }
 
-  return(list(gibbs = gibbs, data = all_data, data_2 = data_2))
+  return(list(gibbs = gibbs, data = all_data))
 }
 
 # === Cross-Validation =========================================================
