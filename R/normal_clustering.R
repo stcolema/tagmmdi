@@ -868,7 +868,7 @@ mdi <- function(data_1, data_2,
   sim
 }
 
-# === OUTPUT ===================================================================
+# === VISUALISATION ============================================================
 
 # --- Heatmap ------------------------------------------------------------------
 #' @title Annotated Heatmap
@@ -1141,10 +1141,42 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
   )
 }
 
-# === Wrapper ==================================================================
+# --- PCA Plot -----------------------------------------------------------------
+#' @title PCA MS object
+#' @description Creates a PCA plot of a given MS object from pRolocdata grouping
+#' based on a vector of integers.
+#' @param MS_object A dataset from pRolocdata.
+#' @param test_pred A vector of allocations.
+#' @param ellipses A bool indicating if clusters should be contained within 
+#' appropriately coloured ellipses on the plot.
+#' @param alpha.ind A number or vector of numbers between 0 and 1 inddicating 
+#' the transparency of points (1 indicates opaque, 0 transparent).
+#' @return PCA plot
+#' @importFrom FactoMineR PCA
+#' @importFrom factoextra fviz_pca_ind
+pca_ms_obj <- function(MS_object, test_pred, ellipses = FALSE, alpha.ind = 1) {
+  ms_data <- MS_dataset(MS_object)
+  rel_data <- ms_data$data
+  last_col <- ncol(rel_data)
+  data_pca <- rel_data[, -last_col]
+  data_pca$class <- test_pred
+  data_pca$class <- as.factor(data_pca$class)
+  test_pca <- FactoMineR::PCA(data_pca[, -last_col], graph = FALSE)
+  pca_plot <- factoextra::fviz_pca_ind(test_pca,
+               geom.ind = "point", # show points only (nbut not "text")
+               col.ind = data_pca$class, # color by groups
+               addEllipses = ellipses, # Concentration ellipses
+               legend.title = "Groups",
+               alpha.ind = alpha.ind,
+               rotate = T
+  )
+  pca_plot
+}
+
+# === WRAPPER FUNCTION==========================================================
 #' @title MCMC out
-#' @description Returns mean, variance and similarity posteriors from Gibbs sampling with
-#' option of pheatmap
+#' @description Returns mean, variance and similarity posteriors from Gibbs 
+#' sampling with option of pheatmap
 #' @param MS_object A dataset in the format used by pRolocdata.
 #' @param labels_0_1 An optional prior for clusters in MS_object. If NULL
 #' defaults to a randomly generated set using the proportion in the labelled
@@ -1564,7 +1596,7 @@ mcmc_out <- function(MS_object,
     # Check if instantly ok
     rec_burn <- ifelse(is.null(rec_burn), 1, rec_burn)
 
-    entropy_scatter <- ggplot(
+    entropy_scatter <- ggplot2::ggplot(
       data = entropy_data,
       mapping = ggplot2::aes(x = Index, y = Entropy)
     ) +

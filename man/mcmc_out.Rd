@@ -28,8 +28,8 @@ mcmc_out(MS_object, labels_0_1 = NULL, args_1 = NULL,
 defaults to a randomly generated set using the proportion in the labelled
 data.}
 
-\item{args_1}{A named list containing the relevant objects for the data type 
-of MS_object. If NULL this is generated based on the input type_1 and using 
+\item{args_1}{A named list containing the relevant objects for the data type
+of MS_object. If NULL this is generated based on the input type_1 and using
 the function gaussian_arguments or categorical arguments.}
 
 \item{cluster_weight_0_1}{The prior for dirichlet distribution of cluster
@@ -39,20 +39,20 @@ weights.}
 categorical data or NULL (in which case MDI is not used).
 Default is NULL in which case a generic mixture of Gaussians is used.}
 
-\item{type_1}{String denoting the type of data in MS_object. One of 
-"Gaussian" or "Categorical" (shorthand "G" and "C" also suffice). Default is 
+\item{type_1}{String denoting the type of data in MS_object. One of
+"Gaussian" or "Categorical" (shorthand "G" and "C" also suffice). Default is
 "Gaussian".}
 
-\item{type_2}{String denoting the type of data in MS_object. One of 
-"Gaussian" or "Categorical" (shorthand "G" and "C" also suffice). Default is 
+\item{type_2}{String denoting the type of data in MS_object. One of
+"Gaussian" or "Categorical" (shorthand "G" and "C" also suffice). Default is
 "Categorical".}
 
 \item{cluster_weight_0_2}{Vector of the prior on cluster
 weights in the categorical data. If a single number is given a uniform vector
 is generated.}
 
-\item{args_2}{A named list containing the relevant objects for the data type 
-of data_2. If NULL this is generated based on the input type_1 and using 
+\item{args_2}{A named list containing the relevant objects for the data type
+of data_2. If NULL this is generated based on the input type_1 and using
 the function gaussian_arguments or categorical arguments.}
 
 \item{labels_0_2}{Vector of labels for the prior clustering of the
@@ -62,37 +62,37 @@ categorical data.}
 maximum in the categorical dataset. Default is 100.}
 
 \item{fix_vec_1}{A vector of 0's and 1's indicating which points are fixed in
-their initial allocation in dataset 1. Default of NULL means that the 
+their initial allocation in dataset 1. Default of NULL means that the
 information in MS_object is used to define this (any labelled points in the
 dataset are held in this allocation).}
 
 \item{fix_vec_2}{A vector of 0's and 1's indicating which points are fixed in
 their initial allocation for dataset 2. Default of all points unfixed.}
 
-\item{a_0}{Prior shape parameter for gamma distribution of strategic latent 
+\item{a_0}{Prior shape parameter for gamma distribution of strategic latent
 variable, v, in MDI. Default is 1.}
 
-\item{b_0}{Prior rate parameter for gamma distribution of strategic latent 
+\item{b_0}{Prior rate parameter for gamma distribution of strategic latent
 variable, v, in MDI. Default is 0.2.}
 
 \item{outlier_1}{A bool instructing the sampler to consider an outlier
-cluster following a t-distribution (i.e. implementing TAGM). Only 
+cluster following a t-distribution (i.e. implementing TAGM). Only
 applicable to gaussian datasets.}
 
 \item{t_df_1}{The degrees of freedom for the outlier t-distribution (default
 is 4).}
 
-\item{normalise_1}{Bool instructing normalisation of continuous data in 
+\item{normalise_1}{Bool instructing normalisation of continuous data in
 dataset 1 (default is false).}
 
 \item{outlier_2}{A bool instructing the sampler to consider an outlier
-cluster following a t-distribution (i.e. implementing TAGM). Only 
+cluster following a t-distribution (i.e. implementing TAGM). Only
 applicable to gaussian datasets.}
 
 \item{t_df_2}{The degrees of freedom for the outlier t-distribution (default
 is 4).}
 
-\item{normalise_2}{Bool instructing normalisation of continuous data in 
+\item{normalise_2}{Bool instructing normalisation of continuous data in
 dataset 2 (default is false).}
 
 \item{record_posteriors}{A bool instructing the mcmc function to record the
@@ -135,10 +135,10 @@ min(25, num_iter / 5).}
 
 \item{sd_tolerance}{Input to entropy ploy function. Default is 0.0005.}
 
-\item{sense_check_map}{A bool instructing function to save a heatmap of the 
+\item{sense_check_map}{A bool instructing function to save a heatmap of the
 componenet level clusterings.}
 
-\item{sense_check_main}{String. Title for sense_check_map. Default is 
+\item{sense_check_main}{String. Title for sense_check_map. Default is
 "component_level_clustering".}
 
 \item{prediction_threshold}{The minimum proportion of recorded iterations
@@ -151,8 +151,8 @@ but can include two pheatmaps and a scatter plot of the entropy over
 iterations.
 }
 \description{
-Returns mean, variance and similarity posteriors from Gibbs sampling with
-option of pheatmap
+Returns mean, variance and similarity posteriors from Gibbs 
+sampling with option of pheatmap
 }
 \examples{
 Single dataset clustering
