@@ -3542,6 +3542,14 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   v = 1.0;
   // v = arma::randg( arma::distr_param(v_a_0, 1.0/(v_b_0) ) );
 
+  // The matrices to hold the allocation probabilities for each class
+  arma::mat alloc_prob_gauss(n, num_clusters_gaussian);
+  arma::mat alloc_prob_cat(n, num_clusters_categorical);
+  
+  alloc_prob_gauss.zeros();
+  alloc_prob_cat.zeros();
+  
+  
   for(arma::uword i = 0; i < num_iter; i++){
     
     // Consider only the labels of points not considered to be outliers
@@ -3706,10 +3714,18 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
         
         
         
-        if (i >= burn && (i - burn) % thinning == 0 && record_posteriors) {
+        if (i >= burn && (i - burn) % thinning == 0) { // include  && record_posteriors in if?
           record_iter = (i - burn) / thinning;
           gaussian_class_probs.slice(j).row(record_iter) = arma::trans(curr_gaussian_prob_vec);
           cat_class_probs.slice(j).row(record_iter) = arma::trans(curr_categorical_prob_vec);
+          
+          alloc_prob_gauss.row(j) += arma::trans(curr_gaussian_prob_vec);
+          
+          if(abs(arma::sum(curr_categorical_prob_vec) - 1) > 0.00001){
+            std::cout << arma::sum(curr_categorical_prob_vec) << "\n";
+          }
+          
+          alloc_prob_cat.row(j) += arma::trans(curr_categorical_prob_vec);
         }
         
         // update labels - in gaussian data this is only if the current point is 
@@ -3882,6 +3898,9 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
       
   }
   
+  alloc_prob_gauss = alloc_prob_gauss / eff_count;
+  alloc_prob_cat = alloc_prob_cat / eff_count;
+  
   // construct similarity matrix
   arma::mat sim(n, n); 
   arma::mat cat_sim(n, n);
@@ -3890,6 +3909,8 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   
   return List::create(Named("similarity_1") = sim,
                       Named("similarity_2") = cat_sim,
+                      Named("allocation_mat_gauss") = alloc_prob_gauss,
+                      Named("allocation_mat_cat") = alloc_prob_cat,
                       Named("class_record_1") = gaussian_record,
                       Named("class_record_2") = categorical_record,
                       Named("mean_posterior") = mu,
