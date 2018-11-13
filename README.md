@@ -21,12 +21,13 @@ Example
 This is a basic example of applying MDI clustering to data from pRolocdata:
 
 ``` r
+# Import data from pRolocdata
 data(tan2009r1)
 data(tan2009r1goCC)
-cat_data <- as.matrix(exprs(tan2009r1goCC))
 
+# Run MDI clustering on Gaussian and Categorical datasets
 mcmc_obj <- mcmc_out(tan2009r1,
-                     data_2 = cat_data,
+                     data_2 = as.matrix(exprs(tan2009r1goCC)),
                      n_clust_2 = 30,
                      num_iter = 5000,
                      burn = 1000,
