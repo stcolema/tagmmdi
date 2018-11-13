@@ -1549,6 +1549,7 @@ mcmc_out <- function(MS_object,
   )
   all_data$Fixed <- fix_vec_1
   all_data$Protein <- rownames(num_data)
+  all_data$Prediction <- predicted_classes$Class
 
   # rownames(all_data) <- rownames(num_data)
 
@@ -1864,10 +1865,38 @@ mdi_cross_validate <- function(MS_object,
     )
 
     # Allocation for test data
-    data <- factor(params$gibbs$predicted_class$Class,
+    
+    # Find the relevant indices from the prediction and output of the sampler
+    indices_for_prediction <- match(rownames(MSnbase::fData(.test1)), params$data$Protein)
+    
+    # MAP prediction
+    pred <- params$data$Prediction[indices_for_prediction]
+    
+    # MCMC prediction
+    pred <- apply(params$gibbs$allocation_mat_gauss, 1, max)
+    prediction_vec <- params$gibbs$allocation_mat_gauss == pred
+    
+    # Allocation matrix
+    test_alloc <- matrix(nrow = nrow(prediction_vec), 
+                                as.numeric(prediction_vec)
+    )[indices_for_prediction, ]
+    
+    # Find predictions - order not as new dataset as wrapper function orders 
+    # based on fixing points
+    pred <- apply(params$gibbs$allocation_mat_gauss, 1, which.max)[indices_for_prediction]
+    
+    data <- factor(params$gibbs$predicted_class$Class, 
       levels = pRoloc::getMarkerClasses(mydata)
-    )[1:nrow(MSnbase::exprs(.test1))]
+    )
+    
+    classes_pres <- pRoloc::getMarkerClasses(mydata)
+    class_key <- data.frame(Class = classes_pres, Key = 1:length(classes_pres))
 
+    data <- class_key$Class[match(
+      pred,
+      class_key$Key
+    )]
+    
     # True allocation for test data
     reference <- factor(test.markers, levels = pRoloc::getMarkerClasses(mydata))
 
@@ -1875,13 +1904,11 @@ mdi_cross_validate <- function(MS_object,
     cmlist[[i]] <- conf <- caret::confusionMatrix(data = data, reference = reference)$table
 
     # Create allocation matrices for truth and prediction
-    test_alloc <- matrix(0, length(test.idx), length(pRoloc::getMarkerClasses(mydata)))
     allocmatrix <- matrix(0, length(test.idx), length(pRoloc::getMarkerClasses(mydata)))
 
     # create allocation matrix
     for (j in seq_along(test.idx)) {
       allocmatrix[j, as.numeric(factor(test.markers), seq(1, length(unique(test.markers))))[j]] <- 1
-      test_alloc[j, as.numeric(factor(data), seq(1, length(unique(test.markers))))[j]] <- 1
     }
 
     # Compute quadratic loss
