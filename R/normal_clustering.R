@@ -1147,9 +1147,9 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
 #' based on a vector of integers.
 #' @param MS_object A dataset from pRolocdata.
 #' @param test_pred A vector of allocations.
-#' @param ellipses A bool indicating if clusters should be contained within 
+#' @param ellipses A bool indicating if clusters should be contained within
 #' appropriately coloured ellipses on the plot.
-#' @param alpha.ind A number or vector of numbers between 0 and 1 inddicating 
+#' @param alpha.ind A number or vector of numbers between 0 and 1 inddicating
 #' the transparency of points (1 indicates opaque, 0 transparent).
 #' @return PCA plot
 #' @importFrom FactoMineR PCA
@@ -1163,19 +1163,19 @@ pca_ms_obj <- function(MS_object, test_pred, ellipses = FALSE, alpha.ind = 1) {
   data_pca$class <- as.factor(data_pca$class)
   test_pca <- FactoMineR::PCA(data_pca[, -last_col], graph = FALSE)
   pca_plot <- factoextra::fviz_pca_ind(test_pca,
-               geom.ind = "point", # show points only (nbut not "text")
-               col.ind = data_pca$class, # color by groups
-               addEllipses = ellipses, # Concentration ellipses
-               legend.title = "Groups",
-               alpha.ind = alpha.ind,
-               rotate = T
+    geom.ind = "point", # show points only (nbut not "text")
+    col.ind = data_pca$class, # color by groups
+    addEllipses = ellipses, # Concentration ellipses
+    legend.title = "Groups",
+    alpha.ind = alpha.ind,
+    rotate = T
   )
   pca_plot
 }
 
 # === WRAPPER FUNCTION==========================================================
 #' @title MCMC out
-#' @description Returns mean, variance and similarity posteriors from Gibbs 
+#' @description Returns mean, variance and similarity posteriors from Gibbs
 #' sampling with option of pheatmap
 #' @param MS_object A dataset in the format used by pRolocdata.
 #' @param labels_0_1 An optional prior for clusters in MS_object. If NULL
@@ -1865,30 +1865,31 @@ mdi_cross_validate <- function(MS_object,
     )
 
     # Allocation for test data
-    
+
     # Find the relevant indices from the prediction and output of the sampler
     indices_for_prediction <- match(rownames(MSnbase::fData(.test1)), params$data$Protein)
-    
+
     # MAP prediction
     pred <- params$data$Prediction[indices_for_prediction]
-    
+
     # MCMC prediction
     pred <- apply(params$gibbs$allocation_mat_gauss, 1, max)
     prediction_vec <- params$gibbs$allocation_mat_gauss == pred
-    
+
     # Allocation matrix
-    test_alloc <- matrix(nrow = nrow(prediction_vec), 
-                                as.numeric(prediction_vec)
+    test_alloc <- matrix(
+      nrow = nrow(prediction_vec),
+      as.numeric(prediction_vec)
     )[indices_for_prediction, ]
-    
-    # Find predictions - order not as new dataset as wrapper function orders 
+
+    # Find predictions - order not as new dataset as wrapper function orders
     # based on fixing points
     pred <- apply(params$gibbs$allocation_mat_gauss, 1, which.max)[indices_for_prediction]
-    
-    data <- factor(params$gibbs$predicted_class$Class, 
+
+    data <- factor(params$gibbs$predicted_class$Class,
       levels = pRoloc::getMarkerClasses(mydata)
     )
-    
+
     classes_pres <- pRoloc::getMarkerClasses(mydata)
     class_key <- data.frame(Class = classes_pres, Key = 1:length(classes_pres))
 
@@ -1896,7 +1897,7 @@ mdi_cross_validate <- function(MS_object,
       pred,
       class_key$Key
     )]
-    
+
     # True allocation for test data
     reference <- factor(test.markers, levels = pRoloc::getMarkerClasses(mydata))
 
