@@ -1292,7 +1292,7 @@ pca_ms_obj <- function(MS_object, test_pred, ellipses = FALSE, alpha.ind = 1) {
 #'                   sense_check_map = F
 #' )
 #' @importFrom dplyr select arrange mutate bind_cols
-#' @importFrom ggplot2 aes geom_point geom_vline ggtitle xlab ylab scale_color_manual
+#' @importFrom ggplot2 ggplot aes geom_point geom_vline ggtitle xlab ylab scale_color_manual
 #' @importFrom MSnbase fData
 #' @importFrom pRoloc markerMSnSet
 #' @importFrom RColorBrewer brewer.pal

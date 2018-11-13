@@ -22,6 +22,8 @@ Imports:
     attempt,
     caret,
     dplyr,
+    factoextra,
+    FactoMineR,
     ggplot2,
     magrittr,
     mcclust,
