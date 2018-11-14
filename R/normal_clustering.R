@@ -1791,6 +1791,9 @@ mdi_cross_validate <- function(MS_object,
   cmlist <- vector("list", length = times)
   quadloss <- vector("list", length = times)
 
+  # Create a data frame of the classes present and their associated number
+  classes_pres <- pRoloc::getMarkerClasses(MS_object)
+  class_key <- data.frame(Class = classes_pres, Key = 1:length(classes_pres))
 
   for (i in seq_along(cmlist)) {
     # get sizes
@@ -1867,14 +1870,17 @@ mdi_cross_validate <- function(MS_object,
     # Allocation for test data
 
     # Find the relevant indices from the prediction and output of the sampler
-    indices_for_prediction <- match(rownames(MSnbase::fData(.test1)), params$data$Protein)
+    indices_for_prediction <- match(
+      rownames(MSnbase::fData(.test1)),
+      params$data$Protein
+    )
 
     # MAP prediction
-    pred <- params$data$Prediction[indices_for_prediction]
+    map_pred <- params$data$Prediction[indices_for_prediction]
 
     # MCMC prediction
-    pred <- apply(params$gibbs$allocation_mat_gauss, 1, max)
-    prediction_vec <- params$gibbs$allocation_mat_gauss == pred
+    mcmc_pred <- apply(params$gibbs$allocation_mat_gauss, 1, max)
+    prediction_vec <- params$gibbs$allocation_mat_gauss == mcmc_pred
 
     # Allocation matrix
     test_alloc <- matrix(
@@ -1884,36 +1890,69 @@ mdi_cross_validate <- function(MS_object,
 
     # Find predictions - order not as new dataset as wrapper function orders
     # based on fixing points
-    pred <- apply(params$gibbs$allocation_mat_gauss, 1, which.max)[indices_for_prediction]
-
-    data <- factor(params$gibbs$predicted_class$Class,
-      levels = pRoloc::getMarkerClasses(mydata)
+    mcmc_pred <- apply(
+      params$gibbs$allocation_mat_gauss[indices_for_prediction, ],
+      1,
+      which.max
     )
 
-    classes_pres <- pRoloc::getMarkerClasses(mydata)
-    class_key <- data.frame(Class = classes_pres, Key = 1:length(classes_pres))
-
-    data <- class_key$Class[match(
-      pred,
+    # Make predictions on test data
+    mcmc_predictions <- class_key$Class[match(
+      mcmc_pred,
       class_key$Key
     )]
 
+    map_predictions <- class_key$Class[match(
+      map_pred,
+      class_key$Key
+    )]
+    
     # True allocation for test data
     reference <- factor(test.markers, levels = pRoloc::getMarkerClasses(mydata))
 
     # Confusion matrix for current fold
-    cmlist[[i]] <- conf <- caret::confusionMatrix(data = data, reference = reference)$table
+    cmlist[[i]] <- conf <- caret::confusionMatrix(
+      data = mcmc_predictions,
+      reference = reference
+    )$table
 
-    # Create allocation matrices for truth and prediction
-    allocmatrix <- matrix(0, length(test.idx), length(pRoloc::getMarkerClasses(mydata)))
+    # Create allocation matrices for truth, filled initially with 0's
+    allocmatrix <- matrix(0,
+      nrow = length(test.idx),
+      ncol = length(pRoloc::getMarkerClasses(mydata))
+    )
+    
+    test_alloc_2 <- allocmatrix
 
+    # The numbers associated with the classes (i.e. numerical representation of 
+    # the classes)
+    class_numerics <- seq(1, length(unique(test.markers)))
+    
     # create allocation matrix
     for (j in seq_along(test.idx)) {
-      allocmatrix[j, as.numeric(factor(test.markers), seq(1, length(unique(test.markers))))[j]] <- 1
+      # The class the current individual belongs to
+      alloc <- as.numeric(test.markers, class_numerics)[j]
+      
+      # Enter this in the allocation matrix
+      allocmatrix[j, alloc] <- 1
+      test_alloc_2[j, map_predictions[j]] <- 1
     }
 
     # Compute quadratic loss
     quadloss[[i]] <- sum((allocmatrix - test_alloc)^2)
+    
+    # print("Possible quadratic loss:")
+    # print(nrow(test_alloc) * 2)
+    # 
+    # print("Difference between prediction methods:")
+    # print(sum((test_alloc - test_alloc_2) ^ 2))
+    # 
+    # print("Actual quad loss:")
+    # print(quadloss[[i]])
+    #     
+    # print("Alternative quad loss:")
+    # print(sum((allocmatrix - test_alloc_2)^2))
+
   }
   list(cmlist = cmlist, quadloss = quadloss)
 }
