@@ -1896,6 +1896,8 @@ mdi_cross_validate <- function(MS_object,
       which.max
     )
 
+    mcmc_pred_mat <- params$gibbs$allocation_mat_gauss[indices_for_prediction, ]
+      
     # Make predictions on test data
     mcmc_predictions <- class_key$Class[match(
       mcmc_pred,
@@ -1939,19 +1941,7 @@ mdi_cross_validate <- function(MS_object,
     }
 
     # Compute quadratic loss
-    quadloss[[i]] <- sum((allocmatrix - test_alloc)^2)
-    
-    # print("Possible quadratic loss:")
-    # print(nrow(test_alloc) * 2)
-    # 
-    # print("Difference between prediction methods:")
-    # print(sum((test_alloc - test_alloc_2) ^ 2))
-    # 
-    # print("Actual quad loss:")
-    # print(quadloss[[i]])
-    #     
-    # print("Alternative quad loss:")
-    # print(sum((allocmatrix - test_alloc_2)^2))
+    quadloss[[i]] <- sum((allocmatrix - mcmc_pred_mat)^2)
 
   }
   list(cmlist = cmlist, quadloss = quadloss)
