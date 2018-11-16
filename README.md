@@ -18,6 +18,9 @@ Initial steps
 The main MDI functions are all designed to run on objects from pRolocdata, so a pre-requisite to running any functions is to load this library and any datasets of interest:
 
 ```r
+# Load the tagmmdi library to access it
+library(tagmmdi)
+
 #Load pRolocdata to access datasets
 library(pRolocdata)
 
