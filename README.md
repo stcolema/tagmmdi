@@ -3,8 +3,6 @@
 tagmmdi
 ============
 
-[![Travis build status](https://travis-ci.org/stcolema/tagmmdi.svg?branch=master)](https://travis-ci.org/stcolema/tagmmdi) [![AppVeyor build status](https://ci.appveyor.com/api/projects/status/github/stcolema/tagmmdi?branch=master&svg=true)](https://ci.appveyor.com/project/stcolema/tagmmdi) [![Coverage status](https://codecov.io/gh/stcolema/tagmmdi/branch/master/graph/badge.svg)](https://codecov.io/github/stcolema/tagmmdi?branch=master)
-
 The goal of tagmmdi is to extend Crook's T-Augmented Gaussian Mixture (TAGM) model to incorporate Multiple Dataset Integration (MDI).
 
 Installation
