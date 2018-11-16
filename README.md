@@ -8,7 +8,7 @@ The goal of tagmmdi is to extend Crook's T-Augmented Gaussian Mixture (TAGM) mod
 Installation
 ------------
 
-You can install the package from GITHUB using
+You can install the package from GitHub using
 ``` r
 devtools::install_github("tagmmdi")
 ```
