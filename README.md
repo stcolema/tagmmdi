@@ -49,7 +49,7 @@ mcmc_obj <- mcmc_out(tan2009r1,
 Cross validation
 ----------------
 
-This is an example of running cross-validaiton to measure the quadratic loss score of the method:
+This is an example of running cross-validation to measure the quadratic loss score of the method:
 
 ```r
 # Run cross-validation
