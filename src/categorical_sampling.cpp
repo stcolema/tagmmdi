@@ -2855,6 +2855,7 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
     
   }
   
+  // Normalise the allocation probabilities
   alloc_prob_gauss = alloc_prob_gauss / eff_count;
   alloc_prob_cat = alloc_prob_cat / eff_count;
   
