@@ -15,7 +15,7 @@ devtools::install_github("tagmmdi")
 
 Initial steps
 -------------
-The main MDI functions are all designed to run on objects from pRolocdata, so a pre-requisite to running any functions is the load this library and any datasets of interest:
+The main MDI functions are all designed to run on objects from pRolocdata, so a pre-requisite to running any functions is to load this library and any datasets of interest:
 
 ```r
 #Load pRolocdata to access datasets
