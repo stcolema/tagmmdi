@@ -13,12 +13,11 @@ You can install the package from GITHUB using
 devtools::install_github("tagmmdi")
 ```
 
-MDI clustering
---------------
+Initial steps
+-------------
+The main MDI functions are all designed to run on objects from pRolocdata, so a pre-requisite to running any functions is the load this library and any datasets of interest:
 
-This is a basic example of applying MDI clustering to data from pRolocdata:
-
-``` r
+```r
 #Load pRolocdata to access datasets
 library(pRolocdata)
 
@@ -26,6 +25,16 @@ library(pRolocdata)
 data(tan2009r1)
 data(tan2009r1goCC)
 
+# Optionally use only the informative GO terms to reduce runtime (the 20 here is arbitrary)
+useful_GO <- tan2009r1goCC[, colSums(exprs(tan2009r1goCC)) > 20]
+```
+
+MDI clustering
+--------------
+
+This is a basic example of applying MDI clustering to data from pRolocdata:
+
+``` r
 # Run MDI clustering on Gaussian and Categorical datasets
 mcmc_obj <- mcmc_out(tan2009r1,
   data_2 = as.matrix(exprs(tan2009r1goCC)),
@@ -43,16 +52,6 @@ Cross validation
 This is an example of running cross-validaiton to measure the quadratic loss score of the method:
 
 ```r
-#Load pRolocdata to access datasets
-library(pRolocdata)
-
-# Import data from pRolocdata
-data(tan2009r1)
-data(tan2009r1goCC)
-
-# Optionally use only the informative GO terms to reduce runtime
-useful_GO <- tan2009r1goCC[, colSums(exprs(tan2009r1goCC)) > 20]
-
 # Run cross-validation
 cv_obj_mdi <- mdi_cross_validate(tan2009r1,
   MS_cat_object = useful_GO,
