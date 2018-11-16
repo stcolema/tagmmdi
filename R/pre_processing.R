@@ -125,10 +125,7 @@ empirical_bayes_gaussian <- function(data, mu_0, df_0, scale_0, N, k, d,
   }
 
   if (is.null(scale_0)) {
-    scale_0 <- diag(colMeans((data - mean(data))^2) / N) / (k^(1 / d))
-    if (any(is.na(scale_0))) {
-      scale_0 <- diag(d) / (k^(1 / d))
-    }
+    scale_0 <- diag(d) / (k^(1 / d))
   }
   parameters$mu_0 <- mu_0
   parameters$df_0 <- df_0
