@@ -194,7 +194,7 @@ empirical_bayes_gaussian <- function(data, mu_0, df_0, scale_0, N, k, d,
   if (is.null(scale_0)) {
     # scale_0 <- diag(BiocGenerics::colMeans((data - mean(data))^2) / N) / (k^(1 / d))
     # if (any(is.na(scale_0))) {
-    scale_0 <- diag(d) / (k^(1 / d))
+      scale_0 <- diag(d) / (k^(1 / d))
     # }
   }
   parameters$mu_0 <- mu_0
@@ -1879,8 +1879,8 @@ mdi_cross_validate <- function(MS_object,
     map_pred <- params$data$Prediction[indices_for_prediction]
 
     # MCMC prediction
-    mcmc_pred <- apply(params$gibbs$allocation_mat_gauss, 1, max)
-    prediction_vec <- params$gibbs$allocation_mat_gauss == mcmc_pred
+    mcmc_pred <- apply(params$gibbs$allocation_mat_1, 1, max)
+    prediction_vec <- params$gibbs$allocation_mat_1 == mcmc_pred
 
     # Allocation matrix
     test_alloc <- matrix(
@@ -1891,12 +1891,12 @@ mdi_cross_validate <- function(MS_object,
     # Find predictions - order not as new dataset as wrapper function orders
     # based on fixing points
     mcmc_pred <- apply(
-      params$gibbs$allocation_mat_gauss[indices_for_prediction, ],
+      params$gibbs$allocation_mat_1[indices_for_prediction, ],
       1,
       which.max
     )
 
-    mcmc_pred_mat <- params$gibbs$allocation_mat_gauss[indices_for_prediction, ]
+    mcmc_pred_mat <- params$gibbs$allocation_mat_1[indices_for_prediction, ]
       
     # Make predictions on test data
     mcmc_predictions <- class_key$Class[match(
