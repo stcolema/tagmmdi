@@ -62,6 +62,10 @@
 #' @param record_posteriors A bool instructing the mcmc function to record the
 #' posterior distributions of the mean and variance for each cluster
 #' (default is FALSE)
+#' @param save_results Bool instructing program to save results to file. Default
+#' is FALSE.
+#' @param overwrite Bool instructing program to overwrite pre-existing results 
+#' if they exist in the current directroy. Default is FALSE with warnings anyway.
 #' @param train instruction to include all data (NULL), labelled data (TRUE) or
 #' unlabelled data (FALSE). Default is NULL.
 #' @param num_iter The number of iterations to sample over.
@@ -148,6 +152,8 @@ mcmc_out <- function(MS_object,
                      t_df_2 = 4.0,
                      normalise_2 = FALSE,
                      record_posteriors = FALSE,
+                     save_results = FALSE,
+                     overwrite = FALSE,
                      train = NULL,
                      num_iter = NULL,
                      burn = floor(num_iter / 10),
@@ -166,6 +172,7 @@ mcmc_out <- function(MS_object,
                      sense_check_map = TRUE,
                      sense_check_main = "component_level_clustering",
                      prediction_threshold = 0.5) {
+  
   # MS data
   MS_data <- MS_dataset(MS_object, train = train)
 
@@ -196,6 +203,11 @@ mcmc_out <- function(MS_object,
   n_clust_1 <- length(classes_present)
   N <- nrow(num_data)
   d <- ncol(num_data)
+  
+  output_folders(n_clust_1, n_clust_2,
+                 save_results = save_results,
+                 overwrite = overwrite)
+  
 
   # Key to transforming from int to class
   class_labels_key <- data.frame(Class = classes_present) %>%
@@ -295,7 +307,8 @@ mcmc_out <- function(MS_object,
       outlier_2 = outlier_2,
       t_df_2 = t_df_2,
       normalise_2 = normalise_2,
-      record_posteriors = record_posteriors
+      record_posteriors = record_posteriors,
+      save_results = save_results
     )
   }
 

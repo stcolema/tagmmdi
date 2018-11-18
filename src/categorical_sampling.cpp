@@ -2744,8 +2744,8 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
         out_lab_file_loc = out_lab_file + i_str;
         
         // The component allocation probabilities
-        alloc_1_file_loc = alloc_1_file + "/" + i_str;
-        alloc_2_file_loc = alloc_2_file + "/" + i_str;
+        alloc_1_file_loc = alloc_1_file + i_str;
+        alloc_2_file_loc = alloc_2_file + i_str;
         
         // Save the results
         cluster_labels_gaussian.save(gauss_lab_file_loc);
@@ -2773,7 +2773,7 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
             // Save to file
             
             // The current component
-            comp_str = std::to_string(j);
+            comp_str = std::to_string(j + 1);
             mu_file_loc = mean_file + comp_str + "/iter_" + i_str;
             var_file_loc = var_file + comp_str + "/iter_" + i_str;
             
@@ -2788,7 +2788,7 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
         for(arma::uword j = 0; j < num_clusters_categorical; j++){
           
           // Create the component identifying part of the string
-          comp_str = std::to_string(j);
+          comp_str = std::to_string(j + 1);
           
           for(arma::uword k = 0; k < num_cols_cat; k++){
             
@@ -2797,7 +2797,7 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
               
               // For each component save the component specific information in 
               // a single field to make for more concise information
-              class_probs_comp(k) = class_probabilities(k).row(j);
+              class_probs_comp(k) = arma::trans(class_probabilities(k).row(j));
               
               // If we have recorded all of the probabilities for each variable
               // (i.e. we are in the last iteraion over the number of columns)
@@ -2822,10 +2822,11 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   }
   
   // Loading posterior objects
-  for(arma::uword i = 0; i < eff_count; i++){
+  if(save_results){
+    for(arma::uword i = 0; i < eff_count; i++){
     
-    if(save_results){
-      i_str = std::to_string(record_iter);
+    
+      i_str = std::to_string(i);
       
       gauss_lab_file_loc = gauss_lab_file + i_str;
       cat_lab_file_loc = cat_lab_file + i_str;
@@ -2838,21 +2839,38 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
       gaussian_record.col(i) = cluster_labels_gaussian;
       categorical_record.col(i) = cluster_labels_categorical;
       outlier_probs_saved.col(i) = outlier_vec;
+    
+      if(record_posteriors){
+        for(arma::uword j = 0; j < num_clusters_gaussian; j++){
+          
+          // The current component
+          comp_str = std::to_string(j + 1);
+          mu_file_loc = mean_file + comp_str + "/iter_" + i_str;
+          var_file_loc = var_file + comp_str + "/iter_" + i_str;
+          
+          loc_mu_variance(1).slice(j).load(mu_file_loc);
+          loc_mu_variance(0).slice(j).load(var_file_loc);
+          
+          mu(i, j) = loc_mu_variance(1).slice(j);
+          variance(i, j) = loc_mu_variance(0).slice(j);
+        }
+  
+        for(arma::uword j = 0; j < num_clusters_categorical; j++){
+          // The current component
+          comp_str = std::to_string(j + 1);
+          class_probs_file_loc = class_probs_file + comp_str + "/iter_" + i_str;
+          class_probs_comp.load(class_probs_file_loc);
+          
+          for(arma::uword k = 0; k < num_cols_cat; k++){
+            // For each component save the component specific information in 
+            // a single field to make for more concise information
+            // class_probabilities(k).row(j) = arma::trans(class_probs_comp(k));
+            class_probabilities_saved(j)(k).row(i) = arma::trans(class_probs_comp(k));
+
+          }
+        }
+      }
     }
-    
-    // if(record_posteriors){
-    //   for(arma::uword j = 0; j < num_clusters_gaussian; j++){
-    //     mu(record_iter, j) = loc_mu_variance(1).slice(j);
-    //     variance(record_iter, j) = loc_mu_variance(0).slice(j);
-    //   }
-    //   
-    //   for(arma::uword j = 0; j < num_clusters_categorical; j++){
-    //     for(arma::uword k = 0; k < num_cols_cat; k++){
-    //       class_probabilities_saved(j)(k).row(record_iter) = class_probabilities(k).row(j);
-    //     }
-    //   }
-    // }
-    
   }
   
   // Normalise the allocation probabilities
