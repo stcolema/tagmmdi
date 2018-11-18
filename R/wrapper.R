@@ -64,7 +64,7 @@
 #' (default is FALSE)
 #' @param save_results Bool instructing program to save results to file. Default
 #' is FALSE.
-#' @param overwrite Bool instructing program to overwrite pre-existing results 
+#' @param overwrite Bool instructing program to overwrite pre-existing results
 #' if they exist in the current directroy. Default is FALSE with warnings anyway.
 #' @param train instruction to include all data (NULL), labelled data (TRUE) or
 #' unlabelled data (FALSE). Default is NULL.
@@ -172,7 +172,7 @@ mcmc_out <- function(MS_object,
                      sense_check_map = TRUE,
                      sense_check_main = "component_level_clustering",
                      prediction_threshold = 0.5) {
-  
+
   # MS data
   MS_data <- MS_dataset(MS_object, train = train)
 
@@ -203,11 +203,12 @@ mcmc_out <- function(MS_object,
   n_clust_1 <- length(classes_present)
   N <- nrow(num_data)
   d <- ncol(num_data)
-  
+
   output_folders(n_clust_1, n_clust_2,
-                 save_results = save_results,
-                 overwrite = overwrite)
-  
+    save_results = save_results,
+    overwrite = overwrite
+  )
+
 
   # Key to transforming from int to class
   class_labels_key <- data.frame(Class = classes_present) %>%
