@@ -702,242 +702,6 @@ Rcpp::List categorical_clustering(arma::umat data,
 
 // === Gaussian clustering =====================================================
 
-// arma::vec sample_gaussian_cluster(arma::vec point,
-//                                   arma::mat data,
-//                                   arma::uword k,
-//                                   arma::vec class_weights,
-//                                   arma::uvec class_labels,
-//                                   arma::cube mu,
-//                                   arma::cube variance,
-//                                   bool outlier = false,
-//                                   arma::vec global_mean = arma::zeros<arma::vec>(1),
-//                                   arma::mat global_variance = arma::zeros<arma::mat>(1, 1),
-//                                   double t_df = 4.0){
-//   
-//   double curr_weight;
-//   double exponent;
-//   double log_likelihood;
-//   
-//   
-//   double log_det;
-//   arma::vec prob_vec(k);
-//   
-//   arma::uvec count_probs;
-//   
-//   arma::uword d = data.n_cols;
-//   
-//   for(arma::uword i = 1; i < k + 1; i++){
-//     curr_weight = log(class_weights(i - 1));
-//     
-//     if(outlier && i == k){
-//       
-//       exponent = arma::as_scalar(arma::trans(point - global_mean) 
-//                                  * arma::inv(global_variance)
-//                                  * (point - global_mean));
-//                                    
-//       log_det = arma::log_det(global_variance).real();
-//                                    
-//       log_likelihood = lgamma((t_df + d)/2.0)
-//                        - lgamma(t_df/2.0)
-//                        + d/2.0 * log(t_df * M_PI) 
-//                        + log_det 
-//                        - ((t_df + d)/2.0) * log(1 + (1/t_df) * exponent);
-//                                    
-//     }
-//     else {
-//       exponent = arma::as_scalar(arma::trans(point - mu.slice(i - 1)) 
-//                                  * arma::inv(variance.slice(i - 1))
-//                                  * (point - mu.slice(i - 1)));
-//                                    
-//       log_det = arma::log_det(variance.slice(i - 1)).real();
-//       log_likelihood = -0.5 *(log_det + exponent + d * log(2 * M_PI));
-//     }
-//     prob_vec(i - 1) = curr_weight + log_likelihood;
-//     // std::cout <<  "\nDIRICHLET:\nCluster " << i << "\nProbability: " 
-//     //           << prob_vec(i - 1) << "\nWeight: " << exp(curr_weight) 
-//     //           << "\nLog likelihood: " << log_likelihood << "\n\n";
-//   } 
-//   prob_vec = exp(prob_vec - max(prob_vec));
-//   prob_vec = prob_vec / sum(prob_vec);
-//   
-//   return prob_vec;
-// }
-// 
-// The actual clustering/sampling
-// // [[Rcpp::export]]
-// Rcpp::List gaussian_clustering(arma::uword num_iter,
-//                                arma::vec concentration_0,
-//                                arma::mat scale_0,
-//                                arma::uvec class_labels,
-//                                std::vector<bool> fix_vec,
-//                                arma::vec mu_0,
-//                                double lambda_0,
-//                                arma::mat data,
-//                                int df_0,
-//                                arma::uword k,
-//                                arma::uword burn,
-//                                arma::uword thinning,
-//                                bool outlier = false,
-//                                double t_df = 4.0,
-//                                bool record_posteriors = false,
-//                                bool normalise = false){
-//   
-//   // std::cout << "In function";
-//   arma::uword N;
-//   arma::uword num_cols;
-//   N = data.n_rows;
-//   num_cols = data.n_cols;
-//   
-//   //  Normalise the continuous data
-//   if(normalise){
-//     data = arma::normalise(data);
-//   }
-//   
-//   // for use in the outlier distribution
-//   arma::mat global_variance(num_cols, num_cols);
-//   
-//   // std::cout << arma::cov(data) << "\n";
-//   
-//   global_variance = 0.5 * arma::cov(data); // Olly's rec
-//   
-//   arma::vec global_mean(num_cols);
-//   
-//   global_mean = arma::trans(arma::mean(data, 0));
-//   
-//   arma::vec entropy_cw(num_iter);
-//   
-//   arma::uword eff_count = ceil((double)(num_iter - burn) / (double)thinning);
-//   arma::uword record_ind;
-//   
-//   arma::umat record(N, eff_count);
-//   record.zeros();
-//   
-//   // std::cout << "Record out \n";
-//   
-//   arma::mat sim(N, N);
-//   arma::mat cluster_data;
-//   
-//   // Add +1 to k to allow outlier class
-//   if(outlier){
-//     k++;
-//   }
-//   
-//   arma::vec class_weights(k);
-//   
-//   // These are the lists recording the posterior mean and 
-//   // variance for each class for each recorded iteration
-//   ListMatrix variance(eff_count, k);
-//   ListMatrix mu(eff_count, k);
-//   
-//   arma::vec point;
-//   
-//   // std::cout << "Faux output sentence\n";
-//   
-//   arma::cube class_probs(eff_count, k, N);
-//   arma::vec curr_class_probs(k);
-//   
-//   // std::cout << "Output sentence\n";
-//   
-//   // These are the local cubes of posterior mean and variance overwritten each
-//   // iteration
-//   arma::field<arma::cube> loc_mu_variance(2);
-//   
-//   for(arma::uword i = 0; i < num_iter; i++){
-//     
-//     class_weights = dirichlet_posterior(concentration_0, class_labels, k);
-//     
-//     // std::cout << class_weights << "\n\n";
-//     // std::cout << "\nENTROPY";
-//     
-//     entropy_cw(i) = entropy(class_weights);
-//     
-//     // std::cout << "\nBegin sampling parameters\n";
-//     
-//     loc_mu_variance = mean_variance_sampling(data,
-//                                              class_labels,
-//                                              k,
-//                                              df_0,
-//                                              num_cols,
-//                                              scale_0,
-//                                              lambda_0,
-//                                              mu_0);
-//     
-//     // std::cout << "\nAccessed cubes\n";
-//     
-//     for (arma::uword jj = 0; jj < N; jj++){
-//       // if the current point is not fixed, sample its class
-//       point = arma::trans(data.row(jj));
-//       
-//       curr_class_probs = sample_gaussian_cluster(point, 
-//                                                  data,
-//                                                  k, 
-//                                                  class_weights, 
-//                                                  class_labels,
-//                                                  loc_mu_variance(1),
-//                                                  loc_mu_variance(0),
-//                                                  outlier,
-//                                                  global_mean,
-//                                                  global_variance,
-//                                                  t_df
-//       );
-//       
-//       // std::cout << curr_class_probs << "\n\n";
-//       
-//       if (i >= burn && (i - burn) % thinning == 0) {
-//         // std::cout << "record accessed" << "\n";
-//         record_ind = (i - burn) / thinning;
-//         class_probs.slice(jj).row(record_ind) = arma::trans(curr_class_probs);
-//         
-//       }
-//       if(! fix_vec[jj]){
-//         class_labels(jj) = cluster_predictor(curr_class_probs);
-//         // std::cout << "New label\n" << class_labels(jj) << "\n";
-//       }
-//     }
-//     // std::cout << "Labels\n" << class_labels << "\n";
-//     // std::cout << "Generic message\n" << "\n";
-//     
-//     if (i >= burn && (i - burn) % thinning == 0) {
-//       // std::cout << i << "\n";
-//       
-//       record_ind = (i - burn) / thinning;
-//       record.col(record_ind) = class_labels;
-//       // std::cout << "record accessed" << "\n";
-//       
-//       if(record_posteriors){
-//         for(arma::uword j = 0; j < k; j ++){
-//           
-//           // std::cout << "Recording params" << j << "\n";
-//           
-//           mu(record_ind, j) = loc_mu_variance(1).slice(j);
-//           variance(record_ind, j) = loc_mu_variance(0).slice(j);
-//         }
-//       }
-//       
-//     }
-//   }
-//   
-//   // std::cout << "Issue is here";
-//   sim = similarity_mat(record);
-//   // std::cout << "Y is here";
-//   // return sim;
-//   
-//   if(record_posteriors){
-//     
-//     return List::create(Named("similarity") = sim,
-//                         Named("class_record") = record,
-//                         Named("mean_posterior") = mu,
-//                         Named("variance_posterior") = variance,
-//                         Named("entropy") = entropy_cw,
-//                         Named("class_prob") = class_probs);
-//   }
-//   
-//   return List::create(Named("similarity") = sim,
-//                       Named("class_record") = record,
-//                       Named("entropy") = entropy_cw,
-//                       Named("class_prob") = class_probs);
-// }
-
 // Returns the normal distribution log-likelihood
 double normal_likelihood(arma::vec point,
                          arma::vec mu,
@@ -2245,6 +2009,8 @@ Rcpp::List mdi_cat_cat(arma::umat data_1,
 // }
 
 
+
+
 // MDI clustering for a gaussian and cateogrical dataset
 // [[Rcpp::export]]
 Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
@@ -2275,7 +2041,9 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                          double v_1 = 10,
                          arma::uword rate_gauss_0 = 1,
                          arma::uword rate_cat_0 = 1,
-                         bool save_results = false
+                         bool save_results = false,
+                         bool load_results = false,
+                         arma::uword num_load = 0
 ){
   
   // As we tend to iterate to less than num_iter, add 1 to itself
@@ -2325,6 +2093,15 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   // iteration
   arma::field<arma::cube> loc_mu_variance(2);
   
+  // Initialise the netroies within this field, defining their dimension 
+  // Required for loading
+  for(arma::uword i = 0; i < num_clusters_gaussian; i++){
+    loc_mu_variance(0) = arma::cube(num_cols_cont, num_cols_cont, num_clusters_gaussian);
+    loc_mu_variance(0).zeros();
+    loc_mu_variance(1) = arma::cube(num_cols_cont, 1, num_clusters_gaussian);
+    loc_mu_variance(1).zeros();
+  }
+  
   // std::cout << "Declared to mean/variance thing \n";
   
   // Declare the field for the phi variable for the categorical data
@@ -2348,6 +2125,11 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   // Various objects to record values for posterior distributions and clustering
   // the record for similarity in each clustering
   arma::uword eff_count = ceil((double)(num_iter - burn) / (double)thinning);
+  
+  // Increase these values by the number of pre-existing objects
+  eff_count += num_load;
+  num_iter += num_load;
+  burn += num_load;
   
   // These are the lists recording the posterior mean and 
   // variance for each class for each recorded iteration
@@ -2494,7 +2276,54 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   arma::mat alloc_prob_gauss_curr(n, num_clusters_gaussian);
   arma::mat alloc_prob_cat_curr(n, num_clusters_categorical);
   
-  for(arma::uword i = 0; i < num_iter; i++){
+  
+  // Loading posterior objects from previous runs
+  if(load_results && num_load > 0){
+    // Only need to load most recent objects
+    arma::uword i = num_load - 1;
+    i_str = std::to_string(i);
+    
+    gauss_lab_file_loc = gauss_lab_file + i_str;
+    cat_lab_file_loc = cat_lab_file + i_str;
+    out_lab_file_loc = out_lab_file + i_str;
+    
+    cluster_labels_gaussian.load(gauss_lab_file_loc);
+    cluster_labels_categorical.load(cat_lab_file_loc);
+    outlier_vec.load(out_lab_file_loc);
+    
+    for(arma::uword j = 0; j < num_clusters_gaussian; j++){
+      
+      // The current component
+      comp_str = std::to_string(j + 1);
+      
+      // The relevant files
+      mu_file_loc = mean_file + comp_str + "/iter_" + i_str;
+      var_file_loc = var_file + comp_str + "/iter_" + i_str;
+      
+      // Update the current value of the means and covariance matrices
+      loc_mu_variance(1).slice(j).load(mu_file_loc);
+      loc_mu_variance(0).slice(j).load(var_file_loc);
+      
+    }
+    
+    for(arma::uword j = 0; j < num_clusters_categorical; j++){
+      // The current component
+      comp_str = std::to_string(j + 1);
+      
+      // The current file
+      class_probs_file_loc = class_probs_file + comp_str + "/iter_" + i_str;
+      class_probs_comp.load(class_probs_file_loc);
+      
+      for(arma::uword k = 0; k < num_cols_cat; k++){
+
+        // Load into each the current iteration
+        class_probabilities(k).row(j) = arma::trans(class_probs_comp(k));
+
+      }
+    }
+  }
+  
+  for(arma::uword i = num_load; i < num_iter; i++){
     
     // Consider only the labels of points not considered to be outliers
     relevant_labels = cluster_labels_gaussian % (1 - outlier_vec);
@@ -2821,7 +2650,7 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
     
   }
   
-  // Loading posterior objects
+  // Loading saved posterior objects
   if(save_results){
     for(arma::uword i = 0; i < eff_count; i++){
     

@@ -15,19 +15,20 @@
 #' if the directory does already exist).
 create_folder <- function(folder_name,
                           root_dir = ".",
-                          overwrite = FALSE) {
+                          overwrite = FALSE,
+                          load_results = FALSE) {
   # Create appropriate file path
   file_path <- file.path(root_dir, folder_name)
 
-  if (dir.exists(file_path) & overwrite) {
+  if (dir.exists(file_path) & overwrite & !load_results) {
     unlink(file_path, T)
   }
 
   # If the directory does not already exist or we have instructed overwriting
   # create the directory. Else throw an error.
-  if (!dir.exists(file_path) | overwrite) {
+  if (!dir.exists(file_path) | (overwrite & !load_results)) {
     dir.create(file_path)
-  } else {
+  } else if (dir.exists(file_path) & !load_results) {
     stop("Folder already exists - please check")
   }
 }
@@ -124,6 +125,7 @@ create_dataset_folders <- function(n_clust, type, dataset_num,
 #' Default is "Categorical".
 output_folders <- function(n_clust_1, n_clust_2,
                            save_results = TRUE,
+                           load_results = FALSE,
                            overwrite = FALSE,
                            type_1 = "Gaussian",
                            type_2 = "Categorical") {
@@ -141,7 +143,10 @@ output_folders <- function(n_clust_1, n_clust_2,
 
     # Create the root folder
     output_folder <- "output"
-    suppressWarnings(create_folder(output_folder, overwrite = overwrite))
+    suppressWarnings(create_folder(output_folder,
+      overwrite = overwrite,
+      load_results = load_results
+    ))
 
     # Create the pathname to all the subdirectories of interest
     subdirectories <- c(
@@ -156,7 +161,10 @@ output_folders <- function(n_clust_1, n_clust_2,
     # Cycle theough these creating the folders
     for (subdir in subdirectories) {
       folder_name <- paste0(output_folder, "/", subdir)
-      create_folder(folder_name, overwrite = overwrite)
+      create_folder(folder_name,
+        overwrite = overwrite,
+        load_results = load_results
+      )
     }
   }
 }

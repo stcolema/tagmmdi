@@ -130,6 +130,7 @@
 #' @importFrom MSnbase fData
 #' @importFrom pRoloc markerMSnSet
 #' @importFrom RColorBrewer brewer.pal
+#' @importFrom attempt try_catch
 mcmc_out <- function(MS_object,
                      labels_0_1 = NULL,
                      args_1 = NULL,
@@ -153,6 +154,7 @@ mcmc_out <- function(MS_object,
                      normalise_2 = FALSE,
                      record_posteriors = FALSE,
                      save_results = FALSE,
+                     load_results = FALSE,
                      overwrite = FALSE,
                      train = NULL,
                      num_iter = NULL,
@@ -206,8 +208,17 @@ mcmc_out <- function(MS_object,
 
   output_folders(n_clust_1, n_clust_2,
     save_results = save_results,
+    load_results = load_results,
     overwrite = overwrite
   )
+  
+  if(load_results){
+    num_load <- attempt::try_catch(
+      expr = length(list.files("./output/dataset_1/allocation")),
+      .e = NULL,
+      .w = NULL
+    )
+  }
 
 
   # Key to transforming from int to class
@@ -309,7 +320,9 @@ mcmc_out <- function(MS_object,
       t_df_2 = t_df_2,
       normalise_2 = normalise_2,
       record_posteriors = record_posteriors,
-      save_results = save_results
+      save_results = save_results,
+      load_results = load_results,
+      num_load = num_load
     )
   }
 

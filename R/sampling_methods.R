@@ -311,7 +311,9 @@ mdi <- function(data_1, data_2,
                 t_df_2 = 4.0,
                 normalise_2 = FALSE,
                 record_posteriors = FALSE,
-                save_results = FALSE) {
+                save_results = FALSE,
+                load_results = FALSE,
+                num_load = 0) {
 
   # Calculate all the relevant parameters
   if (N != nrow(data_2)) {
@@ -432,7 +434,9 @@ mdi <- function(data_1, data_2,
       10, # v_1
       1, # rate_gauss_0
       1, # rate_cat_0
-      save_results
+      save_results,
+      load_results,
+      num_load
     )
   } else if ((type_1 == "Categorical" | type_1 == "C")
   & (type_2 == "Categorical" | type_2 == "C")) {
