@@ -2124,12 +2124,19 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   
   // Various objects to record values for posterior distributions and clustering
   // the record for similarity in each clustering
-  arma::uword eff_count = ceil((double)(num_iter - burn) / (double)thinning);
+  arma::uword eff_count = 0;
+  
+  
+  
+  // To handle loading old runs
+  if(num_load > burn){
+    eff_count = ceil((double)(num_iter) / (double)thinning) + num_load - 1;
+  } else {
+    eff_count = ceil((double)(num_iter + num_load - burn) / (double)thinning) + num_load;
+  }
   
   // Increase these values by the number of pre-existing objects
-  eff_count += num_load;
   num_iter += num_load;
-  burn += num_load;
   
   // These are the lists recording the posterior mean and 
   // variance for each class for each recorded iteration
@@ -2152,7 +2159,8 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   arma::umat categorical_record(n, eff_count);
   categorical_record.zeros();
   
-  arma::vec context_similarity_record(eff_count);
+  // int additional_phi_recorded = ceil((double)(num_load) / (double)thinning);
+  arma::vec context_similarity_record(eff_count - num_load);
   
   // ## Filenames for saving posteriors ##
   // Create the base file names that we will append with local iteration / 
@@ -2191,13 +2199,13 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   std::string alloc_2_file_loc;
   
   // A positive integer to hold the current count of recorded iterations
-  arma::uword record_iter = 0;
+  arma::uword record_iter = num_load;
   
   // To hold output of label flipping function
   arma::vec labels_weights_phi(n + num_clusters_categorical + 1);
   
   // A vector to record the entropy at each iteration
-  arma::vec entropy_cw(num_iter);
+  arma::vec entropy_cw(num_iter - num_load);
   
   // Rate priors for weight smapling from Gamma distn
   arma::vec rate_0_gauss(num_clusters_gaussian);
@@ -2276,16 +2284,20 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   arma::mat alloc_prob_gauss_curr(n, num_clusters_gaussian);
   arma::mat alloc_prob_cat_curr(n, num_clusters_categorical);
   
-  
+  arma::uword start_iter = 0;
+  arma::uword phi_count = 0;
   // Loading posterior objects from previous runs
   if(load_results && num_load > 0){
     // Only need to load most recent objects
-    arma::uword i = num_load - 1;
-    i_str = std::to_string(i);
+    // int num_load_int = num_load;
+    // start_iter = std::max(num_load_int - 1, 0);
+    start_iter = num_load - 1;
     
-    gauss_lab_file_loc = gauss_lab_file + i_str;
-    cat_lab_file_loc = cat_lab_file + i_str;
-    out_lab_file_loc = out_lab_file + i_str;
+    std::string start_iter_str = std::to_string(start_iter);
+    
+    gauss_lab_file_loc = gauss_lab_file + start_iter_str;
+    cat_lab_file_loc = cat_lab_file + start_iter_str;
+    out_lab_file_loc = out_lab_file + start_iter_str;
     
     cluster_labels_gaussian.load(gauss_lab_file_loc);
     cluster_labels_categorical.load(cat_lab_file_loc);
@@ -2297,8 +2309,8 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
       comp_str = std::to_string(j + 1);
       
       // The relevant files
-      mu_file_loc = mean_file + comp_str + "/iter_" + i_str;
-      var_file_loc = var_file + comp_str + "/iter_" + i_str;
+      mu_file_loc = mean_file + comp_str + "/iter_" + start_iter_str;
+      var_file_loc = var_file + comp_str + "/iter_" + start_iter_str;
       
       // Update the current value of the means and covariance matrices
       loc_mu_variance(1).slice(j).load(mu_file_loc);
@@ -2311,7 +2323,7 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
       comp_str = std::to_string(j + 1);
       
       // The current file
-      class_probs_file_loc = class_probs_file + comp_str + "/iter_" + i_str;
+      class_probs_file_loc = class_probs_file + comp_str + "/iter_" + start_iter_str;
       class_probs_comp.load(class_probs_file_loc);
       
       for(arma::uword k = 0; k < num_cols_cat; k++){
@@ -2329,7 +2341,7 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
     relevant_labels = cluster_labels_gaussian % (1 - outlier_vec);
     
     // Entropy for graphing convergence
-    entropy_cw(i) = entropy(cluster_weights_gaussian);
+    entropy_cw(i - num_load) = entropy(cluster_weights_gaussian);
     
     // ## Sample the parameters for the two datasets ##
     
@@ -2399,6 +2411,9 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                     min_num_clusters,
                                     a0,
                                     b0);
+    
+    // Initialise the count of outputs
+    // record_iter = num_load - 1;
     
     // sample class for each observation
     for(arma::uword j = 0; j < n; j++){
@@ -2472,7 +2487,7 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
       
       
       if (i >= burn && (i - burn) % thinning == 0) { // include  && record_posteriors in if?
-        record_iter = (i - burn) / thinning;
+        // record_iter = (i - burn) / thinning;
         // gaussian_class_probs.slice(j).row(record_iter) = arma::trans(curr_gaussian_prob_vec);
         // cat_class_probs.slice(j).row(record_iter) = arma::trans(curr_categorical_prob_vec);
         
@@ -2549,17 +2564,20 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
       //                                     cluster_labels_gaussian,
       //                                     cluster_labels_categorical);
       
-      record_iter = (i - burn) / thinning;
+      // record_iter = ((i - burn) / thinning) + num_load ;
       
-      context_similarity_record(record_iter) = context_similarity;
-
+      context_similarity_record(phi_count) = context_similarity;
+      phi_count++;
+      
       // Record the current iteration's score (note this does not account for
       // label flipping)
       // mdi_recorded_likelihood(record_iter) = mdi_likelihood;
       
-      
       if(save_results){
         // Save to file
+        
+        // Make sure to avoid overwriting the loaded entries
+        // record_iter += num_load - 1;
         
         // Create appending label of the current iteration
         i_str = std::to_string(record_iter);
@@ -2592,6 +2610,7 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
         
         alloc_prob_gauss += alloc_prob_gauss_curr;
         alloc_prob_cat += alloc_prob_cat_curr;
+        
       }
       
       // Record posteriors of parameters for Gaussian and Categorical
@@ -2646,10 +2665,10 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
           }
         }
       }
+      record_iter++;
     }
-    
   }
-  
+
   // Loading saved posterior objects
   if(save_results){
     for(arma::uword i = 0; i < eff_count; i++){
@@ -2668,6 +2687,16 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
       gaussian_record.col(i) = cluster_labels_gaussian;
       categorical_record.col(i) = cluster_labels_categorical;
       outlier_probs_saved.col(i) = outlier_vec;
+    
+      // The component allocation probabilities
+      alloc_1_file_loc = alloc_1_file + i_str;
+      alloc_2_file_loc = alloc_2_file + i_str;
+      
+      alloc_prob_gauss_curr.load(alloc_1_file_loc);
+      alloc_prob_cat_curr.load(alloc_2_file_loc);
+      
+      alloc_prob_gauss += alloc_prob_gauss_curr;
+      alloc_prob_cat += alloc_prob_cat_curr;
     
       if(record_posteriors){
         for(arma::uword j = 0; j < num_clusters_gaussian; j++){

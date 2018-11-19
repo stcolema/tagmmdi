@@ -439,6 +439,7 @@ mcmc_out <- function(MS_object,
   }
 
   if (entropy_plot) {
+
     entropy_data <- data.frame(
       Index = 1:(num_iter + 1),
       Entropy = gibbs$entropy

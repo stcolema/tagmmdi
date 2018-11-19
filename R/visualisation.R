@@ -289,7 +289,10 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
 #' @return PCA plot
 #' @importFrom FactoMineR PCA
 #' @importFrom factoextra fviz_pca_ind
-pca_ms_obj <- function(MS_object, test_pred, ellipses = FALSE, alpha.ind = 1) {
+pca_ms_obj <- function(MS_object, test_pred, 
+                       ellipses = FALSE, 
+                       alpha.ind = 1,
+                       ...) {
   ms_data <- MS_dataset(MS_object)
   rel_data <- ms_data$data
   last_col <- ncol(rel_data)
@@ -303,7 +306,7 @@ pca_ms_obj <- function(MS_object, test_pred, ellipses = FALSE, alpha.ind = 1) {
     addEllipses = ellipses, # Concentration ellipses
     legend.title = "Groups",
     alpha.ind = alpha.ind,
-    rotate = T
+    ...
   )
   pca_plot
 }
