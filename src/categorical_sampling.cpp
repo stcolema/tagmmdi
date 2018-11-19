@@ -2382,14 +2382,14 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   std::string out_lab_file = "output/outlier_allocation/outlier_labels_iter_";
   
   // Parameter posteriors
-  std::string mean_file = "output/mean/mean_";
-  std::string var_file = "output/variance/var_";
+  std::string mean_file = "output/dataset_1/mean/mean_";
+  std::string var_file = "output/dataset_1/variance/var_";
   
-  std::string class_probs_file = "output/class_probs/comp_";
+  std::string class_probs_file = "output/dataset_2/class_probs/comp_";
   
   // Allocation probability matrices
-  std::string alloc_1_file = "output/allocation_1/alloc_";
-  std::string alloc_2_file = "output/allocation_2/alloc_";
+  std::string alloc_1_file = "output/dataset_1/allocation/alloc_";
+  std::string alloc_2_file = "output/dataset_2/allocation/alloc_";
   
   // The file name endings that change in each iteration / component
   std::string i_str;

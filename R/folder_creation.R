@@ -19,6 +19,10 @@ create_folder <- function(folder_name,
   # Create appropriate file path
   file_path <- file.path(root_dir, folder_name)
 
+  if (dir.exists(file_path) & overwrite) {
+    unlink(file_path, T)
+  }
+
   # If the directory does not already exist or we have instructed overwriting
   # create the directory. Else throw an error.
   if (!dir.exists(file_path) | overwrite) {
@@ -26,6 +30,81 @@ create_folder <- function(folder_name,
   } else {
     stop("Folder already exists - please check")
   }
+}
+
+
+#' @title Create dataset folders
+#' @description Creates the directories to hold the dataset specific outputs
+#' (i.e. parameter posteriors and allocation probabilities)
+#'
+#' @param n_clust Integer. The number of clusters in the dataset.
+#' @param type String. The type of muixture model used, Gaussian or Categorical.
+#' @param dataset_num Integer. The number identifying this dataset.
+#' @param overwrite Bool. Instructs overwriting previously existing directories.
+create_dataset_folders <- function(n_clust, type, dataset_num,
+                                   overwrite = FALSE) {
+
+  # Create the dataset specific folder
+  dataset_folder <- paste0("dataset_", dataset_num)
+
+  # create_folder(dataset_folder, overwrite = overwrite)
+
+  # Create vector covering each of the components
+  cluster_numbers <- 1:n_clust
+
+  # Create folder and subfolder names for parameters based on the type of data
+  if (type == "Gaussian") {
+    mean_folder <- paste0(dataset_folder, "/", "mean")
+    # create_folder(mean_folder, overwrite = overwrite)
+
+    var_folder <- paste0(dataset_folder, "/", "variance")
+    # create_folder(dataset_folder, overwrite = overwrite)
+
+    mean_subfolders <- paste0(
+      dataset_folder,
+      "/",
+      "mean/mean",
+      "_",
+      cluster_numbers
+    )
+
+    var_subfolders <- paste0(
+      dataset_folder,
+      "/",
+      "variance/var",
+      "_",
+      cluster_numbers
+    )
+
+    param_subfolders <- c(
+      mean_folder,
+      mean_subfolders,
+      var_folder,
+      var_subfolders
+    )
+  } else { # If Categorical
+    class_probs_folder <- paste0(dataset_folder, "/", "class_probs")
+    # create_folder(class_probs_folder, overwrite = overwrite)
+
+    class_probs_subfolder <- paste0(
+      dataset_folder,
+      "/",
+      "class_probs/comp",
+      "_",
+      cluster_numbers
+    )
+    param_subfolders <- c(class_probs_folder, class_probs_subfolder)
+  }
+
+  # Folder for dataset allocation
+  allocation_folder <- paste0(
+    dataset_folder,
+    "/",
+    "allocation"
+  )
+
+  # Collect all the relevant pathnames in one vector
+  dataset_folders <- c(dataset_folder, allocation_folder, param_subfolders)
 }
 
 #' @title Output folders
@@ -50,61 +129,34 @@ output_folders <- function(n_clust_1, n_clust_2,
                            type_2 = "Categorical") {
   if (save_results) {
 
-    # Create vector covering each of the components
-    cluster_numbers_1 <- 1:n_clust_1
-    cluster_numbers_2 <- 1:n_clust_2
+    # Dataset parameter folder names
+    dataset_1_folders <- create_dataset_folders(n_clust_1, type_1, 1,
+      overwrite = overwrite
+    )
+    dataset_2_folders <- create_dataset_folders(n_clust_2, type_2, 2,
+      overwrite = overwrite
+    )
 
-    # Create folder and subfolder names for parameters
-    if (type_1 == "Gaussian") {
-      mean_subfolders <- paste0(
-        "mean/mean",
-        "_",
-        cluster_numbers_1
-      )
-
-      var_subfolders <- paste0(
-        "variance/var",
-        "_",
-        cluster_numbers_1
-      )
-
-      type_1_folders <- c(mean_subfolders, var_subfolders)
-    }
-
-    if (type_2 == "Categorical") {
-      type_2_folders <- paste0(
-        "class_probs/comp",
-        "_",
-        cluster_numbers_2
-      )
-    }
-
-
-    param_folders <- c(type_1_folders, type_2_folders)
+    dataset_folders <- c(dataset_1_folders, dataset_2_folders)
 
     # Create the root folder
     output_folder <- "output"
-    suppressWarnings(create_folder(output_folder, overwrite))
+    suppressWarnings(create_folder(output_folder, overwrite = overwrite))
 
     # Create the pathname to all the subdirectories of interest
     subdirectories <- c(
       c(
         "gaussian_allocation",
         "categorical_allocation",
-        "outlier_allocation",
-        "class_probs",
-        "allocation_1",
-        "allocation_2",
-        "mean",
-        "variance"
+        "outlier_allocation"
       ),
-      param_folders
+      dataset_folders
     )
 
     # Cycle theough these creating the folders
     for (subdir in subdirectories) {
       folder_name <- paste0(output_folder, "/", subdir)
-      create_folder(folder_name, overwrite)
+      create_folder(folder_name, overwrite = overwrite)
     }
   }
 }
