@@ -79,14 +79,13 @@ arma::mat S_n(arma::mat data,
   if(sample_size > 0){
     for(arma::uword i = 0; i < sample_size; i++){
       
-      arma::vec row_i = trans(data.row(i));
+      arma::vec row_i = arma::trans(data.row(i));
       
       sample_covariance = (sample_covariance 
                              + ((row_i - sample_mean) 
                                   * arma::trans(row_i - sample_mean)
                              )
       );
-      
     }
   }
   return sample_covariance;
@@ -128,14 +127,14 @@ arma::mat scale_n(arma::mat scale_0,
 }
 
 // sample a multivariate normal
-arma::mat mvrnormArma(arma::uword n,
-                      arma::vec mu,
-                      arma::mat sigma) {
-  arma::uword ncols = sigma.n_cols;
-  arma::mat Y = arma::randn(n, ncols);
-  return arma::repmat(mu, 1, n).t() +
-    Y * arma::chol(sigma);
-}
+// arma::mat mvrnormArma(arma::uword n,
+//                       arma::vec mu,
+//                       arma::mat sigma) {
+//   arma::uword ncols = sigma.n_cols;
+//   arma::mat Y = arma::randn(n, ncols);
+//   return arma::repmat(mu, 1, n).t() +
+//     Y * arma::chol(sigma);
+// }
 
 // sample from the mean posterior
 arma::vec mean_posterior(arma::vec mu_0,
@@ -161,14 +160,20 @@ arma::vec mean_posterior(arma::vec mu_0,
   
   // std::cout << "\nPast initial mu_n\n";
   // std::cout << "\n" << mu_n << "\n";
+  // std::cout << "\n" << mu_n - sample_mean << "\n";
   
   variance_n = variance / lambda_n;
   
-  // std::cout << "\n" << variance_n << "\n";
   
-  arma::mat x = mvrnormArma(1, mu_n, variance_n);
+  // std::cout << "\nData variance:\n" << arma::cov(data) 
+  //           << "\n\nSampled vairance:\n" << variance_n << "\n\n";;
   
-  mu_out = arma::conv_to<arma::vec>::from(x.row(0));
+  // arma::mat x = mvrnormArma(1, mu_n, variance_n);
+  arma::mat x = arma::mvnrnd(mu_n, variance_n, 1);
+  mu_out = x.col(0);
+  // mu_out = arma::conv_to<arma::vec>::from(x.col(0));
+  
+  // std::cout << "Actual output:\n" << mu_out << "\n\n";
   
   return mu_out;
   
@@ -182,11 +187,13 @@ arma::mat variance_posterior(int df_0,
                              arma::vec mu_0,
                              arma::mat data){
   
-  arma::uword sample_size = data.n_rows, num_cols = data.n_cols;
+  arma::uword sample_size = data.n_rows;
+  arma::uword num_cols = data.n_cols;
   
   // std::cout << "\nCluster data:\n" << data;
   
-  arma::vec sample_mean(num_cols); sample_mean.zeros();
+  arma::vec sample_mean(num_cols);
+  sample_mean.zeros();
   
   int df_n = df_0 + sample_size;
   
@@ -199,12 +206,8 @@ arma::mat variance_posterior(int df_0,
   // std::cout << sample_size << "\n";
   
   if (sample_size > 0){
-    
     sample_mean = arma::trans(arma::mean(data, 0));
-    
-  } else{
-    sample_mean.fill(0.0);
-  }
+  } 
   
   // std::cout << "\nSample covariance reached\n";
   
@@ -257,17 +260,12 @@ arma::field<arma::cube> mean_variance_sampling(arma::mat data,
   mean_variance_field(0) = var_entry;
   mean_variance_field(1) = mu_entry;
   
+  arma::vec curr_mean(num_cols);
+  curr_mean.zeros();
+  
   for (arma::uword j = 1; j < k + 1; j++) {
     // std::cout << "\nj for loop";
     cluster_data = data.rows(find(cluster_labels == j ));
-    
-    // std::cout << mean_variance_field(1).slice(j - 1) << "\n";
-    
-    // std::cout << "\n" << df_0 << "\n";
-    
-    // if(cluster_data.n_rows < 10){
-      // std::cout << cluster_data << "\n\n";
-    // }
     
     mean_variance_field(0).slice(j - 1) = variance_posterior(
       df_0,
@@ -279,14 +277,19 @@ arma::field<arma::cube> mean_variance_sampling(arma::mat data,
     
     // std::cout << "\nVariance sampled\n";
     
+    // std::cout 
+    
     // std::cout << mean_variance_field(1).slice(j - 1) << "\n";
+    curr_mean = mean_posterior(mu_0, 
+                               mean_variance_field(0).slice(j - 1), 
+                               lambda_0,
+                               cluster_data);
     
-    mean_variance_field(1).slice(j - 1) = mean_posterior(mu_0, 
-                        mean_variance_field(0).slice(j - 1), 
-                        lambda_0,
-                        cluster_data);
     
-    // std::cout << "\nAccessed cubes";
+    mean_variance_field(1).slice(j - 1) = curr_mean;
+    
+    // std::cout << "\nSampled mean:\n" << curr_mean << "\n\nSaved mean: " 
+              // << mean_variance_field(1).slice(j - 1) << "\n\n";
   }
   return mean_variance_field;
 }
@@ -925,8 +928,16 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
   
   // These are the lists recording the posterior mean and 
   // variance for each class for each recorded iteration
-  ListMatrix variance(eff_count, k);
-  ListMatrix mu(eff_count, k);
+  // ListMatrix variance(eff_count, k);
+  // ListMatrix mu(eff_count, k);
+  arma::field<arma::cube> variance(k);
+  arma::cube cluster_var_record(num_cols, num_cols, eff_count);
+  for(arma::uword i = 0; i < k; i++){
+    cluster_var_record.zeros();
+    variance(i) = cluster_var_record;
+  }
+  arma::cube mu(num_cols, eff_count, k);
+  mu.zeros();
   
   arma::vec point;
   
@@ -1142,9 +1153,10 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
         for(arma::uword j = 0; j < k; j ++){
           
           // std::cout << "Recording params" << j << "\n";
-          
-          mu(record_ind, j) = loc_mu_variance(1).slice(j);
-          variance(record_ind, j) = loc_mu_variance(0).slice(j);
+          mu.slice(j).col(record_ind) = loc_mu_variance(1).slice(j); 
+          // mu(record_ind, j) = loc_mu_variance(1).slice(j);
+          // variance(record_ind, j) = loc_mu_variance(0).slice(j);
+          variance(j).slice(record_ind) = loc_mu_variance(0).slice(j);
         }
       }
       
@@ -2140,8 +2152,18 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
   
   // These are the lists recording the posterior mean and 
   // variance for each class for each recorded iteration
-  ListMatrix variance(eff_count, num_clusters_gaussian);
-  ListMatrix mu(eff_count, num_clusters_gaussian);
+  // ListMatrix variance(eff_count, num_clusters_gaussian);
+  // ListMatrix mu(eff_count, num_clusters_gaussian);
+  
+  arma::field<arma::cube> variance(num_clusters_gaussian);
+  arma::cube cluster_var_record(num_cols_cont, num_cols_cont, eff_count);
+  for(arma::uword i = 0; i < num_clusters_gaussian; i++){
+    cluster_var_record.zeros();
+    variance(i) = cluster_var_record;
+  }
+  arma::cube mu(num_cols_cont, eff_count, num_clusters_gaussian);
+  mu.zeros();
+  
   
   // Objects required to save the categorical variable for each component
   arma::field<arma::field<arma::mat>> class_probabilities_saved(num_clusters_categorical);
@@ -2628,8 +2650,11 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
             loc_mu_variance(1).slice(j).save(mu_file_loc);
             loc_mu_variance(0).slice(j).save(var_file_loc);
           } else {
-            mu(record_iter, j) = loc_mu_variance(1).slice(j);
-            variance(record_iter, j) = loc_mu_variance(0).slice(j);
+            // mu(record_iter, j) = loc_mu_variance(1).slice(j);
+            // variance(record_iter, j) = loc_mu_variance(0).slice(j);
+            
+            mu.slice(j).col(record_iter) = loc_mu_variance(1).slice(j); 
+            variance(j).slice(record_iter) = loc_mu_variance(0).slice(j);
           }
         }
         
@@ -2709,8 +2734,11 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
           loc_mu_variance(1).slice(j).load(mu_file_loc);
           loc_mu_variance(0).slice(j).load(var_file_loc);
           
-          mu(i, j) = loc_mu_variance(1).slice(j);
-          variance(i, j) = loc_mu_variance(0).slice(j);
+          // mu(i, j) = loc_mu_variance(1).slice(j);
+          // variance(i, j) = loc_mu_variance(0).slice(j);
+          
+          mu.slice(j).col(i) = loc_mu_variance(1).slice(j); 
+          variance(j).slice(i) = loc_mu_variance(0).slice(j);
         }
   
         for(arma::uword j = 0; j < num_clusters_categorical; j++){

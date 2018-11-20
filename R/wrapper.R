@@ -61,7 +61,7 @@
 #' dataset 2 (default is false).
 #' @param record_posteriors A bool instructing the mcmc function to record the
 #' posterior distributions of the mean and variance for each cluster
-#' (default is FALSE)
+#' (default is TRUE)
 #' @param save_results Bool instructing program to save results to file. Default
 #' is FALSE.
 #' @param overwrite Bool instructing program to overwrite pre-existing results
@@ -152,7 +152,7 @@ mcmc_out <- function(MS_object,
                      outlier_2 = FALSE,
                      t_df_2 = 4.0,
                      normalise_2 = FALSE,
-                     record_posteriors = FALSE,
+                     record_posteriors = TRUE,
                      save_results = FALSE,
                      load_results = FALSE,
                      overwrite = FALSE,

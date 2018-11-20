@@ -225,6 +225,9 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
   # Create the gaps for the heatmap for between certain rows
   gaps <- as.numeric(row.names(unique(col_of_interest))) - 1
 
+  # Bool instructing clustering of rows
+  cluster_rows <- gaps > 0
+  
   # Create an empty vector to hold the new ordering
   ordering <- c()
 

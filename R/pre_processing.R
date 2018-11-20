@@ -187,7 +187,8 @@ gaussian_arguments <- function(data, n_clust,
   d <- ncol(data)
 
   if (is.null(lambda_0)) {
-    lambda_0 <- 0.01
+    # lambda_0 <- 0.01
+    lambda_0 <- 10
   }
 
   args <- empirical_bayes_gaussian(data, mu_0, df_0, scale_0, N, n_clust, d,
