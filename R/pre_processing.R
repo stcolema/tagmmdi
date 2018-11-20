@@ -125,7 +125,8 @@ empirical_bayes_gaussian <- function(data, mu_0, df_0, scale_0, N, k, d,
   }
 
   if (is.null(scale_0)) {
-    scale_0 <- diag(d) / (k^(1 / d))
+    scale_0 <- diag( colSums(( data - mean( data )) ^ 2) / N)/( k ^ (1/d))
+    # scale_0 <- diag(d) / (k^(1 / d))
   }
   parameters$mu_0 <- mu_0
   parameters$df_0 <- df_0
@@ -187,8 +188,7 @@ gaussian_arguments <- function(data, n_clust,
   d <- ncol(data)
 
   if (is.null(lambda_0)) {
-    # lambda_0 <- 0.01
-    lambda_0 <- 10
+    lambda_0 <- 0.01
   }
 
   args <- empirical_bayes_gaussian(data, mu_0, df_0, scale_0, N, n_clust, d,

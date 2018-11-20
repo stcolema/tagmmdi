@@ -212,12 +212,18 @@ mcmc_out <- function(MS_object,
     overwrite = overwrite
   )
   
+  num_load <- 0
+  
   if(load_results){
     num_load <- attempt::try_catch(
       expr = length(list.files("./output/dataset_1/allocation")),
       .e = NULL,
       .w = NULL
     )
+  }
+  
+  if(is.null(num_load)) {
+    num_load <- 0
   }
 
 
