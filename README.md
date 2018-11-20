@@ -12,7 +12,7 @@ Installation
 
 You can install the package from GitHub using
 ``` r
-devtools::install_github("tagmmdi")
+devtools::install_github("stcolema/tagmmdi")
 ```
 
 Initial steps
