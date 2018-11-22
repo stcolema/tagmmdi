@@ -226,7 +226,6 @@ mcmc_out <- function(MS_object,
     num_load <- 0
   }
 
-
   # Key to transforming from int to class
   class_labels_key <- data.frame(Class = classes_present) %>%
     dplyr::arrange(Class) %>%
@@ -261,16 +260,8 @@ mcmc_out <- function(MS_object,
 
   # Prior on mass parameter for cluster  weights
   if (is.null(cluster_weight_0_1)) {
-    # print(paste0(
-    #   "Creating vector of ", n_clust_1, " repetitions of ", 1,
-    #   " for mass parameter prior for dataset 1."
-    # ))
     cluster_weight_0_1 <- rep(1, (n_clust_1))
   } else if (length(cluster_weight_0_1) < (n_clust_1)) {
-    # print(paste0(
-    #   "Creating vector of ", n_clust_1, " repetitions of ", cluster_weight_0_1,
-    #   " for mass parameter prior for dataset 1."
-    # ))
     cluster_weight_0_1 <- rep(cluster_weight_0_1, n_clust_1)
   }
 
@@ -346,7 +337,8 @@ mcmc_out <- function(MS_object,
     table(ind, values)
   )
 
-  eff_iter <- ceiling((num_iter - burn) / thinning)
+  # The number of iterations for which results are recorded (+1 from start at 0)
+  eff_iter <- ceiling((num_iter + 1 - burn) / thinning)
 
   # Key to transforming from int to class
   class_labels_key <- data.frame(Class = classes_present) %>%
@@ -501,7 +493,6 @@ mcmc_out <- function(MS_object,
       gibbs = gibbs,
       cluster_map = component_heat_map,
       heat_map = heat_map,
-      rec_burn = rec_burn,
       data = all_data
     ))
   }
