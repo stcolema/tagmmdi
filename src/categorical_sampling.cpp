@@ -126,16 +126,6 @@ arma::mat scale_n(arma::mat scale_0,
   return scale_out;
 }
 
-// sample a multivariate normal
-// arma::mat mvrnormArma(arma::uword n,
-//                       arma::vec mu,
-//                       arma::mat sigma) {
-//   arma::uword ncols = sigma.n_cols;
-//   arma::mat Y = arma::randn(n, ncols);
-//   return arma::repmat(mu, 1, n).t() +
-//     Y * arma::chol(sigma);
-// }
-
 // sample from the mean posterior
 arma::vec mean_posterior(arma::vec mu_0,
                          arma::mat variance,
@@ -156,87 +146,137 @@ arma::vec mean_posterior(arma::vec mu_0,
   
   double lambda_n = lambda_0 + sample_size;
   
+  // Update mean hyperparameter
   mu_n = mean_n(lambda_0, mu_0, sample_size, ncols, sample_mean);
   
-  // std::cout << "\nPast initial mu_n\n";
-  // std::cout << "\n" << mu_n << "\n";
-  // std::cout << "\n" << mu_n - sample_mean << "\n";
-  
+  // Update variance hyperparameter
   variance_n = variance / lambda_n;
   
-  
-  // std::cout << "\nData variance:\n" << arma::cov(data) 
-  //           << "\n\nSampled vairance:\n" << variance_n << "\n\n";;
-  
-  // arma::mat x = mvrnormArma(1, mu_n, variance_n);
+  // Draw from multivariate Normal distribution
   arma::mat x = arma::mvnrnd(mu_n, variance_n, 1);
   mu_out = x.col(0);
-  // mu_out = arma::conv_to<arma::vec>::from(x.col(0));
-  
-  // std::cout << "Actual output:\n" << mu_out << "\n\n";
-  
+
   return mu_out;
   
 }
 
+// Returns the matrix for the scale hyperparameter for n observations
+arma::mat calc_scale_n(arma::mat scale_0, 
+                       arma::mat sample_cov, 
+                       double lambda, 
+                       int n, 
+                       arma::vec sample_mean, 
+                       arma::vec mu_0,
+                       int d){
+  
+  arma::mat dist_from_prior(d, d);
+  dist_from_prior = (sample_mean - mu_0) * arma::trans(sample_mean - mu_0);
+  
+  arma::mat scale_n(d, d);
+  scale_n = scale_0 + sample_cov + (lambda * n) / (lambda + n) * dist_from_prior;
+  
+  return scale_n;
+}
 
-// Sample the variance for after n observations
 arma::mat variance_posterior(int df_0,
                              arma::mat scale_0,
-                             double lambda_0,
+                             double lambda,
                              arma::vec mu_0,
-                             arma::mat data){
+                             arma::mat data
+){
+  // The sample size
+  int n = data.n_rows;
   
-  arma::uword sample_size = data.n_rows;
-  arma::uword num_cols = data.n_cols;
+  // The dimension of the data
+  int d = data.n_cols;
   
-  // std::cout << "\nCluster data:\n" << data;
+  // Declare the degrees of freedom and scale parameters, initially setting to
+  // the prior values
+  double df_n = df_0;
+  arma::mat scale_n(d, d);
+  scale_n = scale_0;
   
-  arma::vec sample_mean(num_cols);
-  sample_mean.zeros();
-  
-  int df_n = df_0 + sample_size;
-  
-  // std::cout << "Reached another dec\n";
-  
-  arma::mat scale_n_value(num_cols, num_cols);
-  arma::mat sample_covariance(num_cols, num_cols);
-  arma::mat variance_out(num_cols, num_cols);
-  
-  // std::cout << sample_size << "\n";
-  
-  if (sample_size > 0){
+  // if any points belong to this data update the priors
+  if(n > 0){
+    // The posterior degrees of freedom
+    df_n = df_0 + n;
+    
+    // Calculate the sample mean (the 0 means the mean of the columns is calculated)
+    arma::vec sample_mean(d);
     sample_mean = arma::trans(arma::mean(data, 0));
-  } 
+    
+    // Caculate the sample covariance - don't normalise for the relevant variable
+    arma::mat sample_cov(d, d);
+    sample_cov = (n - 1) * arma::cov(data);
+    
+    // Calculate the scale variable posterior
+    scale_n = calc_scale_n(scale_0, sample_cov, lambda, n, sample_mean, mu_0, d);
+  }
   
-  // std::cout << "\nSample covariance reached\n";
+  // Draw the current variance from the inverse wishart
+  arma::mat variance(d, d);
+  variance = arma::iwishrnd(scale_n, df_n);
   
-  sample_covariance = S_n(data, sample_mean, sample_size, num_cols);
-  
-  // std::cout << "Scale_n reached\n";
-  
-  arma::mat samp_cov(num_cols, num_cols);
-  samp_cov = (sample_size - 1) * arma::cov(data);
-  
-  // std::cout  << samp_cov << "\n\n";
-  
-  scale_n_value = scale_n(
-    scale_0,
-    mu_0,
-    lambda_0,
-    sample_covariance,
-    sample_size,
-    sample_mean
-  );
-  
-  
-  // std::cout << scale_n_value << "\n";
-  
-  variance_out = arma::iwishrnd(scale_n_value, df_n);
-  
-  return variance_out;
-  
-} 
+  return variance;
+}
+
+// // Sample the variance for after n observations
+// arma::mat variance_posterior(int df_0,
+//                              arma::mat scale_0,
+//                              double lambda_0,
+//                              arma::vec mu_0,
+//                              arma::mat data){
+//   
+//   arma::uword sample_size = data.n_rows;
+//   arma::uword num_cols = data.n_cols;
+//   
+//   // std::cout << "\nCluster data:\n" << data;
+//   
+//   arma::vec sample_mean(num_cols);
+//   sample_mean.zeros();
+//   
+//   int df_n = df_0 + sample_size;
+//   
+//   // std::cout << "Reached another dec\n";
+//   
+//   arma::mat scale_n_value(num_cols, num_cols);
+//   arma::mat sample_covariance(num_cols, num_cols);
+//   arma::mat variance_out(num_cols, num_cols);
+//   
+//   // std::cout << sample_size << "\n";
+//   
+//   if (sample_size > 0){
+//     sample_mean = arma::trans(arma::mean(data, 0));
+//   } 
+//   
+//   // std::cout << "\nSample covariance reached\n";
+//   
+//   sample_covariance = S_n(data, sample_mean, sample_size, num_cols);
+//   
+//   // std::cout << "Scale_n reached\n";
+//   
+//   arma::mat samp_cov(num_cols, num_cols);
+//   samp_cov = (sample_size - 1) * arma::cov(data);
+//   
+//   // std::cout  << samp_cov << "\n\n";
+//   
+//   scale_n_value = scale_n(
+//     scale_0,
+//     mu_0,
+//     lambda_0,
+//     sample_covariance,
+//     sample_size,
+//     sample_mean
+//   );
+//   
+//   
+//   // std::cout << scale_n_value << "\n";
+//   
+//   variance_out = arma::iwishrnd(scale_n_value, df_n);
+//   
+//   return variance_out;
+//   
+// } 
 
 // Returns a 2-D field of cubes (i.e. a 5D object) for the current iterations 
 // means and variances across each cluster (hence a field)
@@ -303,8 +343,9 @@ arma::vec concentration_n(arma::vec concentration_0,
   
   // arma::uword n = cluster_labels.n_elem;
   arma::uvec class_members;
-  arma::uword class_count;
+  arma::uword class_count = 0;
   arma::vec concentration(num_cat);
+  concentration.zeros();
   
   for (arma::uword i = 1; i < num_cat + 1; i++) {
     class_count = 0;
@@ -355,6 +396,7 @@ arma::vec dirichlet_posterior(arma::vec concentration_0,
                                   cluster_labels,
                                   num_clusters);
   
+  // std::cout << "Concentration: \n" << concentration << "\n\n";
   
   for (arma::uword i = 0; i < num_clusters; i++) {
     
@@ -780,10 +822,12 @@ double t_likelihood(arma::vec point,
   double exponent = 0.0;
   double log_likelihood = 0.0;
   
-  exponent = arma::as_scalar(arma::trans(point - mu) 
-                             * arma::inv(variance)
-                             * (point - mu));
-                               
+  exponent = arma::as_scalar(
+    arma::trans(point - mu) 
+    * arma::inv(variance)
+    * (point - mu)
+  );
+  
   log_det = arma::log_det(variance).real();
   
   log_likelihood = lgamma((df + d)/2.0) 
@@ -801,24 +845,22 @@ double sample_outlier(arma::vec point,
                       double outlier_weight,
                       arma::vec global_mean,
                       arma::mat global_variance,
-                      double t_df = 4.0,
-                      arma::uword u = 2,
-                      arma::uword v = 10){
+                      double t_df = 4.0){
   
   double log_likelihood = 0.0;
-  double class_weight = 0.0;
+  // double class_weight = 0.0;
   double prob = 0.0;
   
   arma::uword n = data.n_rows;
   arma::uword d = data.n_cols;
   
   // The probability of belonging to the outlier class
-  class_weight = (outlier_weight + u)/(n + u + v - 1);
+  // class_weight = (outlier_weight + u)/(n + u + v - 1);
   log_likelihood = t_likelihood(point, global_mean, global_variance, d, t_df);
   
   // std::cout << "\nLog outlier weight: " << class_weight << "\nLog-likelihood: "
   //           << log_likelihood << "\n";
-  prob = log(class_weight) + log_likelihood;
+  prob = log(outlier_weight) + log_likelihood;
   
   return prob;
 }
@@ -940,18 +982,7 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
   mu.zeros();
   
   arma::vec point;
-  
-  // std::cout << "Faux output sentence\n";
-  
-  // arma::uvec out_class = 0;
-  // 
-  // // Add +1 to k to allow outlier class
-  // if(outlier){
-  //   out_class++;
-  //   // k++;
-  // }
-  // 
-  
+
   arma::vec class_weights(k);
   arma::vec outlier_weights(2);
   
@@ -967,6 +998,7 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
   
   // Vector of 0 and 1 for points assigned to outlier group or not
   arma::uvec outlier_vec(N);
+  outlier_vec.zeros();
   
   // Begin with all non-fixed points (i.e. unlabelled) to outlier component
   outlier_vec = 1 - fix_vec;
@@ -978,6 +1010,7 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
   
   // Class labels of points not currently assigned as outliers
   arma::uvec relevant_labels(N);
+  relevant_labels.zeros();
   
   // the current iterations probabilities of being an outlier (non-outlier prob
   // is 1 - curr_outlier_prob)
@@ -1014,13 +1047,12 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
     // To see which points are relevant for defining component parameters
     // use pairwise multiplication between the current label and the outlier
     relevant_labels = class_labels % (1 - outlier_vec);
+    // relevant_labels = class_labels % fix_vec;
+    
     
     // std::cout << "\nRelevant labels:\n" << relevant_labels << "\n";
     
     class_weights = dirichlet_posterior(concentration_0, relevant_labels, k);
-    
-    // std::cout << class_weights << "\n\n";
-    // std::cout << "\nENTROPY";
     
     entropy_cw(i) = entropy(class_weights);
 
@@ -1034,6 +1066,13 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
                                              scale_0,
                                              lambda_0,
                                              mu_0);
+    
+    if(outlier){
+      b_k = arma::find(outlier_vec == 1);
+      b = b_k.n_elem;
+      
+      outlier_weight = sample_beta(u + b, v + N - b);
+    }
     
     // std::cout << "\nAccessed cubes\n";
     
@@ -1074,9 +1113,7 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
                                                  outlier_weight,
                                                  global_mean,
                                                  global_variance,
-                                                 t_df,
-                                                 u = 2 + b,
-                                                 v = 10 + N - b);
+                                                 t_df);
         
         // curr_outlier_prob(1) = curr_outlier_likelihood;
         // 
@@ -1091,7 +1128,9 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
         // // std::cout << "normal likelihood OK!\n";
         // curr_outlier_prob = over_flow_handling(curr_outlier_prob);
         //   
-        curr_outlier_prob(1) = log(1 + exp(curr_outlier_likelihood));
+        // curr_outlier_prob(1) = log(1 + exp(curr_outlier_likelihood));
+        curr_outlier_prob(1) = curr_outlier_likelihood;
+        // curr_outlier_prob(1) = curr_outlier_likelihood;
         
         // std::cout << "t likelihood OK!\n";
         
@@ -1100,23 +1139,23 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
                                                       loc_mu_variance(0).slice(predicted_class - 1),
                                                       num_cols);
         
+        // arma::vec arma_pred_like;
+        // arma_pred_like = arma::normpdf(point, 
+        //   loc_mu_variance(1).slice(predicted_class - 1),
+        //   loc_mu_variance(0).slice(predicted_class - 1)
+        // );
+        // predicted_norm_likelihood = arma::as_scalar(arma_pred_like);
+        
         predicted_norm_likelihood += log(1 - outlier_weight);
         curr_outlier_prob(0) = predicted_norm_likelihood;
-  
 
-        
-        // std::cout << "normal likelihood OK!\n";
-        // std::cout << "\nOutlier probs pre-normalising:\n" << curr_outlier_prob 
-        // << "\n";
-        
         // Overflow handling
-        curr_outlier_prob = exp(curr_outlier_prob - max(curr_outlier_prob)) - 1;
+        // curr_outlier_prob = exp(curr_outlier_prob - max(curr_outlier_prob)) - 1;
+        curr_outlier_prob = exp(curr_outlier_prob - max(curr_outlier_prob));
         
         // Normalise the vector
         curr_outlier_prob = curr_outlier_prob / sum(curr_outlier_prob);
-            
-          
-          
+
         // std::cout << "\nCurr outlier prob:\n" << curr_outlier_prob << "\n";
         predicted_outlier = cluster_predictor(curr_outlier_prob) - 1; // as +1 to handle R
         
@@ -1162,10 +1201,6 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
       
     }
     // b = sum(b_k);
-    b_k = arma::find(outlier_vec == 0);
-    b = b_k.n_elem;
-    
-    outlier_weight = 1 - sample_beta(u + b, v + N - b);
 
   }
   
@@ -2437,6 +2472,17 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
     // Initialise the count of outputs
     // record_iter = num_load - 1;
     
+    if(outlier){
+      
+      // Components of outlier weight
+      b_k = arma::find(outlier_vec == 1);
+      b = b_k.n_elem;
+      
+      // Sample outlier weight
+      outlier_weight = sample_beta(u_1 + b, v_1 + n - b);
+      
+    }
+    
     // sample class for each observation
     for(arma::uword j = 0; j < n; j++){
       
@@ -2468,9 +2514,7 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                                  outlier_weight,
                                                  global_mean,
                                                  global_variance,
-                                                 t_df,
-                                                 u_1 + b,
-                                                 v_1 + n - b);
+                                                 t_df);
           
         // The normal likelihood for the current class allocation
         predicted_norm_likelihood = normal_likelihood(arma::trans(gaussian_data.row(j)),
@@ -2539,16 +2583,7 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
       
     }
     
-    if(outlier){
-      
-      // Components of outlier weight
-      b_k = arma::find(outlier_vec == 0);
-      b = b_k.n_elem;
-      
-      // Sample outlier weight
-      outlier_weight = 1 - sample_beta(u_1 + b, v_1 + n - b);
-      
-    }
+    
     
     // Update cluster labels in second dataset
     // Return the new labels, weights and similarity in a single vector
@@ -3117,6 +3152,25 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
     // sample the strategic latent variable, v
     v = arma::randg( arma::distr_param(v_a_0 + n, 1.0/(v_b_0 + Z) ) );
     
+    
+    if(outlier_1){
+      b_k_1 = arma::find(outlier_vec_1 == 1);
+      b_1 = b_k_1.n_elem;
+      
+      // std::cout << "Outlier weight:\n";
+      outlier_weight_1 = sample_beta(u_1 + b_1, v_1 + n - b_1);
+      // std::cout << "Outlier weight success!\n";
+    }
+    
+    if(outlier_2){
+      b_k_2 = arma::find(outlier_vec_2 == 1);
+      b_2 = b_k_2.n_elem;
+      
+      // std::cout << "Outlier weight:\n";
+      outlier_weight_2 = sample_beta(u_2 + b_2, v_2 + n - b_2);
+      // std::cout << "Outlier weight success!\n";
+    }
+    
     // sample 
     for(arma::uword j = 0; j < n; j++){
       
@@ -3163,9 +3217,7 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
                                               outlier_weight_1,
                                               global_mean_1,
                                               global_variance_1,
-                                              t_df_1,
-                                              u_1 + b_1,
-                                              v_1 + n - b_1);
+                                              t_df_1);
         
         // std::cout << "Outlier likelihood calculated.\n";
         
@@ -3201,9 +3253,7 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
                                               outlier_weight_2,
                                               global_mean_2,
                                               global_variance_2,
-                                              t_df_2,
-                                              u_2 + b_2,
-                                              v_2 + n - b_2);
+                                              t_df_2);
         
         // std::cout << "Outlier likelihood calculated.\n";
         
@@ -3329,23 +3379,6 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
       }
     }
     
-    if(outlier_1){
-      b_k_1 = arma::find(outlier_vec_1 == 0);
-      b_1 = b_k_1.n_elem;
-      
-      // std::cout << "Outlier weight:\n";
-      outlier_weight_1 = 1 - sample_beta(u_1 + b_1, v_1 + n - b_1);
-      // std::cout << "Outlier weight success!\n";
-    }
-    
-    if(outlier_2){
-      b_k_2 = arma::find(outlier_vec_2 == 0);
-      b_2 = b_k_2.n_elem;
-      
-      // std::cout << "Outlier weight:\n";
-      outlier_weight_2 = 1 - sample_beta(u_2 + b_2, v_2 + n - b_2);
-      // std::cout << "Outlier weight success!\n";
-    }
   }
   
   // construct similarity matrix
