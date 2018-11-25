@@ -280,6 +280,59 @@ arma::mat variance_posterior(int df_0,
 
 // Returns a 2-D field of cubes (i.e. a 5D object) for the current iterations 
 // means and variances across each cluster (hence a field)
+arma::cube variance_sampling(arma::mat data,
+                             arma::uvec cluster_labels,
+                             arma::uword k,
+                             int df_0,
+                             arma::uword num_cols,
+                             arma::mat scale_0,
+                             double lambda_0,
+                             arma::vec mu_0){
+  arma::mat cluster_data;
+
+  arma::cube variance(num_cols, num_cols, k);
+  variance.zeros();
+  
+  for (arma::uword j = 1; j < k + 1; j++) {
+    cluster_data = data.rows(find(cluster_labels == j ));
+    
+    variance.slice(j - 1) = variance_posterior(
+      df_0,
+      scale_0,
+      lambda_0,
+      mu_0,
+      cluster_data
+    );
+    
+  }
+  return variance;
+}
+
+arma::mat mean_sampling(arma::mat data,
+                        arma::uvec cluster_labels,
+                        arma::uword k,
+                        arma::uword num_cols,
+                        arma::cube variance,
+                        double lambda_0,
+                        arma::vec mu_0){
+  arma::mat cluster_data;
+
+  arma::mat mu(num_cols, k);
+  mu.zeros();
+  
+  for (arma::uword j = 1; j < k + 1; j++) {
+    cluster_data = data.rows(find(cluster_labels == j ));
+    mu.col(j - 1) = mean_posterior(mu_0, 
+                                   variance.slice(j - 1), 
+                                   lambda_0,
+                                   cluster_data);
+
+  }
+  return mu;
+}
+
+// Returns a 2-D field of cubes (i.e. a 5D object) for the current iterations 
+// means and variances across each cluster (hence a field)
 arma::field<arma::cube> mean_variance_sampling(arma::mat data,
                                                arma::uvec cluster_labels,
                                                arma::uword k,
@@ -762,7 +815,7 @@ double normal_likelihood(arma::vec point,
                                * (point - mu));
                                
   log_det = arma::log_det(variance).real();
-  log_likelihood = -0.5 *(log_det + exponent + d * log(2 * M_PI));
+  log_likelihood = -0.5 *(log_det + exponent + d * log(2 * M_PI)); 
                                
   return log_likelihood;
 }
@@ -773,7 +826,8 @@ arma::vec sample_gaussian_cluster(arma::vec point,
                                   arma::mat data,
                                   arma::uword k,
                                   arma::vec class_weights,
-                                  arma::cube mu,
+                                  arma::mat mu,
+                                  // arma::cube mu,
                                   arma::cube variance){
   
   double curr_weight;
@@ -788,7 +842,8 @@ arma::vec sample_gaussian_cluster(arma::vec point,
     curr_weight = log(class_weights(i));
     
     log_likelihood = normal_likelihood(point, 
-                                       mu.slice(i),
+                                       mu.col(i),
+                                       // mu.slice(i),
                                        variance.slice(i),
                                        d);
     
@@ -1041,6 +1096,13 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
   // Set all entries to zero as we will be using += rather than = (i.e will 
   // never over-write the initial value held, only add to it)
   alloc_prob_gauss.zeros();
+  
+  double tau2 = 0;
+  double alpha = 0;
+  double beta = 0;
+  double non_outlier_weight = 0;
+  arma::mat mu_n(num_cols, k);
+  arma::cube variance_n(num_cols, num_cols, k);
 
   for(arma::uword i = 0; i < num_iter; i++){
     
@@ -1057,7 +1119,7 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
     entropy_cw(i) = entropy(class_weights);
 
     // std::cout << "\nBegin sampling parameters\n";
-    
+    // 
     loc_mu_variance = mean_variance_sampling(data,
                                              relevant_labels,
                                              k,
@@ -1067,11 +1129,42 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
                                              lambda_0,
                                              mu_0);
     
-    if(outlier){
-      b_k = arma::find(outlier_vec == 1);
-      b = b_k.n_elem;
+    variance_n = variance_sampling(data,
+                                   relevant_labels,
+                                   k,
+                                   df_0,
+                                   num_cols,
+                                   scale_0,
+                                   lambda_0,
+                                   mu_0);
+    
+    // std::cout << "Sampled variance.\n";
       
-      outlier_weight = sample_beta(u + b, v + N - b);
+    mu_n = mean_sampling(data,
+                         relevant_labels,
+                         k,
+                         num_cols,
+                         variance_n,
+                         lambda_0,
+                         mu_0);
+    
+    // loc_mu_variance(1) = mu_n;
+    // loc_mu_variance(0) = variance_n;
+    
+    // std::cout << "Sampled mean.\n";
+    
+    if(outlier){
+      b = sum(outlier_vec);
+      // b = b_k.n_elem;
+      // tau2 = b;
+      alpha = b + u + 1;
+      beta = 2 * N + v - b;
+      // non_outlier_weight = (2 * N - b + v ) / (N + u + v - 1);
+      // outlier_weight = (tau2 + u ) / (N + u + v - 1);
+      // outlier_weight = sample_beta(u + b, v + N - b);
+      // non_outlier_weight = 1 - outlier_weight;
+      outlier_weight = sample_beta(alpha, beta);
+      non_outlier_weight = 1 - outlier_weight;
     }
     
     // std::cout << "\nAccessed cubes\n";
@@ -1080,17 +1173,29 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
       // if the current point is not fixed, sample its class
       point = arma::trans(data.row(jj));
       
+      // curr_norm_likelihoods = sample_gaussian_cluster(point, 
+      //                                                 data,
+      //                                                 k, 
+      //                                                 class_weights, 
+      //                                                 loc_mu_variance(1),
+      //                                                 loc_mu_variance(0)
+      // );
       curr_norm_likelihoods = sample_gaussian_cluster(point, 
                                                       data,
                                                       k, 
                                                       class_weights, 
-                                                      loc_mu_variance(1),
-                                                      loc_mu_variance(0)
+                                                      mu_n,
+                                                      variance_n
       );
+      
+      
       
       curr_class_probs = over_flow_handling(curr_norm_likelihoods);
 
-
+      // if(jj == 300){
+      //   std::cout << "\nComponent likelihoods:\n" << curr_norm_likelihoods << "\n";
+      //   std::cout << "\nNormalised likelihoods:\n" << curr_class_probs << "\n";
+      // }
       
       if (i >= burn && (i - burn) % thinning == 0) {
         
@@ -1131,12 +1236,15 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
         // curr_outlier_prob(1) = log(1 + exp(curr_outlier_likelihood));
         curr_outlier_prob(1) = curr_outlier_likelihood;
         // curr_outlier_prob(1) = curr_outlier_likelihood;
-        
+
         // std::cout << "t likelihood OK!\n";
         
+        
         predicted_norm_likelihood = normal_likelihood(point,
-                                                      loc_mu_variance(1).slice(predicted_class - 1),
-                                                      loc_mu_variance(0).slice(predicted_class - 1),
+                                                      mu_n.col(predicted_class - 1),
+                                                      variance_n.slice(predicted_class - 1),
+                                                      // loc_mu_variance(1).slice(predicted_class - 1),
+                                                      // loc_mu_variance(0).slice(predicted_class - 1),
                                                       num_cols);
         
         // arma::vec arma_pred_like;
@@ -1146,7 +1254,9 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
         // );
         // predicted_norm_likelihood = arma::as_scalar(arma_pred_like);
         
-        predicted_norm_likelihood += log(1 - outlier_weight);
+        // predicted_norm_likelihood += log(1 - outlier_weight);
+        predicted_norm_likelihood += log(non_outlier_weight);
+        
         curr_outlier_prob(0) = predicted_norm_likelihood;
 
         // Overflow handling
@@ -1158,7 +1268,7 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
 
         // std::cout << "\nCurr outlier prob:\n" << curr_outlier_prob << "\n";
         predicted_outlier = cluster_predictor(curr_outlier_prob) - 1; // as +1 to handle R
-        
+
         // std::cout << "Outlier prediction done.\n";
       }
       
@@ -2430,8 +2540,8 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                                    num_clusters_gaussian,
                                                    num_clusters_categorical,
                                                    cluster_weights_categorical,
-                                                   cluster_labels_gaussian,
-                                                   // relevant_labels,
+                                                   // cluster_labels_gaussian,
+                                                   relevant_labels,
                                                    cluster_labels_categorical,
                                                    context_similarity);
     
@@ -2475,12 +2585,14 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
     if(outlier){
       
       // Components of outlier weight
-      b_k = arma::find(outlier_vec == 1);
-      b = b_k.n_elem;
+      b = sum(outlier_vec);
+      outlier_weight = sample_beta(b + u_1 + 1, 2 * n + v_1 - b);
+    
+      // b = sum(outlier_vec);
+      // outlier_weight = sample_beta(b + u_1, n + v_1 - 1);
       
       // Sample outlier weight
-      outlier_weight = sample_beta(u_1 + b, v_1 + n - b);
-      
+      // outlier_weight = sample_beta(u_1 + b, v_1 + n - b);
     }
     
     // sample class for each observation
@@ -2515,6 +2627,8 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                                  global_mean,
                                                  global_variance,
                                                  t_df);
+        
+        curr_outlier_prob(1) = curr_outlier_likelihood;
           
         // The normal likelihood for the current class allocation
         predicted_norm_likelihood = normal_likelihood(arma::trans(gaussian_data.row(j)),
