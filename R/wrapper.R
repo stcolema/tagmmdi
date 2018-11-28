@@ -132,10 +132,10 @@
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom attempt try_catch
 mcmc_out <- function(MS_object,
+                     data_2 = NULL,
                      labels_0_1 = NULL,
                      args_1 = NULL,
                      cluster_weight_0_1 = NULL,
-                     data_2 = NULL,
                      type_1 = "Gaussian",
                      type_2 = "Categorical",
                      cluster_weight_0_2 = 1,
@@ -336,6 +336,9 @@ mcmc_out <- function(MS_object,
     stack(data.frame(t(class_record))),
     table(ind, values)
   )
+  
+  # print(class_allocation_table)
+  
 
   # The number of iterations for which results are recorded (+1 from start at 0)
   eff_iter <- ceiling((num_iter + 1 - burn) / thinning)
@@ -355,6 +358,7 @@ mcmc_out <- function(MS_object,
     Class_key =
       as.numeric(colnames(class_allocation_table)
       [apply(
+          # gibbs$allocation_mat_1,
           class_allocation_table,
           1,
           which.max
@@ -434,6 +438,28 @@ mcmc_out <- function(MS_object,
       fontsize_row = fontsize_row,
       fontsize_col = fontsize_col
     )
+    # if (! is.null(data_2)) {
+    #   sim_2 <- gibbs$similarity_2
+    #   
+    #   dissim_2 <- 1 - sim_2
+    #   
+    #   # Require names to associate data in annotation columns with original data
+    #   colnames(dissim_2) <- rownames(num_data)
+    #   rownames(dissim_2) <- rownames(num_data)
+    #   
+    #   col_pal <- RColorBrewer::brewer.pal(9, "Blues")
+    #   
+    #   heat_map <- annotated_heatmap(dissim_2, annotation_row,
+    #                                 train = train,
+    #                                 main = main,
+    #                                 cluster_row = cluster_row,
+    #                                 cluster_cols = cluster_cols,
+    #                                 color = col_pal,
+    #                                 fontsize = fontsize,
+    #                                 fontsize_row = fontsize_row,
+    #                                 fontsize_col = fontsize_col)
+    # }
+      
   }
 
   if (entropy_plot) {
