@@ -36,7 +36,8 @@ mdi_cross_validate <- function(MS_object,
                                burn = floor(num_iter / 10),
                                thinning = 25,
                                ...) {
-  marker.data <- markerMSnSet(MS_object)
+  
+  marker.data <- pRoloc::markerMSnSet(MS_object)
 
   if (!is.null(MS_cat_object)) {
     marker.data.cat <- pRoloc::markerMSnSet(MS_cat_object)
@@ -90,12 +91,6 @@ mdi_cross_validate <- function(MS_object,
     # create new combined MSnset
     mydata <- BiocGenerics::combine(.test1, .train1)
 
-    if (!is.null(MS_cat_object)) {
-      cat_data <- MSnbase::exprs(marker.data.cat)
-    } else {
-      cat_data <- NULL
-    }
-
     # Set levels of markers cateogries
     levels(MSnbase::fData(mydata)$markers) <- c(
       levels(
@@ -103,9 +98,49 @@ mdi_cross_validate <- function(MS_object,
       ),
       "unknown"
     )
-
+    
     # hide marker labels
     MSnbase::fData(mydata)[rownames(.test1), "markers"] <- "unknown"
+    
+    
+    if (!is.null(MS_cat_object)) {
+      # cat_data <- MSnbase::exprs(marker.data.cat)
+      
+      ## 'unseen' test set
+      .test2 <- MSnbase::MSnSet(
+        MSnbase::exprs(marker.data.cat)[test.idx, ],
+        MSnbase::fData(marker.data.cat[test.idx, ]),
+        MSnbase::pData(marker.data.cat)
+      )
+
+      ## 'seen' training set
+      .train2 <- MSnbase::MSnSet(
+        MSnbase::exprs(marker.data.cat)[-test.idx, ],
+        MSnbase::fData(marker.data.cat[-test.idx, ]),
+        MSnbase::pData(marker.data.cat)
+      )
+      
+      # create new combined MSnset
+      # cat_data <- BiocGenerics::combine(.test2, .train2)
+      cat_data <- BiocGenerics::combine(marker.data.cat[test.idx, ],
+        marker.data.cat[-test.idx, ]
+      )
+      
+      # Set levels of markers cateogries
+      levels(MSnbase::fData(cat_data)$markers) <- c(
+        levels(
+          MSnbase::fData(cat_data)$markers
+        ),
+        "unknown"
+      )
+      
+      # hide marker labels
+      MSnbase::fData(cat_data)[rownames(.test2), "markers"] <- "unknown"
+      
+      
+    } else {
+      cat_data <- NULL
+    }
 
     # Fix training points, allow test points to move component
     fix_vec_1 <- c(
@@ -115,8 +150,8 @@ mdi_cross_validate <- function(MS_object,
 
     # MDI
     params <- mcmc_out(mydata,
-      fix_vec_1 = fix_vec_1,
       data_2 = cat_data,
+      fix_vec_1 = fix_vec_1,
       n_clust_2 = 20,
       num_iter = num_iter,
       burn = burn,

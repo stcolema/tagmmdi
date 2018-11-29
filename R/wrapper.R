@@ -175,12 +175,31 @@ mcmc_out <- function(MS_object,
                      sense_check_main = "component_level_clustering",
                      prediction_threshold = 0.5) {
 
+  # Consider allowing input of fcol in which case don't deselect markers, rather use:
+  # marker_col <- rlang::sym(var)
+  # data <- data %>%
+  #   dplyr::select(-!!marker_col)
+
   # MS data
-  MS_data <- MS_dataset(MS_object, train = train)
+  MS_data <- MS_dataset(MS_object) #, train = train)
 
   mydata <- MS_data$data
   nk <- MS_data$nk
   row_names <- MS_data$row_names
+
+  if(! is.null(data_2)){
+    # Unpack pRoloc dataset
+    data_2_unpacked <- MS_dataset(data_2)
+  
+    data_2 <- data_2_unpacked$data %>%
+      dplyr::select(-markers)
+    row_names_2 <- data_2_unpacked$row_names
+  
+    if (sum(row_names != row_names_2) > 0) {
+      print(sum(row_names != row_names_2))
+      stop("Row names in datasets are not the same. Check compatible data.")
+    }
+  }
 
   if (is.null(fix_vec_1)) {
     fix_vec_1 <- MS_data$fix_vec
@@ -211,18 +230,18 @@ mcmc_out <- function(MS_object,
     load_results = load_results,
     overwrite = overwrite
   )
-  
+
   num_load <- 0
-  
-  if(load_results){
+
+  if (load_results) {
     num_load <- attempt::try_catch(
       expr = length(list.files("./output/dataset_1/allocation")),
       .e = NULL,
       .w = NULL
     )
   }
-  
-  if(is.null(num_load)) {
+
+  if (is.null(num_load)) {
     num_load <- 0
   }
 
@@ -336,9 +355,9 @@ mcmc_out <- function(MS_object,
     stack(data.frame(t(class_record))),
     table(ind, values)
   )
-  
+
   # print(class_allocation_table)
-  
+
 
   # The number of iterations for which results are recorded (+1 from start at 0)
   eff_iter <- ceiling((num_iter + 1 - burn) / thinning)
@@ -420,15 +439,15 @@ mcmc_out <- function(MS_object,
       sim <- gibbs$similarity_1
     }
 
-    dissim <- 1 - sim
+    # dissim <- 1 - sim
 
     # Require names to associate data in annotation columns with original data
-    colnames(dissim) <- rownames(num_data)
-    rownames(dissim) <- rownames(num_data)
+    colnames(sim) <- rownames(num_data)
+    rownames(sim) <- rownames(num_data)
 
     col_pal <- RColorBrewer::brewer.pal(9, "Blues")
 
-    heat_map <- annotated_heatmap(dissim, annotation_row,
+    heat_map <- annotated_heatmap(sim, annotation_row,
       train = train,
       main = main,
       cluster_row = cluster_row,
@@ -440,15 +459,15 @@ mcmc_out <- function(MS_object,
     )
     # if (! is.null(data_2)) {
     #   sim_2 <- gibbs$similarity_2
-    #   
+    #
     #   dissim_2 <- 1 - sim_2
-    #   
+    #
     #   # Require names to associate data in annotation columns with original data
     #   colnames(dissim_2) <- rownames(num_data)
     #   rownames(dissim_2) <- rownames(num_data)
-    #   
+    #
     #   col_pal <- RColorBrewer::brewer.pal(9, "Blues")
-    #   
+    #
     #   heat_map <- annotated_heatmap(dissim_2, annotation_row,
     #                                 train = train,
     #                                 main = main,
@@ -459,11 +478,9 @@ mcmc_out <- function(MS_object,
     #                                 fontsize_row = fontsize_row,
     #                                 fontsize_col = fontsize_col)
     # }
-      
   }
 
   if (entropy_plot) {
-
     entropy_data <- data.frame(
       Index = 1:(num_iter + 1),
       Entropy = gibbs$entropy

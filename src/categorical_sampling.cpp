@@ -21,21 +21,16 @@ double point_similarity(arma::uword point,
   ind_1 = arma::trans(cluster_record.row(point));
   ind_2 = arma::trans(cluster_record.row(comparison_point));
   
-  // std::cout << "Ind 1\n" << ind_1 << "Ind 2\n" << ind_2 << "\n" << "Sum "
-  //           << arma::sum(ind_1 == ind_2) << "\n";
-  
   arma::umat out_1(num_iter, 1);
   
+  // Compare vector of allocations element-wise
   out_1.col(0) = (ind_1 == ind_2);
+  
+  // Similarity is the sum of the above divided by the number of entries
+  // Convert the sum to a double as otherwise is integer divison and does not 
+  // work
   out = (double)arma::sum(out_1.col(0)) / (double)num_iter;
   
-  // for (arma::uword i = 0; i < num_iter; i++){
-  //   if(cluster_record(point, i) == cluster_record(comparison_point, i)){
-  //     out++;
-  //   }
-  // 
-  // }
-  // out = out / num_iter;
   return out;
 }
 
@@ -48,8 +43,8 @@ arma::mat similarity_mat(arma::umat cluster_record){
   arma::mat out(sample_size, sample_size);
   out.zeros();
   
-  for (arma::uword point = 0; point < sample_size; point++){ // if not doing diagonal, restrict to sample size - 1
-    // std::cout << point << "\n";
+  // if not doing diagonal, restrict to sample size - 1
+  for (arma::uword point = 0; point < sample_size; point++){ 
     for (arma::uword comparison_point = point; 
          comparison_point < sample_size;
          comparison_point++){
@@ -68,16 +63,14 @@ arma::mat similarity_mat(arma::umat cluster_record){
 double entropy(arma::vec class_weights){
   arma::uword n = class_weights.n_elem;
   arma::vec entropy_components(n);
-  // std::cout << "\nDeclared\n";
-  
-  
+
   for(arma::uword i = 0; i < n; i++){
     entropy_components(i) = - class_weights(i) * log(class_weights(i));
     if (entropy_components.has_nan()){
       entropy_components(i) = 0;
     }
   }
-  // std::cout << "Inter";
+
   double entropy_out = sum(entropy_components);
   return entropy_out;
 }
@@ -157,9 +150,7 @@ arma::vec mean_posterior(arma::vec mu_0,
   if (sample_size > 0){
     sample_mean = trans(arma::mean(data, 0));
   }
-  
-  // std::cout << "\nPast initial if\n";
-  
+
   double lambda_n = lambda_0 + sample_size;
   
   // Update mean hyperparameter
@@ -172,7 +163,6 @@ arma::vec mean_posterior(arma::vec mu_0,
   arma::mat x = arma::mvnrnd(mu_n, variance_n, 1);
   mu_out = x.col(0);
   
-  // mu_out = mu_n;
   return mu_out;
   
 }
@@ -233,68 +223,9 @@ arma::mat variance_posterior(int df_0,
   // Draw the current variance from the inverse wishart
   arma::mat variance(d, d);
   variance = arma::iwishrnd(scale_n, df_n);
-  // variance = scale_n / (double)(df_n - d - 1);
-  
+
   return variance;
 }
-
-// // Sample the variance for after n observations
-// arma::mat variance_posterior(int df_0,
-//                              arma::mat scale_0,
-//                              double lambda_0,
-//                              arma::vec mu_0,
-//                              arma::mat data){
-//   
-//   arma::uword sample_size = data.n_rows;
-//   arma::uword num_cols = data.n_cols;
-//   
-//   // std::cout << "\nCluster data:\n" << data;
-//   
-//   arma::vec sample_mean(num_cols);
-//   sample_mean.zeros();
-//   
-//   int df_n = df_0 + sample_size;
-//   
-//   // std::cout << "Reached another dec\n";
-//   
-//   arma::mat scale_n_value(num_cols, num_cols);
-//   arma::mat sample_covariance(num_cols, num_cols);
-//   arma::mat variance_out(num_cols, num_cols);
-//   
-//   // std::cout << sample_size << "\n";
-//   
-//   if (sample_size > 0){
-//     sample_mean = arma::trans(arma::mean(data, 0));
-//   } 
-//   
-//   // std::cout << "\nSample covariance reached\n";
-//   
-//   sample_covariance = S_n(data, sample_mean, sample_size, num_cols);
-//   
-//   // std::cout << "Scale_n reached\n";
-//   
-//   arma::mat samp_cov(num_cols, num_cols);
-//   samp_cov = (sample_size - 1) * arma::cov(data);
-//   
-//   // std::cout  << samp_cov << "\n\n";
-//   
-//   scale_n_value = scale_n(
-//     scale_0,
-//     mu_0,
-//     lambda_0,
-//     sample_covariance,
-//     sample_size,
-//     sample_mean
-//   );
-//   
-//   
-//   // std::cout << scale_n_value << "\n";
-//   
-//   variance_out = arma::iwishrnd(scale_n_value, df_n);
-//   
-//   return variance_out;
-//   
-// } 
 
 // Returns a 2-D field of cubes (i.e. a 5D object) for the current iterations 
 // means and variances across each cluster (hence a field)
@@ -311,6 +242,7 @@ arma::cube variance_sampling(arma::mat data,
   arma::cube variance(num_cols, num_cols, k);
   variance.zeros();
   
+  // sample the variance for each cluster
   for (arma::uword j = 1; j < k + 1; j++) {
     cluster_data = data.rows(find(cluster_labels == j ));
     
@@ -338,6 +270,7 @@ arma::mat mean_sampling(arma::mat data,
   arma::mat mu(num_cols, k);
   mu.zeros();
   
+  // Sample the mean for each cluster
   for (arma::uword j = 1; j < k + 1; j++) {
     cluster_data = data.rows(find(cluster_labels == j ));
     mu.col(j - 1) = mean_posterior(mu_0, 
@@ -375,7 +308,6 @@ arma::field<arma::cube> mean_variance_sampling(arma::mat data,
   curr_mean.zeros();
   
   for (arma::uword j = 1; j < k + 1; j++) {
-    // std::cout << "\nj for loop";
     cluster_data = data.rows(find(cluster_labels == j ));
     
     mean_variance_field(0).slice(j - 1) = variance_posterior(
@@ -386,11 +318,6 @@ arma::field<arma::cube> mean_variance_sampling(arma::mat data,
       cluster_data
     );
     
-    // std::cout << "\nVariance sampled\n";
-    
-    // std::cout 
-    
-    // std::cout << mean_variance_field(1).slice(j - 1) << "\n";
     curr_mean = mean_posterior(mu_0, 
                                mean_variance_field(0).slice(j - 1), 
                                lambda_0,
@@ -398,9 +325,6 @@ arma::field<arma::cube> mean_variance_sampling(arma::mat data,
     
     
     mean_variance_field(1).slice(j - 1) = curr_mean;
-    
-    // std::cout << "\nSampled mean:\n" << curr_mean << "\n\nSaved mean: " 
-    // << mean_variance_field(1).slice(j - 1) << "\n\n";
   }
   return mean_variance_field;
 }
@@ -561,17 +485,16 @@ arma::vec mdi_cluster_weights(arma::vec shape_0,
   arma::vec cluster_weight = arma::zeros<arma::vec>(n_clust);
   
   double b = 0.0;
-  // double b1 = 0.0; 
-  
+
   arma::vec shape_n(n_clust);
   
+  // Calculate the concentration parameter for each cluster
   shape_n = concentration_n(shape_0,
                             cluster_labels,
                             n_clust) + 1;
   
-  b = v * arma::sum(cluster_weights_comp);
-  
-  // std::cout << "\nShape: " << shape_n << "\nRate: " << b << "\n";
+  // Possible alternative calculation using vectorisation
+  // b = v * arma::sum(cluster_weights_comp);
   
   for (arma::uword i = 0; i < n_clust; i++) {
     
@@ -584,14 +507,7 @@ arma::vec mdi_cluster_weights(arma::vec shape_0,
                          i,
                          cluster_weights_comp,
                          phi);
-    // 
-    // if (abs(b - b1) > 0.001){
-    //   std::cout << "\nRates differ:\n" << b << "\n" << b1 << "\n\n";
-    // }
-    // 
-    // std::cout << "\nShape: " << shape_n(i) << "\nRate: " << b + rate_0(i) 
-    //           << "\nStrategic latent variable: " << v << "\n\n";
-    
+
     cluster_weight(i) = arma::randg(arma::distr_param(shape_n(i), 1 / (b + rate_0(i))));
     
     // if(i < n_clust_comp){
@@ -605,7 +521,7 @@ arma::vec mdi_cluster_weights(arma::vec shape_0,
 // Several functions to initialise the 3D array required for the different
 // classes for each variable within each cluster
 
-// count unique entries in a vector
+// count unique entries in a vector (Armadillo has this already - unnecssary)
 arma::uword unique_counter(arma::uvec v){
   std::sort(v.begin(), v.end());
   arma::uword unique_count = std::unique(v.begin(), v.end()) - v.begin();
@@ -651,18 +567,9 @@ arma::field<arma::mat> sample_class_probabilities(arma::umat data,
 ){
   
   arma::umat cluster_data;
-  // arma::umat indices;
   for(arma::uword k = 1; k < num_clusters + 1; k++){
-    
-    // std::cout << "In for loop, k = " << k << "\n";
-    
-    // indices = find(cluster_labels == k);
-    
-    // std::cout << "\n" << indices << "\n";
-    
+
     cluster_data = data.rows(find(cluster_labels == k));
-    
-    // std::cout << "Generic message\n";
     
     for(arma::uword j = 0; j < num_cols; j++){
       
@@ -673,7 +580,6 @@ arma::field<arma::mat> sample_class_probabilities(arma::umat data,
       )
       );
       
-      // std::cout << "Another message\n";
     }
   }
   return class_probabilities;
@@ -688,12 +594,10 @@ arma::vec categorical_cluster_probabilities(arma::urowvec point,
                                             arma::uword num_clusters,
                                             arma::uword num_cols){
   
-  // std::cout << "In function cluster_probabilities\n";
   arma::vec probabilities = arma::zeros<arma::vec>(num_clusters);
   
   double curr_weight = 0.0;
   
-  // std::cout << "\n\n" << class_probabilities << "\n\n";
   for(arma::uword i = 0; i < num_clusters; i++){
     curr_weight = log(cluster_weights(i));
     for(arma::uword j = 0; j < num_cols; j++){
@@ -702,7 +606,11 @@ arma::vec categorical_cluster_probabilities(arma::urowvec point,
     }
     probabilities(i) = probabilities(i) + curr_weight;
   }
+  
+  // Overflow handling and convert from logs
   probabilities = exp(probabilities - max(probabilities));
+  
+  // Normalise
   probabilities = probabilities / sum(probabilities);
   
   return probabilities;
@@ -717,7 +625,7 @@ arma::uword cluster_predictor(arma::vec probabilities){
   u = arma::randu<double>( );
   
   // include + 1 if labels centred on 1
-  pred = 1 + sum(u > cumsum(probabilities)); // 1 + 
+  pred = 1 + sum(u > cumsum(probabilities)); 
   return pred;
 }
 
@@ -743,39 +651,30 @@ Rcpp::List categorical_clustering(arma::umat data,
   cat_count = cat_counter(data);
   
   arma::field<arma::mat> class_probabilities(num_cols);
-  
-  // std::cout << "Declaring field of matrices for class probs\n";
-  
+
   class_probabilities = declare_class_probs_field(cat_count,
                                                   num_cols,
                                                   num_clusters);
-  
-  // std::cout << "Class probabilities declared\n";
-  
-  // std::cout << "Num clusters: " << num_clusters << "\n";
-  
+
   arma::vec cluster_weights(num_clusters);
   
   arma::vec curr_cluster_probs(num_clusters);
   
   arma::uword eff_count = ceil((double)(num_iter - burn) / (double)thinning);
   
-  // std::cout << "N: " << n << "\nEff count: " << eff_count << "\n";
   arma::umat record(n, eff_count);
   record.zeros();
   
-  // arma::uword prediction = 0;
-  
-  // std::cout << "Reached for loop\n";
-  
+
   for(arma::uword i = 0; i < num_iter; i++){
     
+    // Sample cluster weights from a Dirichlet distribution
     cluster_weights = dirichlet_posterior(cluster_weight_priors,
                                           cluster_labels,
                                           num_clusters);
     
-    // std::cout << "Cluster weights calculated\n";
-    
+
+    // sample probabilities for each class for each cluster (categorical)
     class_probabilities = sample_class_probabilities(data,
                                                      class_probabilities,
                                                      phi_prior,
@@ -785,10 +684,8 @@ Rcpp::List categorical_clustering(arma::umat data,
                                                      num_cols
                                                        
     );
-    
-    // std::cout << "Class probs calculated\n";
-    // std::cout << class_probabilities << "\n\n";
-    
+
+    // For each individual sample allocation probability
     for(arma::uword j = 0; j < n; j++){
       
       // sample cluster for each point here
@@ -799,15 +696,14 @@ Rcpp::List categorical_clustering(arma::umat data,
                                                              num_clusters,
                                                              num_cols);
       
-      // std::cout << "Cluster sampled\n";
-      
+      // If not fixed (i.e. a known label) update the current label
       if(fix_vec(j) == 0){
-        // std::cout << "Prediction: " << prediction << "\n";
         cluster_labels(j) = cluster_predictor(curr_cluster_probs);
       }
     }
+    
+    // Record outputs of interest
     if (i >= burn && (i - burn) % thinning == 0) {
-      // std::cout << "\n" << i << "\n";
       record.col((i - burn) / thinning) = cluster_labels;
     }
   }
@@ -815,7 +711,6 @@ Rcpp::List categorical_clustering(arma::umat data,
   sim = similarity_mat(record);
   return List::create(Named("similarity") = sim,
                       Named("class_record") = record);
-  // return sim;
 }
 
 // === Gaussian clustering =====================================================
@@ -829,15 +724,18 @@ double normal_likelihood(arma::vec point,
   double exponent = 0.0;
   double log_likelihood = 0.0;
   
-  
+  // Exponent in normal PDF
   exponent = arma::as_scalar(arma::trans(point - mu) 
                                * arma::inv(variance)
                                * (point - mu));
-                               
-                               log_det = arma::log_det(variance).real();
-                               log_likelihood = -0.5 *(log_det + exponent + (double) d * log(2.0 * M_PI)); 
-                               
-                               return log_likelihood;
+                           
+   // Log determinant of the variance
+  log_det = arma::log_det(variance).real();
+  
+  // Normal log likelihood
+  log_likelihood = -0.5 *(log_det + exponent + (double) d * log(2.0 * M_PI)); 
+  
+  return log_likelihood;
 }
 
 // For k classes returns a k-vector of probabilities for point to belong to said
@@ -1471,7 +1369,8 @@ arma::vec mdi_cat_clust_prob(arma::uword row_index,
 arma::vec mdi_gauss_clust_probs(arma::uword row_index,
                                 arma::mat data,
                                 arma::uword k,
-                                arma::cube mu,
+                                arma::mat mu,
+                                // arma::cube mu,
                                 arma::cube variance,
                                 double context_similarity,
                                 arma::vec cluster_weights,
@@ -1517,7 +1416,8 @@ arma::vec mdi_gauss_clust_probs(arma::uword row_index,
     // }
     // else {
     
-    log_likelihood = normal_likelihood(point, mu.slice(i), variance.slice(i), d);
+    log_likelihood = normal_likelihood(point, mu.col(i), variance.slice(i), d);
+    // log_likelihood = normal_likelihood(point, mu.slice(i), variance.slice(i), d);
     
     // }
     
@@ -2180,6 +2080,12 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
     loc_mu_variance(1).zeros();
   }
   
+  arma::mat mu_n(num_cols_cont, num_clusters_gaussian);
+  mu_n.zeros();
+  arma::cube variance_n(num_cols_cont, num_cols_cont, num_clusters_gaussian);
+  variance_n.zeros();
+  
+  
   // std::cout << "Declared to mean/variance thing \n";
   
   // Declare the field for the phi variable for the categorical data
@@ -2441,6 +2347,23 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                              lambda_0,
                                              mu_0);
     
+    variance_n = variance_sampling(gaussian_data,
+                                   relevant_labels,
+                                   num_clusters_gaussian,
+                                   df_0,
+                                   num_cols_cont,
+                                   scale_0,
+                                   lambda_0,
+                                   mu_0);
+    
+    mu_n = mean_sampling(gaussian_data,
+                         relevant_labels,
+                         num_clusters_gaussian,
+                         num_cols_cont,
+                         variance_n,
+                         lambda_0,
+                         mu_0);
+    
     // For the categorical data, sample the probabilities for each class
     class_probabilities = sample_class_probabilities(categorical_data,
                                                      class_probabilities,
@@ -2516,8 +2439,10 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
       curr_norm_likelihoods = mdi_gauss_clust_probs(j,
                                                     gaussian_data,
                                                     num_clusters_gaussian,
-                                                    loc_mu_variance(1),
-                                                    loc_mu_variance(0),
+                                                    mu_n,
+                                                    variance_n,
+                                                    // loc_mu_variance(1),
+                                                    // loc_mu_variance(0),
                                                     context_similarity,
                                                     cluster_weights_gaussian,
                                                     relevant_labels,
@@ -2552,8 +2477,10 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
         
         // The normal likelihood for the current class allocation
         predicted_norm_likelihood = normal_likelihood(arma::trans(gaussian_data.row(j)),
-                                                      loc_mu_variance(1).slice(predicted_class - 1),
-                                                      loc_mu_variance(0).slice(predicted_class - 1),
+                                                      mu_n.col(predicted_class - 1),
+                                                      variance_n.slice(predicted_class - 1),
+                                                      // loc_mu_variance(1).slice(predicted_class - 1),
+                                                      // loc_mu_variance(0).slice(predicted_class - 1),
                                                       num_cols_cont);
         
         predicted_norm_likelihood += log(1 - outlier_weight);

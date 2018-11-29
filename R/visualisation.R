@@ -227,7 +227,7 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
 
   # Bool instructing clustering of rows
   cluster_rows <- gaps > 0
-  
+
   # Create an empty vector to hold the new ordering
   ordering <- c()
 
@@ -292,8 +292,8 @@ pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
 #' @return PCA plot
 #' @importFrom FactoMineR PCA
 #' @importFrom factoextra fviz_pca_ind
-pca_ms_obj <- function(MS_object, test_pred, 
-                       ellipses = FALSE, 
+pca_ms_obj <- function(MS_object, test_pred,
+                       ellipses = FALSE,
                        alpha.ind = 1,
                        ...) {
   ms_data <- MS_dataset(MS_object)
