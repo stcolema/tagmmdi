@@ -200,7 +200,6 @@ arma::mat variance_posterior(int df_0,
   
   arma::vec sample_mean(d);
   arma::mat sample_cov(d, d);
-  arma::mat sample_cov_comp(d, d);
   
   // if any points belong to this data update the priors
   if(n > 0){
@@ -220,7 +219,7 @@ arma::mat variance_posterior(int df_0,
     sample_cov = S_n(data, sample_mean, n, d);
     
     // Calculate the scale variable posterior
-    scale_n = calc_scale_n(scale_0, sample_cov_comp, lambda, n, sample_mean, mu_0, d);
+    scale_n = calc_scale_n(scale_0, sample_cov, lambda, n, sample_mean, mu_0, d);
   }
   
   // Draw the current variance from the inverse wishart
