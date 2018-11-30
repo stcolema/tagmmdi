@@ -63,14 +63,14 @@ arma::mat similarity_mat(arma::umat cluster_record){
 double entropy(arma::vec class_weights){
   arma::uword n = class_weights.n_elem;
   arma::vec entropy_components(n);
-
+  
   for(arma::uword i = 0; i < n; i++){
     entropy_components(i) = - class_weights(i) * log(class_weights(i));
     if (entropy_components.has_nan()){
       entropy_components(i) = 0;
     }
   }
-
+  
   double entropy_out = sum(entropy_components);
   return entropy_out;
 }
@@ -85,17 +85,10 @@ arma::mat S_n(arma::mat data,
               arma::uword num_cols){
   arma::mat sample_covariance(num_cols, num_cols);
   sample_covariance.zeros();
+
   if(sample_size > 0){
-    for(arma::uword i = 0; i < sample_size; i++){
-      
-      arma::vec row_i = arma::trans(data.row(i));
-      
-      sample_covariance = (sample_covariance 
-                             + ((row_i - sample_mean) 
-                                  * arma::trans(row_i - sample_mean)
-                             )
-      );
-    }
+    data.each_row() -= arma::trans(sample_mean);
+    sample_covariance = arma::trans(data) * data;
   }
   return sample_covariance;
 }
@@ -150,7 +143,7 @@ arma::vec mean_posterior(arma::vec mu_0,
   if (sample_size > 0){
     sample_mean = trans(arma::mean(data, 0));
   }
-
+  
   double lambda_n = lambda_0 + sample_size;
   
   // Update mean hyperparameter
@@ -197,33 +190,43 @@ arma::mat variance_posterior(int df_0,
   // The dimension of the data
   int d = data.n_cols;
   
+  // std::cout << "Cluster size: " << n << "\nWidth: " << d << "\n";
+  
   // Declare the degrees of freedom and scale parameters, initially setting to
   // the prior values
   double df_n = df_0;
   arma::mat scale_n(d, d);
   scale_n = scale_0;
   
+  arma::vec sample_mean(d);
+  arma::mat sample_cov(d, d);
+  arma::mat sample_cov_comp(d, d);
+  
   // if any points belong to this data update the priors
   if(n > 0){
     // The posterior degrees of freedom
     df_n = df_0 + n;
     
-    // Calculate the sample mean (the 0 means the mean of the columns is calculated)
-    arma::vec sample_mean(d);
-    sample_mean = arma::trans(arma::mean(data, 0));
+    if(n > 1){
+      // Calculate the sample mean (the 0 means the mean of the columns is calculated)
+      sample_mean = arma::trans(arma::mean(data, 0));
+  
+    } else {
+      // If only one point in cluster the mean is the entry
+      sample_mean = arma::trans(data.row(0));
+    }
     
-    // Caculate the sample covariance - don't normalise for the relevant variable
-    arma::mat sample_cov(d, d);
-    sample_cov = (n - 1) * arma::cov(data);
+    // Sample covariance without division by sample size
+    sample_cov = S_n(data, sample_mean, n, d);
     
     // Calculate the scale variable posterior
-    scale_n = calc_scale_n(scale_0, sample_cov, lambda, n, sample_mean, mu_0, d);
+    scale_n = calc_scale_n(scale_0, sample_cov_comp, lambda, n, sample_mean, mu_0, d);
   }
   
   // Draw the current variance from the inverse wishart
   arma::mat variance(d, d);
   variance = arma::iwishrnd(scale_n, df_n);
-
+  
   return variance;
 }
 
@@ -485,7 +488,7 @@ arma::vec mdi_cluster_weights(arma::vec shape_0,
   arma::vec cluster_weight = arma::zeros<arma::vec>(n_clust);
   
   double b = 0.0;
-
+  
   arma::vec shape_n(n_clust);
   
   // Calculate the concentration parameter for each cluster
@@ -507,7 +510,7 @@ arma::vec mdi_cluster_weights(arma::vec shape_0,
                          i,
                          cluster_weights_comp,
                          phi);
-
+    
     cluster_weight(i) = arma::randg(arma::distr_param(shape_n(i), 1 / (b + rate_0(i))));
     
     // if(i < n_clust_comp){
@@ -568,7 +571,7 @@ arma::field<arma::mat> sample_class_probabilities(arma::umat data,
   
   arma::umat cluster_data;
   for(arma::uword k = 1; k < num_clusters + 1; k++){
-
+    
     cluster_data = data.rows(find(cluster_labels == k));
     
     for(arma::uword j = 0; j < num_cols; j++){
@@ -651,11 +654,11 @@ Rcpp::List categorical_clustering(arma::umat data,
   cat_count = cat_counter(data);
   
   arma::field<arma::mat> class_probabilities(num_cols);
-
+  
   class_probabilities = declare_class_probs_field(cat_count,
                                                   num_cols,
                                                   num_clusters);
-
+  
   arma::vec cluster_weights(num_clusters);
   
   arma::vec curr_cluster_probs(num_clusters);
@@ -665,7 +668,7 @@ Rcpp::List categorical_clustering(arma::umat data,
   arma::umat record(n, eff_count);
   record.zeros();
   
-
+  
   for(arma::uword i = 0; i < num_iter; i++){
     
     // Sample cluster weights from a Dirichlet distribution
@@ -673,7 +676,7 @@ Rcpp::List categorical_clustering(arma::umat data,
                                           cluster_labels,
                                           num_clusters);
     
-
+    
     // sample probabilities for each class for each cluster (categorical)
     class_probabilities = sample_class_probabilities(data,
                                                      class_probabilities,
@@ -684,7 +687,7 @@ Rcpp::List categorical_clustering(arma::umat data,
                                                      num_cols
                                                        
     );
-
+    
     // For each individual sample allocation probability
     for(arma::uword j = 0; j < n; j++){
       
@@ -728,14 +731,14 @@ double normal_likelihood(arma::vec point,
   exponent = arma::as_scalar(arma::trans(point - mu) 
                                * arma::inv(variance)
                                * (point - mu));
-                           
-   // Log determinant of the variance
-  log_det = arma::log_det(variance).real();
-  
-  // Normal log likelihood
-  log_likelihood = -0.5 *(log_det + exponent + (double) d * log(2.0 * M_PI)); 
-  
-  return log_likelihood;
+                               
+                               // Log determinant of the variance
+                               log_det = arma::log_det(variance).real();
+                               
+                               // Normal log likelihood
+                               log_likelihood = -0.5 *(log_det + exponent + (double) d * log(2.0 * M_PI)); 
+                               
+                               return log_likelihood;
 }
 
 // For k classes returns a k-vector of probabilities for point to belong to said
@@ -831,7 +834,7 @@ double sample_outlier(arma::vec point,
   log_likelihood = t_likelihood(point, global_mean, global_variance, d, t_df);
   
   prob = log(outlier_weight) + log_likelihood;
-
+  
   return prob;
 }
 
@@ -953,12 +956,12 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
   arma::uword predicted_outlier = 0;
   double outlier_weight = 0.0;
   
-
+  
   double predicted_norm_likelihood = 0.0;
   
   // the predicted class assuming the point is not an outlier
   arma::uword predicted_class = 0;
-
+  
   // These are the local cubes of posterior mean and variance overwritten each
   // iteration
   arma::field<arma::cube> loc_mu_variance(2);
@@ -979,7 +982,7 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
     // To see which points are relevant for defining component parameters
     // use pairwise multiplication between the current label and the outlier
     relevant_labels = class_labels % (1 - outlier_vec);
-
+    
     // Update class weights
     class_weights = dirichlet_posterior(concentration_0, class_labels, k);
     
@@ -1019,12 +1022,12 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
       outlier_weight = sample_beta(b + u, N + v - b);
       non_outlier_weight = 1.0 - outlier_weight;
     }
-  
+    
     
     for (arma::uword jj = 0; jj < N; jj++){
       // sample class allocation
       point = arma::trans(data.row(jj));
-
+      
       curr_norm_likelihoods = sample_gaussian_cluster(point, 
                                                       data,
                                                       k, 
@@ -1039,7 +1042,7 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
       
       // Record the class allocation probabilities
       if (i >= burn && (i - burn) % thinning == 0) {
-
+        
         record_ind = (i - burn) / thinning;
         class_probs.slice(jj).row(record_ind) = arma::trans(curr_class_probs);
         alloc_prob_gauss.row(jj) += arma::trans(curr_class_probs);
@@ -1057,11 +1060,11 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
                                                global_variance, 
                                                num_cols,
                                                t_df);
-
+        
         
         curr_outlier_likelihood += log(outlier_weight);
         curr_outlier_prob(1) = curr_outlier_likelihood;
-
+        
         // Calculate likelihood of belonging to current cluster
         predicted_norm_likelihood = normal_likelihood(point,
                                                       mu_n.col(predicted_class - 1),
@@ -1083,7 +1086,7 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
         
         // Predict ourlier (1) or not (0)
         predicted_outlier = cluster_predictor(curr_outlier_prob) - 1;
-
+        
       }
       
       // If point is not known, update allocation
@@ -1094,7 +1097,7 @@ Rcpp::List gaussian_clustering(arma::uword num_iter,
         
       }
     }
-
+    
     
     if (i >= burn && (i - burn) % thinning == 0) {
       
@@ -1246,7 +1249,7 @@ double sample_phi(arma::uvec cluster_labels_1,
     arma::uword pred_ind = 0;
     
     pred_ind = sum(u > cumsum(prob_vec)); // 1 +
-
+    
     phi = arma::randg( arma::distr_param(pred_ind + a0, 1/b) );
     
   } else {
@@ -1300,7 +1303,7 @@ arma::vec mdi_cat_clust_prob(arma::uword row_index,
   
   arma::uword common_cluster = 0;
   
-
+  
   for(arma::uword i = 0; i < num_clusters; i++){
     
     // calculate the log-weights for the context specific cluster and the across
@@ -1485,7 +1488,7 @@ arma::vec cluster_label_update(arma::uvec cluster_labels_1,
   
   double old_score = 0.0;
   double new_score = 0.0;
-
+  
   
   old_score = comp(n, phi, cluster_labels_1, cluster_labels_2);
   
@@ -1505,7 +1508,7 @@ arma::vec cluster_label_update(arma::uvec cluster_labels_1,
     if(new_pos >= i){
       new_pos++;
     }
-
+    
     new_labels = swap_labels(cluster_labels_2, i + 1, new_pos + 1);
     
     new_weights = swap_cluster_weights(cluster_weights_2, i, new_pos);
@@ -1519,7 +1522,7 @@ arma::vec cluster_label_update(arma::uvec cluster_labels_1,
     if(log_accept < 0){
       accept = exp(log_accept);
     }
-
+    
     if(arma::randu<double>( ) < accept){
       cluster_labels_2 = new_labels;
       cluster_weights_2 = new_weights;
@@ -1643,7 +1646,7 @@ Rcpp::List mdi_cat_cat(arma::umat data_1,
   arma::vec curr_prob_vec_1(n_clust_1);
   arma::vec curr_prob_vec_2(n_clust_2);
   
-
+  
   // the record for similarity in each clustering
   arma::uword eff_count = ceil((double)(num_iter - burn) / (double)thinning);
   
@@ -1716,7 +1719,7 @@ Rcpp::List mdi_cat_cat(arma::umat data_1,
                                               n_clust_2,
                                               n_cols_2);
     
-
+    
     // Calculate the current normalising constant (consider being more clever 
     // about this) 
     Z = calculate_normalising_constant(clust_weights_1,
@@ -1745,7 +1748,7 @@ Rcpp::List mdi_cat_cat(arma::umat data_1,
       
       // for each point create the vector of probabilities associated with 
       // assignment to each cluster
-
+      
       curr_prob_vec_1 = mdi_cat_clust_prob(j, 
                                            data_1,
                                            class_prob_1,
@@ -2297,7 +2300,7 @@ Rcpp::List mdi_gauss_cat(arma::mat gaussian_data,
                                                global_variance, 
                                                num_cols_cont,
                                                t_df);
-          
+        
         curr_outlier_likelihood += log(outlier_weight);
         
         curr_outlier_prob(1) = curr_outlier_likelihood;
@@ -2631,11 +2634,11 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
                            arma::uword rate_1_0 = 1,
                            arma::uword rate_2_0 = 1,
                            bool save_results = false,
-                           std::string lab_file_1 = "allocation_1/labels_1_iter_",
-                           std::string lab_file_2 = "allocation_2/labels_2_iter_",
-                           std::string out_lab_file_1 = "outlier_allocation_1/outlier_1_labels_iter_",
-                           std::string out_lab_file_2 = "outlier_allocation_2/outlier_2_labels_iter_"
+                           bool load_results = false,
+                           arma::uword num_load = 0
 ){
+  
+  
   
   // As we tend to iterate to less than num_iter, add 1 to itself
   // Done here as many objects are sized based on this.
@@ -2643,9 +2646,6 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
   
   // Declare the sample size and dimensionality of the continuous and 
   // categorical data
-  
-  // std::cout << "In function \n";
-  
   arma::uword n = data_1.n_rows;
   arma::uword n_cols_1 = data_1.n_cols;
   
@@ -2655,8 +2655,6 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
   // Frequently will compare clusters across contexts so this is a useful bound
   // to iterate to
   arma::uword min_n_clust = std::min(n_clust_1, n_clust_2);
-  
-  // std::cout << "Nomalising data\n";
   
   //  Normalise the continuous data
   if(normalise_1){
@@ -2682,7 +2680,7 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
   global_mean_2 = arma::trans(arma::mean(data_2, 0));
   
   // strategic latent variable
-  double v = 0.0;
+  double v = 1.0;
   
   // Cluster weights for each dataset
   arma::vec clust_weights_1(n_clust_1);
@@ -2694,9 +2692,35 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
   // These are the local cubes of posterior mean and variance overwritten each
   // iteration
   arma::field<arma::cube> loc_mu_variance_1(2);
+  
+  // Initialise the netroies within this field, defining their dimension 
+  // Required for loading
+  for(arma::uword i = 0; i < n_clust_1; i++){
+    loc_mu_variance_1(0) = arma::cube(n_cols_1, n_cols_1, n_clust_1);
+    loc_mu_variance_1(0).zeros();
+    loc_mu_variance_1(1) = arma::cube(n_cols_1, 1, n_clust_1);
+    loc_mu_variance_1(1).zeros();
+  }
+  
+  arma::mat mu_n_1(n_cols_1, n_clust_1);
+  mu_n_1.zeros();
+  arma::cube variance_n_1(n_cols_1, n_cols_1, n_clust_1);
+  variance_n_1.zeros();
+  
+  // And for the second dataset
   arma::field<arma::cube> loc_mu_variance_2(2);
   
-  // std::cout << "Generic message. Parameter fields declared.\n";
+  for(arma::uword i = 0; i < n_clust_2; i++){
+    loc_mu_variance_2(0) = arma::cube(n_cols_2, n_cols_2, n_clust_2);
+    loc_mu_variance_2(0).zeros();
+    loc_mu_variance_2(1) = arma::cube(n_cols_2, 1, n_clust_2);
+    loc_mu_variance_2(1).zeros();
+  }
+  
+  arma::mat mu_n_2(n_cols_2, n_clust_2);
+  mu_n_2.zeros();
+  arma::cube variance_n_2(n_cols_2, n_cols_2, n_clust_2);
+  variance_n_2.zeros();
   
   // Context similarity - sample prior
   double phi = arma::randg(arma::distr_param(a0, 1/b0) );
@@ -2710,15 +2734,38 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
   
   // Various objects to record values for posterior distributions and clustering
   // the record for similarity in each clustering
-  arma::uword eff_count = ceil((double)(num_iter - burn) / (double)thinning);
+  arma::uword eff_count = 0;
+  
+  // To handle loading old runs
+  if(num_load > burn){
+    eff_count = ceil((double)(num_iter) / (double)thinning) + num_load - 1;
+  } else {
+    eff_count = ceil((double)(num_iter + num_load - burn) / (double)thinning) + num_load;
+  }
+  
+  // Increase these values by the number of pre-existing objects
+  num_iter += num_load;
   
   // These are the lists recording the posterior mean and 
   // variance for each class for each recorded iteration
-  ListMatrix variance_1(eff_count, n_clust_1);
-  ListMatrix mu_1(eff_count, n_clust_1);
+  arma::field<arma::cube> variance_1(n_clust_1);
+  arma::cube cluster_var_record_1(n_cols_1, n_cols_1, eff_count);
+  cluster_var_record_1.zeros();
+  for(arma::uword i = 0; i < n_clust_1; i++){
+    variance_1(i) = cluster_var_record_1;
+  }
+  arma::cube mu_1(n_cols_1, eff_count, n_clust_1);
+  mu_1.zeros();
   
-  ListMatrix variance_2(eff_count, n_clust_2);
-  ListMatrix mu_2(eff_count, n_clust_2);
+  // For the second dataset
+  arma::field<arma::cube> variance_2(n_clust_2);
+  arma::cube cluster_var_record_2(n_cols_2, n_cols_2, eff_count);
+  cluster_var_record_2.zeros();
+  for(arma::uword i = 0; i < n_clust_2; i++){
+    variance_2(i) = cluster_var_record_2;
+  }
+  arma::cube mu_2(n_cols_2, eff_count, n_clust_2);
+  mu_2.zeros();
   
   // Record the class allocations
   arma::umat record_1(n, eff_count);
@@ -2728,34 +2775,65 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
   record_2.zeros();
   
   // The vector to record the context similarity parameter
-  arma::vec phi_record(eff_count);
+  arma::vec phi_record(eff_count - num_load);
   
+  // A positive integer to hold the current count of recorded iterations
+  arma::uword record_iter = num_load;
+  
+  // To hold output of label flipping function
   arma::vec labels_weights_phi(n + n_clust_2 + 1);
   
-  arma::vec entropy_cw(num_iter);
+  // A vector to record the entropy at each iteration
+  arma::vec entropy_cw(num_iter - num_load);
   
-  // Filenames for saving posteriors
-  // std::string gauss_lab_file = "gaussian_allocation/gaussian_labels_iter_";
-  // std::string cat_lab_file = "categorical_allocation/categorical_labels_iter_";
-  // std::string out_lab_file = "outlier_allocation/outlier_labels_iter_";
-  std::string i_str;
-  
-  std::string lab_file_1_loc;
-  std::string lab_file_2_loc;
-  std::string out_lab_file_1_loc;
-  std::string out_lab_file_2_loc;
-  
-  arma::uword record_iter = 0;
-  
-  
-  // std::cout << "Entropy vec declared.\n";
-  
+  // Rate priors for weight smapling from Gamma distn
   arma::vec rate_0_1(n_clust_1);
   arma::vec rate_0_2(n_clust_2);
   
   // Placeholder prior
   rate_0_1.fill(rate_1_0);
   rate_0_2.fill(rate_2_0);
+  
+  // ## Filenames for saving posteriors ##
+  // Create the base file names that we will append with local iteration / 
+  // component information
+  
+  // Discrete allocation values
+  std::string dataset_1_lab_file = "output/dataset_1/class/labels_iter_";
+  std::string out_1_lab_file = "output/dataset_1/outlier_allocation/outlier_labels_iter_";
+  
+  std::string dataset_2_lab_file = "output/dataset_2/class/labels_iter_";
+  std::string out_2_lab_file = "output/dataset_2/outlier_allocation/outlier_labels_iter_";
+  
+  // Parameter posteriors
+  std::string mean_1_file = "output/dataset_1/mean/mean_";
+  std::string var_1_file = "output/dataset_1/variance/var_";
+  
+  std::string mean_2_file = "output/dataset_2/mean/mean_";
+  std::string var_2_file = "output/dataset_2/variance/var_";
+  
+  // Allocation probability matrices
+  std::string alloc_1_file = "output/dataset_1/allocation/alloc_";
+  std::string alloc_2_file = "output/dataset_2/allocation/alloc_";
+  
+  
+  // The file name endings that change in each iteration / component
+  std::string i_str;
+  std::string comp_str;
+  
+  std::string lab_file_1_loc;
+  std::string lab_file_2_loc;
+  std::string out_lab_file_1_loc;
+  std::string out_lab_file_2_loc;
+  
+  std::string mu_file_1_loc;
+  std::string var_file_1_loc;
+  
+  std::string mu_file_2_loc;
+  std::string var_file_2_loc;
+  
+  std::string alloc_1_file_loc;
+  std::string alloc_2_file_loc;
   
   // OUTLIER COMPONENT
   // Variables to handle outlier component from tagm
@@ -2776,10 +2854,7 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
   }
   
   // Declare object for counting the number of items in the outlier component
-  arma::uvec b_k_1(n);
   double b_1 = 0.0; 
-  
-  arma::uvec b_k_2(n);
   double b_2 = 0.0;
   
   // for recording the probabilities for each class
@@ -2818,41 +2893,92 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
   arma::umat outlier_probs_saved_1(n, eff_count);
   arma::umat outlier_probs_saved_2(n, eff_count);
   
-  
   // Declare the variable to hold the likelihood of bein non-outlier
   double predicted_norm_likelihood_1 = 0.0;
   double predicted_norm_likelihood_2 = 0.0;
   
-  // Initialise v based on the prior
-  arma::uword v_a_0 = 1;
-  arma::uword v_b_0 = 1;
+  // The matrices to hold the allocation probabilities for each class
+  arma::mat alloc_prob_1(n, n_clust_1);
+  arma::mat alloc_prob_2(n, n_clust_2);
   
-  // v = arma::randg( arma::distr_param(v_a_0, 1.0/(v_b_0) ) );
+  // Set all entries to zero as we will be using += rather than = (i.e will 
+  // never over-write the initial value held, only add to it)
+  alloc_prob_1.zeros();
+  alloc_prob_2.zeros();
+  
+  // Local allocation probability matrix
+  arma::mat alloc_prob_curr_1(n, n_clust_1);
+  arma::mat alloc_prob_curr_2(n, n_clust_2);
+  
+  arma::uword start_iter = 0;
+  arma::uword phi_count = 0;
+  
+  // Loading posterior objects from previous runs
+  if(load_results && num_load > 0){
+    // Only need to load most recent objects
+    start_iter = num_load - 1;
+    
+    std::string start_iter_str = std::to_string(start_iter);
+    
+    lab_file_1_loc = dataset_1_lab_file + start_iter_str;
+    out_lab_file_1_loc = out_1_lab_file + start_iter_str;
+    
+    lab_file_2_loc = dataset_2_lab_file + start_iter_str;
+    out_lab_file_2_loc = out_2_lab_file + start_iter_str;
+    
+    clust_labels_1.load(lab_file_1_loc);
+    outlier_vec_1.load(out_lab_file_1_loc);
+    
+    clust_labels_2.load(lab_file_2_loc);
+    outlier_vec_2.load(out_lab_file_2_loc);
+    
+    for(arma::uword j = 0; j < n_clust_1; j++){
+      
+      // The current component
+      comp_str = std::to_string(j + 1);
+      
+      // The relevant files
+      mu_file_1_loc = mean_1_file + comp_str + "/iter_" + start_iter_str;
+      var_file_1_loc = var_1_file + comp_str + "/iter_" + start_iter_str;
+      
+      // Update the current value of the means and covariance matrices
+      loc_mu_variance_1(1).slice(j).load(mu_file_1_loc);
+      loc_mu_variance_1(0).slice(j).load(var_file_1_loc);
+      
+    }
+    
+    for(arma::uword j = 0; j < n_clust_2; j++){
+      
+      // The current component
+      comp_str = std::to_string(j + 1);
+      
+      // The relevant files
+      mu_file_2_loc = mean_2_file + comp_str + "/iter_" + start_iter_str;
+      var_file_2_loc = var_2_file + comp_str + "/iter_" + start_iter_str;
+      
+      // Update the current value of the means and covariance matrices
+      loc_mu_variance_2(1).slice(j).load(mu_file_2_loc);
+      loc_mu_variance_2(0).slice(j).load(var_file_2_loc);
+      
+    }
+    
+    
+  }
+  
+  // Initialise v 
   v = 1.0;
   
-  
-  for(arma::uword i = 0; i < num_iter; i++){
-    
-    // sample cluster weights for the two datasets
-    // clust_weights_1 = gamma_posterior(clust_weight_priors_1,
-    //                                   clust_labels_1,
-    //                                   n_clust_1);
-    
+  for(arma::uword i = num_load; i < num_iter; i++){
     
     // Consider only the labels of points not considered to be outliers
     relevant_labels_1 = clust_labels_1 % (1 - outlier_vec_1);
     relevant_labels_2 = clust_labels_2 % (1 - outlier_vec_2);
     
-    // std::cout << "\nStrategic latent variable sampling\n";
-    
-    
-    // // sample the strategic latent variable, v
-    // v = arma::randg( arma::distr_param(n, 1/Z) );
-    // 
-    
     // Entropy for graphing convergence
-    entropy_cw(i) = entropy(clust_weights_1);
+    entropy_cw(i - num_load) = entropy(clust_weights_1);
     
+    // ## Sample the parameters for the two datasets ##
+
     // Sample the posterior mean and variance for the first dataset
     loc_mu_variance_1 = mean_variance_sampling(data_1,
                                                relevant_labels_1,
@@ -2863,9 +2989,24 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
                                                lambda_0_1,
                                                mu_0_1);
     
-    // std::cout << "Variance sampled\n";
+    variance_n_1 = variance_sampling(data_1,
+                                     relevant_labels_1,
+                                     n_clust_1,
+                                     df_0_1,
+                                     n_cols_1,
+                                     scale_0_1,
+                                     lambda_0_1,
+                                     mu_0_1);
     
-    // Sample the posterior mean and variance for the second dataset
+    mu_n_1 = mean_sampling(data_1,
+                           relevant_labels_1,
+                           n_clust_1,
+                           n_cols_1,
+                           variance_n_1,
+                           lambda_0_1,
+                           mu_0_1);
+    
+    // // Sample the posterior mean and variance for the second dataset
     loc_mu_variance_2 = mean_variance_sampling(data_2,
                                                relevant_labels_2,
                                                n_clust_2,
@@ -2874,17 +3015,33 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
                                                scale_0_2,
                                                lambda_0_2,
                                                mu_0_2);
+
     
-    // std::cout << "Sampled parameters for both datasets\n";
+    variance_n_2 = variance_sampling(data_2,
+                                     clust_labels_2,
+                                     n_clust_2,
+                                     df_0_2,
+                                     n_cols_2,
+                                     scale_0_2,
+                                     lambda_0_2,
+                                     mu_0_2);
     
-    // Sample cluster weights within each context
+    mu_n_2 = mean_sampling(data_2,
+                           clust_labels_2,
+                           n_clust_2,
+                           n_cols_2,
+                           variance_n_2,
+                           lambda_0_2,
+                           mu_0_2);
+    
+    // ## Sample cluster weights for the two datasets ##
     clust_weights_1 = mdi_cluster_weights(clust_weight_priors_1,
                                           rate_0_1,
                                           v,
                                           n_clust_1,
                                           n_clust_2,
                                           clust_weights_2,
-                                          relevant_labels_1,
+                                          clust_labels_1,
                                           clust_labels_2,
                                           phi);
     
@@ -2894,9 +3051,20 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
                                           n_clust_2,
                                           n_clust_1,
                                           clust_weights_1,
-                                          relevant_labels_2,
+                                          clust_labels_2,
                                           clust_labels_1,
                                           phi);
+    
+    // Calculate the current normalising constant (consider being more clever
+    // about this)
+    Z = calculate_normalising_constant(clust_weights_1,
+                                       clust_weights_2,
+                                       phi,
+                                       n_clust_1,
+                                       n_clust_2);
+    
+    // sample the strategic latent variable, v
+    v = arma::randg( arma::distr_param(n, 1.0/Z ) );
     
     // sample the context similarity parameter (as only two contexts this is a
     // single double - number not a drink)
@@ -2910,65 +3078,45 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
                      a0,
                      b0);
     
-    // std::cout << "Sampled phi\n";
-    
-    // Calculate the current normalising constant (consider being more clever 
-    // about this) 
-    Z = calculate_normalising_constant(clust_weights_1,
-                                       clust_weights_2,
-                                       phi,
-                                       n_clust_1,
-                                       n_clust_2);
-    
-    // std::cout << "Z calculated \n";
-    
-    // sample the strategic latent variable, v
-    v = arma::randg( arma::distr_param(v_a_0 + n, 1.0/(v_b_0 + Z) ) );
-    
-    
     if(outlier_1){
-      b_k_1 = arma::find(outlier_vec_1 == 1);
-      b_1 = b_k_1.n_elem;
-      
-      // std::cout << "Outlier weight:\n";
-      outlier_weight_1 = sample_beta(u_1 + b_1, v_1 + n - b_1);
-      // std::cout << "Outlier weight success!\n";
+      b_1 = sum(outlier_vec_1);
+      outlier_weight_1 = sample_beta(b_1 + u_1, n + v_1 - b_1);
     }
     
     if(outlier_2){
-      b_k_2 = arma::find(outlier_vec_2 == 1);
-      b_2 = b_k_2.n_elem;
-      
-      // std::cout << "Outlier weight:\n";
-      outlier_weight_2 = sample_beta(u_2 + b_2, v_2 + n - b_2);
-      // std::cout << "Outlier weight success!\n";
+      b_2 = sum(outlier_vec_2);
+      outlier_weight_2 = sample_beta(b_2 + u_2, n + v_2 - b_2);
     }
     
-    // sample 
+    // sample class for each observation
     for(arma::uword j = 0; j < n; j++){
       
+      // for each point create the vector of probabilities associated with 
+      // assignment to each cluster within the gaussian dataset
       // Calculate the log-likelihoods for each cluster in each context
       norm_likelihoods_1 = mdi_gauss_clust_probs(j,
                                                  data_1,
                                                  n_clust_1,
-                                                 loc_mu_variance_1(1),
-                                                 loc_mu_variance_1(0),
+                                                 mu_n_1,
+                                                 variance_n_1,
+                                                 // loc_mu_variance_1(1),
+                                                 // loc_mu_variance_1(0),
                                                  phi,
                                                  clust_weights_1,
                                                  relevant_labels_1,
-                                                 relevant_labels_2);
+                                                 clust_labels_2);
       
       norm_likelihoods_2 = mdi_gauss_clust_probs(j,
                                                  data_2,
                                                  n_clust_2,
-                                                 loc_mu_variance_2(1),
-                                                 loc_mu_variance_2(0),
+                                                 mu_n_2,
+                                                 variance_n_2,
+                                                 // loc_mu_variance_2(1),
+                                                 // loc_mu_variance_2(0),
                                                  phi,
                                                  clust_weights_2,
                                                  relevant_labels_2,
-                                                 relevant_labels_1);
-      
-      // std::cout << "Normal likelihoods calculated.\n";
+                                                 clust_labels_1);
       
       // Convert to likelihoods, handle overflow and normalise
       curr_prob_vec_1 = over_flow_handling(norm_likelihoods_1);
@@ -2978,12 +3126,10 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
       predicted_class_1 = cluster_predictor(curr_prob_vec_1);
       predicted_class_2 = cluster_predictor(curr_prob_vec_2);
       
-      // std::cout << "Classes predicted.\n";
-      
+      // The various probabilities to determine if the observation is considered 
+      // an outlier or not (if using TAGM rather than traditional mixtures)
       if(outlier_1){
-        
-        // std::cout << "Outlier 1.\n";
-        
+
         // Calculate the likelihood associated with the outlier component
         outlier_likelihood_1 =  t_likelihood(arma::trans(data_1.row(j)), 
                                              global_mean_1, 
@@ -2994,19 +3140,18 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
         
         outlier_likelihood_1 += log(outlier_weight_1);
         
-        // std::cout << "Outlier likelihood calculated.\n";
-        
-        // Put it into a vector (for normalising and whatnot)
         curr_outlier_prob_1(1) = outlier_likelihood_1;
         
+        // The normal likelihood for the current class allocation
         predicted_norm_likelihood_1 = normal_likelihood(arma::trans(data_1.row(j)),
-                                                        loc_mu_variance_1(1).slice(predicted_class_1 - 1),
-                                                        loc_mu_variance_1(0).slice(predicted_class_1 - 1),
+                                                        mu_n_1.col(predicted_class_1 - 1),
+                                                        variance_n_1.slice(predicted_class_1 - 1),
+                                                        // loc_mu_variance_1(1).slice(predicted_class_1 - 1),
+                                                        // loc_mu_variance_1(0).slice(predicted_class_1 - 1),
                                                         n_cols_1);
         
         predicted_norm_likelihood_1 += log(1 - outlier_weight_1);
         curr_outlier_prob_1(0) = predicted_norm_likelihood_1;
-        
         
         // Overflow handling
         curr_outlier_prob_1 = exp(curr_outlier_prob_1 - max(curr_outlier_prob_1));
@@ -3015,34 +3160,35 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
         curr_outlier_prob_1 = curr_outlier_prob_1 / sum(curr_outlier_prob_1);
         
         // Predict if the current observation is an outlier or not  
-        predicted_outlier_1 = cluster_predictor(curr_outlier_prob_1) - 1; // as +1 to handle R
-        
+        predicted_outlier_1 = cluster_predictor(curr_outlier_prob_1) - 1; 
       }
       
-      // Similarly for context 2
+      // std::cout << "out of outlier 1.\n";
+      
       if(outlier_2){
         
         // Calculate the likelihood associated with the outlier component
-        outlier_likelihood_2 = sample_outlier(arma::trans(data_2.row(j)),
-                                              data_2,
-                                              outlier_weight_2,
-                                              global_mean_2,
-                                              global_variance_2,
-                                              t_df_2);
+        outlier_likelihood_2 =  t_likelihood(arma::trans(data_2.row(j)), 
+                                             global_mean_2, 
+                                             global_variance_2, 
+                                             n_cols_2,
+                                             t_df_2);
         
-        // std::cout << "Outlier likelihood calculated.\n";
         
-        // Put it into a vector (for normalising and whatnot)
+        outlier_likelihood_2 += log(outlier_weight_2);
+        
         curr_outlier_prob_2(1) = outlier_likelihood_2;
         
+        // The normal likelihood for the current class allocation
         predicted_norm_likelihood_2 = normal_likelihood(arma::trans(data_2.row(j)),
-                                                        loc_mu_variance_2(1).slice(predicted_class_2 - 1),
-                                                        loc_mu_variance_2(0).slice(predicted_class_2 - 1),
+                                                        mu_n_2.col(predicted_class_2 - 1),
+                                                        variance_n_2.slice(predicted_class_2 - 1),
+                                                        // loc_mu_variance_2(1).slice(predicted_class_2 - 1),
+                                                        // loc_mu_variance_2(0).slice(predicted_class_2 - 1),
                                                         n_cols_2);
         
         predicted_norm_likelihood_2 += log(1 - outlier_weight_2);
         curr_outlier_prob_2(0) = predicted_norm_likelihood_2;
-        
         
         // Overflow handling
         curr_outlier_prob_2 = exp(curr_outlier_prob_2 - max(curr_outlier_prob_2));
@@ -3051,38 +3197,36 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
         curr_outlier_prob_2 = curr_outlier_prob_2 / sum(curr_outlier_prob_2);
         
         // Predict if the current observation is an outlier or not  
-        predicted_outlier_2 = cluster_predictor(curr_outlier_prob_2) - 1; // as +1 to handle R
+        predicted_outlier_2 = cluster_predictor(curr_outlier_prob_2) - 1; 
       }
       
-      // std::cout << "\nContext 1 prediction: " << predicted_class_1
-      //           << "\nContext 2 prediction: " << predicted_class_2 << "\n";
       
-      // update labels if current point's label is not fixed
+      if (i >= burn && (i - burn) % thinning == 0) { // include  && record_posteriors in if?
+        alloc_prob_curr_1.row(j) = arma::trans(curr_prob_vec_1);
+        alloc_prob_curr_2.row(j) = arma::trans(curr_prob_vec_2);
+      }
+      
+      // update labels - in gaussian data this is only if the current point is 
+      // not fixed
       if(fix_vec_1[j] == 0){
-        // std::cout << "Gaussian 1\n";
         clust_labels_1(j) = predicted_class_1;
         if(outlier_1){
-          // std::cout << "Gaussian 1 outlier\n";
           outlier_vec_1(j) = predicted_outlier_1;
         }
       }
       
       if(fix_vec_2[j] == 0){
-        // std::cout << "Gaussian 2\n";
         clust_labels_2(j) = predicted_class_2;
         if(outlier_2){
-          // std::cout << "Gaussian 2 outlier\n";
           outlier_vec_2(j) = predicted_outlier_2;
         }
       }
-      
     }
+    
+    
     
     // Update cluster labels in second dataset
     // Return the new labels, weights and similarity in a single vector
-    
-    // Do not allow label flipping if any of context 2 have fixed labels
-    
     // if(data_2_unsupervised){
     labels_weights_phi = cluster_label_update(clust_labels_1,
                                               clust_labels_2,
@@ -3097,80 +3241,203 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
                                               a0,
                                               b0,
                                               Z);
+    // }
     
     // Separate the output into the relevant components
-    
-    // std::cout << "Values calculated now sharing out\n";
     clust_labels_2 = arma::conv_to<arma::uvec>::from(labels_weights_phi.subvec(0, n - 1));
     clust_weights_2 = labels_weights_phi.subvec(n, n + n_clust_2 - 1);
     phi = arma::as_scalar(labels_weights_phi(n + n_clust_2));
     
-    // }
-    
     // if current iteration is a recorded iteration, save the labels
     if (i >= burn && (i - burn) % thinning == 0) {
       
-      phi_record((i - burn) / thinning) = phi;
+      // record_iter = ((i - burn) / thinning) + num_load ;
       
-      // Variable to create correct iteration for filenames
-      record_iter = (i - burn) / thinning;
+      phi_record(phi_count) = phi;
+      phi_count++;
       
       if(save_results){
         // Save to file
+        
+        // Make sure to avoid overwriting the loaded entries
+        // record_iter += num_load - 1;
+        
+        // Create appending label of the current iteration
         i_str = std::to_string(record_iter);
         
-        // Create current interation file name
-        lab_file_1_loc = lab_file_1 + i_str;
-        lab_file_2_loc = lab_file_2 + i_str;
-        out_lab_file_1_loc = out_lab_file_1 + i_str;
-        out_lab_file_2_loc = out_lab_file_2 + i_str;
+        // Create the file names for saving the current iteration's information
+        // The discrete componenet allocations
+        lab_file_1_loc = dataset_1_lab_file + i_str;
+        lab_file_2_loc = dataset_2_lab_file + i_str;
         
-        // Save
+        // The outlier allocation
+        out_lab_file_1_loc = out_1_lab_file + i_str;
+        out_lab_file_2_loc = out_2_lab_file + i_str;
+        
+        // The component allocation probabilities
+        alloc_1_file_loc = alloc_1_file + i_str;
+        alloc_2_file_loc = alloc_2_file + i_str;
+        
+        // Save the results
         clust_labels_1.save(lab_file_1_loc);
-        clust_labels_2.save(lab_file_2_loc);
-        
         outlier_vec_1.save(out_lab_file_1_loc);
+        
+        clust_labels_2.save(lab_file_2_loc);
         outlier_vec_2.save(out_lab_file_2_loc);
+        
+        alloc_prob_curr_1.save(alloc_1_file_loc);
+        alloc_prob_curr_2.save(alloc_2_file_loc);
+        
+        // If not saving to file record results in appropriate matrices
       } else {
+        // std::cout << "Here.\n";
+        record_1.col(record_iter) = clust_labels_1;
+        record_2.col(record_iter) = clust_labels_2;
+        outlier_probs_saved_1.col(record_iter) = outlier_vec_1;
+        outlier_probs_saved_2.col(record_iter) = outlier_vec_2;
         
-        record_1.col((i - burn) / thinning) = clust_labels_1;
-        record_2.col((i - burn) / thinning) = clust_labels_2;
-        outlier_probs_saved_1.col((i - burn) / thinning) = outlier_vec_1;
-        outlier_probs_saved_2.col((i - burn) / thinning) = outlier_vec_2;
-        
+        alloc_prob_1 += alloc_prob_curr_1;
+        alloc_prob_2 += alloc_prob_curr_2;
       }
       
       // Record posteriors of parameters for Gaussian and Categorical
       // distributions
       if(record_posteriors){
+        std::cout << "In here.\n";
         for(arma::uword j = 0; j < n_clust_1; j++){
-          mu_1(record_iter, j) = loc_mu_variance_1(1).slice(j);
-          variance_1(record_iter, j) = loc_mu_variance_1(0).slice(j);
+          if(save_results){
+            // Save to file
+            
+            // The current component
+            comp_str = std::to_string(j + 1);
+            mu_file_1_loc = mean_1_file + comp_str + "/iter_" + i_str;
+            var_file_1_loc = var_1_file + comp_str + "/iter_" + i_str;
+            
+            loc_mu_variance_1(1).slice(j).save(mu_file_1_loc);
+            loc_mu_variance_1(0).slice(j).save(var_file_1_loc);
+          } else {
+            mu_1.slice(j).col(record_iter) = loc_mu_variance_1(1).slice(j); 
+            variance_1(j).slice(record_iter) = loc_mu_variance_1(0).slice(j);
+          }
         }
+        
         for(arma::uword j = 0; j < n_clust_2; j++){
-          mu_2(record_iter, j) = loc_mu_variance_2(1).slice(j);
-          variance_2(record_iter, j) = loc_mu_variance_2(0).slice(j);
+          if(save_results){
+            // Save to file
+            
+            // The current component
+            comp_str = std::to_string(j + 1);
+            mu_file_2_loc = mean_2_file + comp_str + "/iter_" + i_str;
+            var_file_2_loc = var_2_file + comp_str + "/iter_" + i_str;
+            
+            loc_mu_variance_2(1).slice(j).save(mu_file_2_loc);
+            loc_mu_variance_2(0).slice(j).save(var_file_2_loc);
+          } else {
+            mu_2.slice(j).col(record_iter) = loc_mu_variance_2(1).slice(j); 
+            variance_2(j).slice(record_iter) = loc_mu_variance_2(0).slice(j);
+          }
+        }
+      }
+      record_iter++;
+    }
+  }
+  
+  // Loading saved posterior objects
+  if(save_results){
+    for(arma::uword i = 0; i < eff_count; i++){
+      
+      
+      i_str = std::to_string(i);
+      
+      lab_file_1_loc = dataset_1_lab_file + i_str;
+      out_lab_file_1_loc = out_1_lab_file + i_str;
+      
+      lab_file_2_loc = dataset_2_lab_file + i_str;
+      out_lab_file_2_loc = out_2_lab_file + i_str;
+      
+      clust_labels_1.load(lab_file_1_loc);
+      outlier_vec_1.load(out_lab_file_1_loc);
+      
+      clust_labels_2.load(lab_file_2_loc);
+      outlier_vec_2.load(out_lab_file_2_loc);
+      
+      record_1.col(i) = clust_labels_1;
+      record_2.col(i) = clust_labels_2;
+      
+      outlier_probs_saved_1.col(i) = outlier_vec_1;
+      outlier_probs_saved_2.col(i) = outlier_vec_2;
+      
+      // The component allocation probabilities
+      alloc_1_file_loc = alloc_1_file + i_str;
+      alloc_2_file_loc = alloc_2_file + i_str;
+      
+      alloc_prob_curr_1.load(alloc_1_file_loc);
+      alloc_prob_curr_2.load(alloc_2_file_loc);
+      
+      alloc_prob_1 += alloc_prob_curr_1;
+      alloc_prob_2 += alloc_prob_curr_2;
+      
+      if(record_posteriors){
+        for(arma::uword j = 0; j < n_clust_1; j++){
+          
+          // The current component
+          comp_str = std::to_string(j + 1);
+          
+          // The relevant files
+          mu_file_1_loc = mean_1_file + comp_str + "/iter_" + i_str;
+          var_file_1_loc = var_1_file + comp_str + "/iter_" + i_str;
+          
+          // Update the current value of the means and covariance matrices
+          loc_mu_variance_1(1).slice(j).load(mu_file_1_loc);
+          loc_mu_variance_1(0).slice(j).load(var_file_1_loc);
+          
+          mu_1.slice(j).col(i) = loc_mu_variance_1(1).slice(j); 
+          variance_1(j).slice(i) = loc_mu_variance_1(0).slice(j);
+        }
+        
+        for(arma::uword j = 0; j < n_clust_2; j++){
+          
+          // The current component
+          comp_str = std::to_string(j + 1);
+          
+          // The relevant files
+          mu_file_2_loc = mean_2_file + comp_str + "/iter_" + i_str;
+          var_file_2_loc = var_2_file + comp_str + "/iter_" + i_str;
+          
+          // Update the current value of the means and covariance matrices
+          loc_mu_variance_2(1).slice(j).load(mu_file_2_loc);
+          loc_mu_variance_2(0).slice(j).load(var_file_2_loc);
+          
+          mu_2.slice(j).col(i) = loc_mu_variance_2(1).slice(j); 
+          variance_2(j).slice(i) = loc_mu_variance_2(0).slice(j);
         }
       }
     }
-    
   }
   
-  // construct similarity matrix
+  // Normalise the allocation probabilities
+  alloc_prob_1 = alloc_prob_1 / eff_count;
+  alloc_prob_2 = alloc_prob_2 / eff_count;
+  
+  // construct similarity matrices
   arma::mat sim_1(n, n); 
   arma::mat sim_2(n, n);
   sim_1 = similarity_mat(record_1);
   sim_2 = similarity_mat(record_2);
   
-  // std::cout << "Context similarity: " << context_similarity << "\n";
-  
   return List::create(Named("similarity_1") = sim_1,
                       Named("similarity_2") = sim_2,
+                      Named("allocation_mat_1") = alloc_prob_1,
+                      Named("allocation_mat_2") = alloc_prob_2,
                       Named("class_record_1") = record_1,
                       Named("class_record_2") = record_2,
+                      Named("mean_posterior_1") = mu_1,
+                      Named("variance_posterior_1") = variance_1,
+                      Named("mean_posterior_2") = mu_2,
+                      Named("variance_posterior_2") = variance_2,
                       Named("context_similarity") = phi_record,
                       Named("entropy") = entropy_cw,
-                      Named("outliers_1") = outlier_probs_saved_1,
-                      Named("outliers_2") = outlier_probs_saved_2);
-  
+                      Named("outlier_1") = outlier_probs_saved_1,
+                      Named("outlier_2") = outlier_probs_saved_2); // ,
+  // Named("likelihood") = mdi_recorded_likelihood);
 }
