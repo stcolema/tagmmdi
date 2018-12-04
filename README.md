@@ -42,13 +42,25 @@ This is a basic example of applying MDI clustering to data from pRolocdata:
 ``` r
 # Run MDI clustering on Gaussian and Categorical datasets
 mcmc_obj <- mcmc_out(tan2009r1,
-  data_2 = as.matrix(exprs(tan2009r1goCC)),
-  n_clust_2 = 30,
+  data_2 = tan2009r1goCC,
+  n_clust_2 = 40,
   num_iter = 5000,
   burn = 1000,
   thinning = 25,
   outlier_1 = T
+  prediction_threshold = 0.5,
+  cluster_weight_0_1 = 1,
+  cluster_weight_0_2 = 1,
+  heat_plot = T,
+  main = "Tan PSM",
+  sense_check_map = T,
+  sense_check_main = "Tan clustered data",
+  record_posteriors = F,
+  save_results = F,
+  load_results = F,
+  overwrite = F
 )
+
 ```
 
 Cross validation
