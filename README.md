@@ -5,8 +5,6 @@ tagmmdi
 
 The goal of tagmmdi is to extend Crook's T-Augmented Gaussian Mixture (TAGM) model to incorporate Multiple Dataset Integration (MDI).
 
-Please note that this is still pre-release and probably does not produce the expected results yet even if the R code runs.
-
 Installation
 ------------
 
