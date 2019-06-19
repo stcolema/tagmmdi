@@ -50,20 +50,20 @@ mdi_cross_validate <- function(MS_object,
 
   .testPartitions <- .cmMatrices <- vector("list", length = times)
 
-  print("Here at least")
+  # print("Here at least")
   
   f1score <- matrix(0, times)
   .f1Matrices <- matrix(0, times)
   cmlist <- vector("list", length = times)
   quadloss <- vector("list", length = times)
 
-  print("Vectors declared")
+  # print("Vectors declared")
   
   # Create a data frame of the classes present and their associated number
   classes_pres <- pRoloc::getMarkerClasses(MS_object)
   class_key <- data.frame(Class = classes_pres, Key = 1:length(classes_pres))
 
-  print("Looping")
+  # print("Looping")
   
   for (i in seq_along(cmlist)) {
     # get sizes
@@ -72,7 +72,7 @@ mdi_cross_validate <- function(MS_object,
     # strata needs size to be ordered as they appear in data
     .size <- .size[unique(MSnbase::fData(marker.data)$markers)]
 
-    print("Test indices")
+    # print("Test indices")
     
     # get strata indices
     test.idx <- sampling::strata(X, "markers",
@@ -80,7 +80,7 @@ mdi_cross_validate <- function(MS_object,
       method = "srswor"
     )$ID_unit
 
-    print("Test data")
+    # print("Test data")
     
     ## 'unseen' test set
     .test1 <- MSnbase::MSnSet(
@@ -89,7 +89,7 @@ mdi_cross_validate <- function(MS_object,
       MSnbase::pData(marker.data)
     )
 
-    print("Training data")
+    # print("Training data")
     
     ## 'seen' training set
     .train1 <- MSnbase::MSnSet(
@@ -98,31 +98,31 @@ mdi_cross_validate <- function(MS_object,
       MSnbase::pData(marker.data)
     )
     
-    print("Test markers")
+    # print("Test markers")
 
     # save true marker labels
     test.markers <- MSnbase::fData(.test1)$markers
 
-    print("Combine")
+    # print("Combine")
     
-    print(str(test.idx))
-    
-    print(str(exprs(.test1)))
-    print(str(exprs(.train1)))
+    # print(str(test.idx))
+    # 
+    # print(str(exprs(.test1)))
+    # print(str(exprs(.train1)))
     
     # print(str(exprs(BiocGenerics::combine(.train1, .test1))))
     
-    print("OK")
+    # print("OK")
     
-    print(str(rbind(exprs(.train1), exprs(.test1))))
-    
-    print(str(MSnbase::fData(.train1)))
-    print(str(MSnbase::fData(.test1)))
+    # print(str(rbind(exprs(.train1), exprs(.test1))))
+    # 
+    # print(str(MSnbase::fData(.train1)))
+    # print(str(MSnbase::fData(.test1)))
     
     # create new combined MSnset
     mydata <- BiocGenerics::combine(.train1, .test1)
 
-    print("Combined")
+    # print("Combined")
     
     # Set levels of markers cateogries
     levels(MSnbase::fData(mydata)$markers) <- c(
@@ -132,13 +132,13 @@ mdi_cross_validate <- function(MS_object,
       "unknown"
     )
     
-    print("Let them be red")
+    # print("Let them be red")
     
     # hide marker labels
     MSnbase::fData(mydata)[rownames(.test1), "markers"] <- "unknown"
     
     
-    print("I'm alive")
+    # print("I'm alive")
     
     if (!is.null(MS_cat_object)) {
       # cat_data <- MSnbase::exprs(marker.data.cat)
@@ -184,7 +184,7 @@ mdi_cross_validate <- function(MS_object,
       cat_data <- NULL
     }
 
-    print("Are you?")
+    # print("Are you?")
     
     # Fix training points, allow test points to move component
     fix_vec_1 <- c(
@@ -196,7 +196,7 @@ mdi_cross_validate <- function(MS_object,
     
     fix_vec_test <- (MSnbase::fData(mydata)[, "markers"] != "unknown") * 1
     
-    print("Wagg")
+    # print("Wagg")
     
     if(sum(fix_vec_test != fix_vec_1) > 0){
       stop("Fix vec odd")
@@ -230,12 +230,18 @@ mdi_cross_validate <- function(MS_object,
 
     # Allocation for test data
 
+    # print("Out")
+    
+    # print(head(params$data))
+    
     # Find the relevant indices from the prediction and output of the sampler
     indices_for_prediction <- match(
       rownames(MSnbase::fData(.test1)),
       params$data$Protein
     )
 
+    # print("Further out")
+    
     # MAP prediction
     map_pred <- params$data$Prediction[indices_for_prediction]
 
@@ -243,12 +249,16 @@ mdi_cross_validate <- function(MS_object,
     mcmc_pred <- apply(params$gibbs$allocation_mat_1, 1, max)
     prediction_vec <- params$gibbs$allocation_mat_1 == mcmc_pred
 
+    # print("define allocation matrix")
+    
     # Allocation matrix
     test_alloc <- matrix(
       nrow = nrow(prediction_vec),
       as.numeric(prediction_vec)
     )[indices_for_prediction, ]
 
+    # print("SHOHE")
+    
     # Find predictions - order not as new dataset as wrapper function orders
     # based on fixing points
     mcmc_pred <- apply(
@@ -257,8 +267,12 @@ mdi_cross_validate <- function(MS_object,
       which.max
     )
 
+    # print("More $$$$")
+    
     mcmc_pred_mat <- params$gibbs$allocation_mat_1[indices_for_prediction, ]
 
+    # print("Past $$$$")
+    
     # Make predictions on test data
     mcmc_predictions <- class_key$Class[match(
       mcmc_pred,

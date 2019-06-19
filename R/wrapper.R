@@ -161,6 +161,7 @@ mcmc_out <- function(MS_object,
                      burn = floor(num_iter / 10),
                      thinning = 25,
                      heat_plot = TRUE,
+                     heat_plot_2 = FALSE,
                      main = "heatmap_for_similarity",
                      cluster_row = T,
                      cluster_cols = T,
@@ -172,107 +173,85 @@ mcmc_out <- function(MS_object,
                      mean_tolerance = 0.0005,
                      sd_tolerance = 0.0005,
                      sense_check_map = TRUE,
+                     sense_check_map_2 = FALSE,
                      sense_check_main = "component_level_clustering",
-                     prediction_threshold = 0.5) {
+                     prediction_threshold = 0.5,
+                     verbose = FALSE) {
 
   # Consider allowing input of fcol in which case don't deselect markers, rather use:
-  # marker_col <- rlang::sym(var)
-  # data <- data %>%
-  #   dplyr::select(-!!marker_col)
 
-  # MS data
-  MS_data <- MS_dataset(MS_object) #, train = train)
+  # Expression data
+  num_data <- MS_object %>%
+    Biobase::exprs()
 
-  # print(MS_data$fix_vec)
-  
-  # mydata <- MS_data$data
-  # nk <- MS_data$nk
-  row_names <- MS_data$row_names
+  # Marker data
+  marker_data <- getMarkers(MS_object, fcol = "markers", names = T, verbose = F)
 
-  if(! is.null(data_2)){
+  # Order by known and unknown
+  row_names <- names(marker_data)[c(which(marker_data != "unknown"), which(marker_data == "unknown"))]
+
+  # Reorder data
+  num_data <- num_data[match(row_names, row.names(num_data)), ]
+  marker_data <- marker_data[match(row_names, names(marker_data))]
+
+  # Generate a vector to indicate known and unknown labels if not given
+  if (is.null(fix_vec_1)) {
+    fix_vec_1 <- (marker_data != "unknown") * 1
+  }
+
+
+  if (!is.null(data_2)) {
     # Unpack pRoloc dataset
-    data_2_unpacked <- MS_dataset(data_2)
-  
+
+    # Expression data
     data_2 <- exprs(data_2)
-    
-    data_2 <- data_2[match(row_names, row.names(data_2)),]
+
+    # Common order with original data
+    data_2 <- data_2[match(row_names, row.names(data_2)), ]
+
+    # I think this can never happen
     row_names_2 <- row.names(data_2)
-    
-    
-    # print(head(data_2))
-    # 
-    # print(row_names)
-    
-    # data_2 <- data_2_unpacked$data %>%
-    #   dplyr::select(-markers)
-    # row_names_2 <- data_2_unpacked$row_names
-  
+
     if (sum(row_names != row_names_2) > 0) {
       print(sum(row_names != row_names_2))
       stop("Row names in datasets are not the same. Check compatible data.")
     }
   }
 
-  if (is.null(fix_vec_1)) {
-    fix_vec_1 <- MS_data$fix_vec
-  }
-
+  # If a fix_vec is not given for dataset 2, allow all points to move
+  # (i.e. unsupervised clustering)
   if (!is.null(data_2) & is.null(fix_vec_2)) {
     fix_vec_2 <- rep(0, nrow(data_2))
   }
 
-  # class_labels <- data.frame(Class = mydata$markers)
-  
-  
-  # Extract marker data 
-  # Remember to ensure same order and consider removing data.frame format
-  class_labels <- MS_object %>% 
-    getMarkers(fcol = "markers", names = TRUE, verbose = TRUE) %>% 
-    extract(match(row_names, names(.))) %>% 
-    as.data.frame() %>% 
-    set_colnames("Class")
-  
-  # print(class_labels %>% head())
-  
-  # class_labels <- MS_object %>% 
-  #   getMarkers(fcol = "markers", names = TRUE, verbose = TRUE) %>% 
-  #   as.data.frame() %>% 
-  #   set_colnames("Class") %>% 
-  #   extract(match(row_names, row.names(.)), )
-  
+  # Put marker data in a data.frame
+  class_labels <- marker_data %>%
+    as.data.frame() %>%
+    magrittr::set_colnames("Class")
+
   # Find the organelles present in the current data
   classes_present <- MS_object %>% getMarkerClasses()
-  # classes_present <- unique(MSnbase::fData(pRoloc::markerMSnSet(MS_object))[, "markers"])
 
   # As this is called a few times for match()
   sorted_classes <- sort(classes_present)
-  
-  # This is a mistake currently.
-  # rownames(class_labels) <- rownames(mydata)
 
-  # Numerical data of interest for clustering
-  num_data <- MS_object %>%
-    Biobase::exprs()
-
-  num_data <- num_data[match(row_names, row.names(num_data)), ]
-  
-  # print(num_data %>% head())
-
-  if(sum(row.names(class_labels) != row.names(num_data))){
+  if (sum(row.names(class_labels) != row.names(num_data))) {
     stop("Row names in disagreement")
   }
-  
-  # Parameters
+
+  # Parameters for clustering
   n_clust_1 <- length(classes_present)
   N <- nrow(num_data)
   d <- ncol(num_data)
 
+  # Folders to save to
   output_folders(n_clust_1, n_clust_2,
     save_results = save_results,
     load_results = load_results,
     overwrite = overwrite
   )
 
+  # Try and load previous runs of the same implementation
   num_load <- 0
 
   if (load_results) {
@@ -289,21 +268,16 @@ mcmc_out <- function(MS_object,
 
 
   # Key to transforming from int to class
-  class_labels_key <- data.frame(Class = sort(classes_present)) %>%
-    inset2(., "Class_key", value = as.numeric(.$Class))
-  
-  # class_labels_key <- data.frame(Class = classes_present) %>%
-  #   dplyr::arrange(Class) %>%
-  #   dplyr::mutate(Class_key = as.numeric(Class))
+  class_labels_key <- data.frame(Class = sorted_classes) %>%
+    magrittr::inset2(., "Class_key", value = as.numeric(.$Class))
 
+  # Find the number to represent the classes based on the above class_labels_key
   class_numerical <- class_labels_key$Class_key[match(class_labels$Class, class_labels_key$Class)]
 
   class_labels <- class_labels %>%
-    inset2("Class_ind", value = class_numerical)
-  
-  
-    # dplyr::mutate(Class_ind = as.numeric(mydata$markers))
+    magrittr::inset2("Class_ind", value = class_numerical)
 
+  # Generate initial labels to begin with in clustering
   labels_0_1 <- cluster_label_prior(
     labels_0_1,
     train,
@@ -311,7 +285,7 @@ mcmc_out <- function(MS_object,
     n_clust_1,
     N
   )
-  
+
   if (is.null(num_iter)) {
     num_iter <- floor(min((d^2) * 1000 / sqrt(N), 10000))
   }
@@ -334,25 +308,25 @@ mcmc_out <- function(MS_object,
     cluster_weight_0_1 <- rep(cluster_weight_0_1, n_clust_1)
   }
 
-  
-  
+
+
   # Convert to matrix format
   num_data_mat <- as.matrix(num_data)
 
-  
+
   if (!is.null(data_2)) {
     data_2_mat <- as.matrix(data_2)
-    if(! all.equal(row.names(num_data_mat), row.names(data_2_mat))){
+    if (!all.equal(row.names(num_data_mat), row.names(data_2_mat))) {
       print(sum(row.names(num_data_mat) != row.names(data_2_mat)))
       stop("Row names are not the same")
     }
   }
-  
-  # print(head(num_data_mat))
-  # print(head(data_2_mat[, 1:5]))
-  
-  
 
+  if(verbose){
+    cat("Beginning clustering.\n")
+  }
+  
+  # If no second dataset, run a single mixture model
   if (is.null(data_2)) {
     gibbs <- gibbs_sampling(num_data_mat, n_clust_1, labels_0_1, fix_vec_1,
       d = d,
@@ -370,7 +344,10 @@ mcmc_out <- function(MS_object,
       record_posteriors = record_posteriors,
       normalise = normalise_1
     )
-  } else {
+  }
+
+  # If second dataset is present, implement MDI
+  else {
     gibbs <- mdi(num_data_mat, data_2_mat,
       args_1 = args_1,
       args_2 = args_2,
@@ -403,7 +380,11 @@ mcmc_out <- function(MS_object,
       num_load = num_load
     )
   }
-
+  
+  if(verbose){
+    cat("Clustering finished.\n")
+  }
+  
   # print("Gibbs sampling complete")
 
   if (is.null(data_2)) {
@@ -418,20 +399,8 @@ mcmc_out <- function(MS_object,
     table(ind, values)
   )
 
-  # print(class_allocation_table)
-
-
   # The number of iterations for which results are recorded (+1 from start at 0)
   eff_iter <- ceiling((num_iter + 1 - burn) / thinning)
-
-  # Key to transforming from int to class
-  # class_labels_key <- data.frame(Class = sort(classes_present)) %>%
-  #   # arrange(Class) %>%
-  #   inset2(Class_key = as.numeric())
-  #   dplyr::mutate(Class_key = as.numeric(Class))
-  # 
-  # class_labels <- class_labels %>%
-  #   mutate(Class_ind = as.numeric(mydata$markers))
 
   # Create a column Class_key containing an integer in 1:k representing the most
   # common class allocation, and a Count column with the proportion of times the
@@ -458,62 +427,41 @@ mcmc_out <- function(MS_object,
   )]
 
   gibbs$predicted_class <- predicted_classes %>%
-    set_rownames(row.names(class_labels))
+    magrittr::set_rownames(row.names(class_labels))
 
-  
-  n_train <- sum(fix_vec_1)
-  # 
-  
-  # print("Here")
-  
-  # print(head(predicted_classes))
-  # print(head(class_labels))
-  
-  # print(which(as.logical(fix_vec_1)))
-  # 
-  # print(which(as.character(class_labels$Class[which(as.logical(fix_vec_1))]) 
-  #             != as.character(predicted_classes$Class[which(as.logical(fix_vec_1))])))
-  
-  # print(class_labels$Class[which(as.logical(fix_vec_1))] %>% head())
-  # print(predicted_classes$Class[which(as.logical(fix_vec_1))] %>% head())
-  
-  # if(! base::all.equal(class_labels$Class[1:n_train], predicted_classes$Class[1:n_train])){
-  if(sum(as.character(class_labels$Class[which(as.logical(fix_vec_1))]) != as.character(predicted_classes$Class[which(as.logical(fix_vec_1))]))){
+
+  # Check if known labels are the same in predicted version - if not somethign is broken
+  if (sum(as.character(class_labels$Class[which(as.logical(fix_vec_1))]) != as.character(predicted_classes$Class[which(as.logical(fix_vec_1))]))) {
     print(sum(as.character(class_labels$Class[which(as.logical(fix_vec_1))]) != as.character(predicted_classes$Class[which(as.logical(fix_vec_1))])))
     stop("Classes not matching for known")
   }
-  
+
   # Example input for annotation_row in pheatmap
-  # annotation_row <- class_labels %>%
-  #   dplyr::select(Class) %>%
-  #   dplyr::mutate(Predicted_class = predicted_classes$Class)
+  annotation_row <- data.frame(
+    Class = class_labels$Class,
+    Predicted_class = predicted_classes$Class
+  ) %>%
+    magrittr::set_rownames(row.names(class_labels))
 
-  annotation_row <- data.frame(Class = class_labels$Class, 
-    Predicted_class = predicted_classes$Class) %>% 
-    set_rownames(row.names(class_labels))
-  
-  # stop()
-  
-  # print(head(num_data))
-  
-  # rownames(num_data) <- row_names
-  # print(rownames(mydata[1:10,]))
-
-  # print("Annotation row")
-  # print(head(annotation_row))
-  
-  # rownames(annotation_row) <- rownames(num_data)
-  
-  # print("rowing")
-  # print(head(annotation_row))
-  
-  # print("I'm alive")
-  
+  # Use NAs for blank space on annotation row (rather than an additional level)
   annotation_row$Class[annotation_row$Class == "unknown"] <- NA
-  
-  col_pal <- RColorBrewer::brewer.pal(9, "Blues")
+
+  # Colour palette for heatmap (white for 0, blue for 1)
+  col_pal <- grDevices::colorRampPalette(c("white", "#146EB4"))(100)
+
+  # Define the breaks in the heatmap (i.e. that 0 is white and 1 is blue)
+  palette_length <- length(col_pal)
+  my_breaks <- c(
+    seq(1 / palette_length, 1, length.out = palette_length)
+  )
+
+  # col_pal <- RColorBrewer::brewer.pal(9, "Blues")
 
   if (sense_check_map) {
+    if(verbose){
+      cat("Constructing heat plot of expression data annotated by clustering.\n")
+    }
+    
     component_heat_map <- pheatmap_cluster_by_col(num_data,
       annotation_row,
       Predicted_class,
@@ -521,36 +469,70 @@ mcmc_out <- function(MS_object,
       color = col_pal,
       fontsize = fontsize,
       fontsize_row = fontsize_row,
-      fontsize_col = fontsize_col
+      fontsize_col = fontsize_col,
+      breaks = my_breaks
     )
+    if (!is.null(data_2) & sense_check_map_2) {
+      component_heat_map <- pheatmap_cluster_by_col(data_2,
+        annotation_row,
+        Predicted_class,
+        main = sense_check_main,
+        color = col_pal,
+        fontsize = fontsize,
+        fontsize_row = fontsize_row,
+        fontsize_col = fontsize_col,
+        breaks = my_breaks
+      )
+
+      # annotated_heatmap(data_2, annotation_row,
+      #                   train = train,
+      #                   main = main,
+      #                   cluster_row = cluster_row,
+      #                   cluster_cols = cluster_cols,
+      #                   color = col_pal,
+      #                   fontsize = fontsize,
+      #                   fontsize_row = fontsize_row,
+      #                   fontsize_col = fontsize_col,
+      #                   breaks = my_breaks)
+      #
+      #   pheatmap_cluster_by_col(data_2,
+      #                                               annotation_row,
+      #                                               Predicted_class,
+      #                                               main = sense_check_main,
+      #                                               color = col_pal,
+      #                                               fontsize = fontsize,
+      #                                               fontsize_row = fontsize_row,
+      #                                               fontsize_col = fontsize_col,
+      #                                               breaks = my_breaks
+      # )
+    }
   }
 
+  # Create a data.frame for the output
+  all_data <- cbind(
+    num_data,
+    gibbs$predicted_class$Class,
+    fix_vec_1,
+    rownames(num_data),
+    class_labels$Class
+  ) %>% as.data.frame()
   
-  # print("Am i here")
+  # print(head(all_data))
+  # print(head(all_data))
   
-  
-  # print(head(num_data))
-  
-  # print(dplyr::select(gibbs$predicted_class, Class) %>% head())
-  
-  all_data <- cbind(num_data, gibbs$predicted_class$Class)
-  
-  # all_data <- dplyr::bind_cols(
-  #   num_data,
-  #   dplyr::select(gibbs$predicted_class$Class, Class)
-  # )
-  
-  # print("Me so")
-  
-  all_data$Fixed <- fix_vec_1
-  all_data$Protein <- rownames(num_data)
-  all_data$Prediction <- predicted_classes$Class
+  # Set the column names
+  colnames(all_data)[(d + 1):(d + 4)] <- c(
+    "Prediction",
+    "Fixed",
+    "Protein",
+    "Organelle"
+  )
 
-  # rownames(all_data) <- rownames(num_data)
-
-  # print("Plot")
-  
   if (heat_plot) {
+    if(verbose){
+      cat("Constructing heat plot of posterior similarity matrix.\n")
+      # print("")
+    }
 
     # dissimilarity matrix
     if (is.null(data_2)) {
@@ -565,7 +547,7 @@ mcmc_out <- function(MS_object,
     colnames(sim) <- rownames(num_data)
     rownames(sim) <- rownames(num_data)
 
-    col_pal <- RColorBrewer::brewer.pal(9, "Blues")
+    # col_pal <- RColorBrewer::brewer.pal(9, "Blues")
 
     heat_map <- annotated_heatmap(sim, annotation_row,
       train = train,
@@ -575,34 +557,40 @@ mcmc_out <- function(MS_object,
       color = col_pal,
       fontsize = fontsize,
       fontsize_row = fontsize_row,
-      fontsize_col = fontsize_col
+      fontsize_col = fontsize_col,
+      breaks = my_breaks
     )
-    # if (! is.null(data_2)) {
-    #   sim_2 <- gibbs$similarity_2
-    #
-    #   dissim_2 <- 1 - sim_2
-    #
-    #   # Require names to associate data in annotation columns with original data
-    #   colnames(dissim_2) <- rownames(num_data)
-    #   rownames(dissim_2) <- rownames(num_data)
-    #
-    #   col_pal <- RColorBrewer::brewer.pal(9, "Blues")
-    #
-    #   heat_map <- annotated_heatmap(dissim_2, annotation_row,
-    #                                 train = train,
-    #                                 main = main,
-    #                                 cluster_row = cluster_row,
-    #                                 cluster_cols = cluster_cols,
-    #                                 color = col_pal,
-    #                                 fontsize = fontsize,
-    #                                 fontsize_row = fontsize_row,
-    #                                 fontsize_col = fontsize_col)
-    # }
+    if (!is.null(data_2) & heat_plot_2) {
+      sim_2 <- gibbs$similarity_2
+
+      dissim_2 <- 1 - sim_2
+
+      # Require names to associate data in annotation columns with original data
+      colnames(dissim_2) <- rownames(num_data)
+      rownames(dissim_2) <- rownames(num_data)
+
+      # col_pal <- RColorBrewer::brewer.pal(9, "Blues")
+
+      heat_map_2 <- annotated_heatmap(dissim_2, annotation_row,
+        train = train,
+        main = main,
+        cluster_row = cluster_row,
+        cluster_cols = cluster_cols,
+        color = col_pal,
+        fontsize = fontsize,
+        fontsize_row = fontsize_row,
+        fontsize_col = fontsize_col,
+        breaks = my_breaks
+      )
+    }
   }
-  
-  print("Entropy")
+
+  # print("Entropy")
 
   if (entropy_plot) {
+    if(verbose){
+      cat("Constructing entropy plot.\n")
+    }
     entropy_data <- data.frame(
       Index = 1:(num_iter + 1),
       Entropy = gibbs$entropy
@@ -643,9 +631,9 @@ mcmc_out <- function(MS_object,
         Implemented = "blue"
       ))
   }
-  
-  print("Sense")
-  
+
+  # print("Sense")
+
   if (sense_check_map & heat_plot & entropy_plot) {
     return(list(
       gibbs = gibbs,
