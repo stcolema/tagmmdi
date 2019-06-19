@@ -35,6 +35,7 @@ mdi_cross_validate <- function(MS_object,
                                num_iter = 1000,
                                burn = floor(num_iter / 10),
                                thinning = 25,
+                               n_clust_cat = 50,
                                ...) {
   
   marker.data <- pRoloc::markerMSnSet(MS_object)
@@ -49,15 +50,21 @@ mdi_cross_validate <- function(MS_object,
 
   .testPartitions <- .cmMatrices <- vector("list", length = times)
 
+  print("Here at least")
+  
   f1score <- matrix(0, times)
   .f1Matrices <- matrix(0, times)
   cmlist <- vector("list", length = times)
   quadloss <- vector("list", length = times)
 
+  print("Vectors declared")
+  
   # Create a data frame of the classes present and their associated number
   classes_pres <- pRoloc::getMarkerClasses(MS_object)
   class_key <- data.frame(Class = classes_pres, Key = 1:length(classes_pres))
 
+  print("Looping")
+  
   for (i in seq_along(cmlist)) {
     # get sizes
     .size <- ceiling(table(MSnbase::fData(marker.data)$markers) * test_size)
@@ -65,12 +72,16 @@ mdi_cross_validate <- function(MS_object,
     # strata needs size to be ordered as they appear in data
     .size <- .size[unique(MSnbase::fData(marker.data)$markers)]
 
+    print("Test indices")
+    
     # get strata indices
     test.idx <- sampling::strata(X, "markers",
       size = .size,
       method = "srswor"
     )$ID_unit
 
+    print("Test data")
+    
     ## 'unseen' test set
     .test1 <- MSnbase::MSnSet(
       MSnbase::exprs(marker.data)[test.idx, ],
@@ -78,19 +89,41 @@ mdi_cross_validate <- function(MS_object,
       MSnbase::pData(marker.data)
     )
 
+    print("Training data")
+    
     ## 'seen' training set
     .train1 <- MSnbase::MSnSet(
       MSnbase::exprs(marker.data)[-test.idx, ],
       MSnbase::fData(marker.data[-test.idx, ]),
       MSnbase::pData(marker.data)
     )
+    
+    print("Test markers")
 
     # save true marker labels
     test.markers <- MSnbase::fData(.test1)$markers
 
+    print("Combine")
+    
+    print(str(test.idx))
+    
+    print(str(exprs(.test1)))
+    print(str(exprs(.train1)))
+    
+    # print(str(exprs(BiocGenerics::combine(.train1, .test1))))
+    
+    print("OK")
+    
+    print(str(rbind(exprs(.train1), exprs(.test1))))
+    
+    print(str(MSnbase::fData(.train1)))
+    print(str(MSnbase::fData(.test1)))
+    
     # create new combined MSnset
-    mydata <- BiocGenerics::combine(.test1, .train1)
+    mydata <- BiocGenerics::combine(.train1, .test1)
 
+    print("Combined")
+    
     # Set levels of markers cateogries
     levels(MSnbase::fData(mydata)$markers) <- c(
       levels(
@@ -99,31 +132,35 @@ mdi_cross_validate <- function(MS_object,
       "unknown"
     )
     
+    print("Let them be red")
+    
     # hide marker labels
     MSnbase::fData(mydata)[rownames(.test1), "markers"] <- "unknown"
     
+    
+    print("I'm alive")
     
     if (!is.null(MS_cat_object)) {
       # cat_data <- MSnbase::exprs(marker.data.cat)
       
       ## 'unseen' test set
-      .test2 <- MSnbase::MSnSet(
-        MSnbase::exprs(marker.data.cat)[test.idx, ],
-        MSnbase::fData(marker.data.cat[test.idx, ]),
-        MSnbase::pData(marker.data.cat)
-      )
-
-      ## 'seen' training set
-      .train2 <- MSnbase::MSnSet(
-        MSnbase::exprs(marker.data.cat)[-test.idx, ],
-        MSnbase::fData(marker.data.cat[-test.idx, ]),
-        MSnbase::pData(marker.data.cat)
-      )
+      # .test2 <- MSnbase::MSnSet(
+      #   MSnbase::exprs(marker.data.cat)[test.idx, ],
+      #   MSnbase::fData(marker.data.cat[test.idx, ]),
+      #   MSnbase::pData(marker.data.cat)
+      # )
+      # 
+      # ## 'seen' training set
+      # .train2 <- MSnbase::MSnSet(
+      #   MSnbase::exprs(marker.data.cat)[-test.idx, ],
+      #   MSnbase::fData(marker.data.cat[-test.idx, ]),
+      #   MSnbase::pData(marker.data.cat)
+      # )
       
       # create new combined MSnset
       # cat_data <- BiocGenerics::combine(.test2, .train2)
-      cat_data <- BiocGenerics::combine(marker.data.cat[test.idx, ],
-        marker.data.cat[-test.idx, ]
+      cat_data <- BiocGenerics::combine(marker.data.cat[-test.idx, ],
+        marker.data.cat[test.idx, ]
       )
       
       # Set levels of markers cateogries
@@ -135,24 +172,47 @@ mdi_cross_validate <- function(MS_object,
       )
       
       # hide marker labels
-      MSnbase::fData(cat_data)[rownames(.test2), "markers"] <- "unknown"
+      comp_cat <- cat_data
+      # MSnbase::fData(comp_cat)[rownames(.test2), "markers"] <- "unknown"
+      MSnbase::fData(cat_data)[rownames(.test1), "markers"] <- "unknown"
       
+      # if(sum(MSnbase::fData(comp_cat)[, "markers"] != MSnbase::fData(cat_data)[, "markers"])){
+      #   print("Wrong inex used for cat test data")
+      # }
       
     } else {
       cat_data <- NULL
     }
 
+    print("Are you?")
+    
     # Fix training points, allow test points to move component
     fix_vec_1 <- c(
-      rep(0, nrow(MSnbase::exprs(.test1))),
-      rep(1, nrow(MSnbase::exprs(.train1)))
+      rep(1, nrow(MSnbase::exprs(.train1))),
+      rep(0, nrow(MSnbase::exprs(.test1)))
     )
+    
+    # print(MSnbase::fData(mydata)[, "markers"])
+    
+    fix_vec_test <- (MSnbase::fData(mydata)[, "markers"] != "unknown") * 1
+    
+    print("Wagg")
+    
+    if(sum(fix_vec_test != fix_vec_1) > 0){
+      stop("Fix vec odd")
+    }
 
+    # print("Cat data")
+    # print(head(cat_data))
+    # 
+    # print("data")
+    # print(head(mydata))
+    
     # MDI
     params <- mcmc_out(mydata,
       data_2 = cat_data,
       fix_vec_1 = fix_vec_1,
-      n_clust_2 = 20,
+      n_clust_2 = n_clust_cat,
       num_iter = num_iter,
       burn = burn,
       thinning = thinning,

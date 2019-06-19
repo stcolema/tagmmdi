@@ -183,17 +183,29 @@ mcmc_out <- function(MS_object,
   # MS data
   MS_data <- MS_dataset(MS_object) #, train = train)
 
-  mydata <- MS_data$data
-  nk <- MS_data$nk
+  # print(MS_data$fix_vec)
+  
+  # mydata <- MS_data$data
+  # nk <- MS_data$nk
   row_names <- MS_data$row_names
 
   if(! is.null(data_2)){
     # Unpack pRoloc dataset
     data_2_unpacked <- MS_dataset(data_2)
   
-    data_2 <- data_2_unpacked$data %>%
-      dplyr::select(-markers)
-    row_names_2 <- data_2_unpacked$row_names
+    data_2 <- exprs(data_2)
+    
+    data_2 <- data_2[match(row_names, row.names(data_2)),]
+    row_names_2 <- row.names(data_2)
+    
+    
+    # print(head(data_2))
+    # 
+    # print(row_names)
+    
+    # data_2 <- data_2_unpacked$data %>%
+    #   dplyr::select(-markers)
+    # row_names_2 <- data_2_unpacked$row_names
   
     if (sum(row_names != row_names_2) > 0) {
       print(sum(row_names != row_names_2))
@@ -205,21 +217,51 @@ mcmc_out <- function(MS_object,
     fix_vec_1 <- MS_data$fix_vec
   }
 
-
   if (!is.null(data_2) & is.null(fix_vec_2)) {
     fix_vec_2 <- rep(0, nrow(data_2))
   }
 
-  class_labels <- data.frame(Class = mydata$markers)
+  # class_labels <- data.frame(Class = mydata$markers)
+  
+  
+  # Extract marker data 
+  # Remember to ensure same order and consider removing data.frame format
+  class_labels <- MS_object %>% 
+    getMarkers(fcol = "markers", names = TRUE, verbose = TRUE) %>% 
+    extract(match(row_names, names(.))) %>% 
+    as.data.frame() %>% 
+    set_colnames("Class")
+  
+  # print(class_labels %>% head())
+  
+  # class_labels <- MS_object %>% 
+  #   getMarkers(fcol = "markers", names = TRUE, verbose = TRUE) %>% 
+  #   as.data.frame() %>% 
+  #   set_colnames("Class") %>% 
+  #   extract(match(row_names, row.names(.)), )
+  
+  # Find the organelles present in the current data
+  classes_present <- MS_object %>% getMarkerClasses()
+  # classes_present <- unique(MSnbase::fData(pRoloc::markerMSnSet(MS_object))[, "markers"])
 
-  classes_present <- unique(MSnbase::fData(pRoloc::markerMSnSet(MS_object))[, "markers"])
-
-  rownames(class_labels) <- rownames(mydata)
+  # As this is called a few times for match()
+  sorted_classes <- sort(classes_present)
+  
+  # This is a mistake currently.
+  # rownames(class_labels) <- rownames(mydata)
 
   # Numerical data of interest for clustering
-  num_data <- mydata %>%
-    dplyr::select(-markers)
+  num_data <- MS_object %>%
+    Biobase::exprs()
 
+  num_data <- num_data[match(row_names, row.names(num_data)), ]
+  
+  # print(num_data %>% head())
+
+  if(sum(row.names(class_labels) != row.names(num_data))){
+    stop("Row names in disagreement")
+  }
+  
   # Parameters
   n_clust_1 <- length(classes_present)
   N <- nrow(num_data)
@@ -245,13 +287,22 @@ mcmc_out <- function(MS_object,
     num_load <- 0
   }
 
+
   # Key to transforming from int to class
-  class_labels_key <- data.frame(Class = classes_present) %>%
-    dplyr::arrange(Class) %>%
-    dplyr::mutate(Class_key = as.numeric(Class))
+  class_labels_key <- data.frame(Class = sort(classes_present)) %>%
+    inset2(., "Class_key", value = as.numeric(.$Class))
+  
+  # class_labels_key <- data.frame(Class = classes_present) %>%
+  #   dplyr::arrange(Class) %>%
+  #   dplyr::mutate(Class_key = as.numeric(Class))
+
+  class_numerical <- class_labels_key$Class_key[match(class_labels$Class, class_labels_key$Class)]
 
   class_labels <- class_labels %>%
-    dplyr::mutate(Class_ind = as.numeric(mydata$markers))
+    inset2("Class_ind", value = class_numerical)
+  
+  
+    # dplyr::mutate(Class_ind = as.numeric(mydata$markers))
 
   labels_0_1 <- cluster_label_prior(
     labels_0_1,
@@ -260,8 +311,7 @@ mcmc_out <- function(MS_object,
     n_clust_1,
     N
   )
-
-
+  
   if (is.null(num_iter)) {
     num_iter <- floor(min((d^2) * 1000 / sqrt(N), 10000))
   }
@@ -284,12 +334,24 @@ mcmc_out <- function(MS_object,
     cluster_weight_0_1 <- rep(cluster_weight_0_1, n_clust_1)
   }
 
+  
+  
   # Convert to matrix format
   num_data_mat <- as.matrix(num_data)
 
+  
   if (!is.null(data_2)) {
     data_2_mat <- as.matrix(data_2)
+    if(! all.equal(row.names(num_data_mat), row.names(data_2_mat))){
+      print(sum(row.names(num_data_mat) != row.names(data_2_mat)))
+      stop("Row names are not the same")
+    }
   }
+  
+  # print(head(num_data_mat))
+  # print(head(data_2_mat[, 1:5]))
+  
+  
 
   if (is.null(data_2)) {
     gibbs <- gibbs_sampling(num_data_mat, n_clust_1, labels_0_1, fix_vec_1,
@@ -363,12 +425,13 @@ mcmc_out <- function(MS_object,
   eff_iter <- ceiling((num_iter + 1 - burn) / thinning)
 
   # Key to transforming from int to class
-  class_labels_key <- data.frame(Class = classes_present) %>%
-    arrange(Class) %>%
-    dplyr::mutate(Class_key = as.numeric(Class))
-
-  class_labels <- class_labels %>%
-    mutate(Class_ind = as.numeric(mydata$markers))
+  # class_labels_key <- data.frame(Class = sort(classes_present)) %>%
+  #   # arrange(Class) %>%
+  #   inset2(Class_key = as.numeric())
+  #   dplyr::mutate(Class_key = as.numeric(Class))
+  # 
+  # class_labels <- class_labels %>%
+  #   mutate(Class_ind = as.numeric(mydata$markers))
 
   # Create a column Class_key containing an integer in 1:k representing the most
   # common class allocation, and a Count column with the proportion of times the
@@ -394,18 +457,60 @@ mcmc_out <- function(MS_object,
     class_labels_key$Class_key
   )]
 
-  gibbs$predicted_class <- predicted_classes
+  gibbs$predicted_class <- predicted_classes %>%
+    set_rownames(row.names(class_labels))
 
+  
+  n_train <- sum(fix_vec_1)
+  # 
+  
+  # print("Here")
+  
+  # print(head(predicted_classes))
+  # print(head(class_labels))
+  
+  # print(which(as.logical(fix_vec_1)))
+  # 
+  # print(which(as.character(class_labels$Class[which(as.logical(fix_vec_1))]) 
+  #             != as.character(predicted_classes$Class[which(as.logical(fix_vec_1))])))
+  
+  # print(class_labels$Class[which(as.logical(fix_vec_1))] %>% head())
+  # print(predicted_classes$Class[which(as.logical(fix_vec_1))] %>% head())
+  
+  # if(! base::all.equal(class_labels$Class[1:n_train], predicted_classes$Class[1:n_train])){
+  if(sum(as.character(class_labels$Class[which(as.logical(fix_vec_1))]) != as.character(predicted_classes$Class[which(as.logical(fix_vec_1))]))){
+    print(sum(as.character(class_labels$Class[which(as.logical(fix_vec_1))]) != as.character(predicted_classes$Class[which(as.logical(fix_vec_1))])))
+    stop("Classes not matching for known")
+  }
+  
   # Example input for annotation_row in pheatmap
-  annotation_row <- class_labels %>%
-    dplyr::select(Class) %>%
-    mutate(Predicted_class = predicted_classes$Class)
+  # annotation_row <- class_labels %>%
+  #   dplyr::select(Class) %>%
+  #   dplyr::mutate(Predicted_class = predicted_classes$Class)
 
-  rownames(num_data) <- row_names
+  annotation_row <- data.frame(Class = class_labels$Class, 
+    Predicted_class = predicted_classes$Class) %>% 
+    set_rownames(row.names(class_labels))
+  
+  # stop()
+  
+  # print(head(num_data))
+  
+  # rownames(num_data) <- row_names
   # print(rownames(mydata[1:10,]))
 
-  rownames(annotation_row) <- rownames(num_data)
-
+  # print("Annotation row")
+  # print(head(annotation_row))
+  
+  # rownames(annotation_row) <- rownames(num_data)
+  
+  # print("rowing")
+  # print(head(annotation_row))
+  
+  # print("I'm alive")
+  
+  annotation_row$Class[annotation_row$Class == "unknown"] <- NA
+  
   col_pal <- RColorBrewer::brewer.pal(9, "Blues")
 
   if (sense_check_map) {
@@ -420,16 +525,31 @@ mcmc_out <- function(MS_object,
     )
   }
 
-  all_data <- dplyr::bind_cols(
-    num_data,
-    dplyr::select(gibbs$predicted_class, Class)
-  )
+  
+  # print("Am i here")
+  
+  
+  # print(head(num_data))
+  
+  # print(dplyr::select(gibbs$predicted_class, Class) %>% head())
+  
+  all_data <- cbind(num_data, gibbs$predicted_class$Class)
+  
+  # all_data <- dplyr::bind_cols(
+  #   num_data,
+  #   dplyr::select(gibbs$predicted_class$Class, Class)
+  # )
+  
+  # print("Me so")
+  
   all_data$Fixed <- fix_vec_1
   all_data$Protein <- rownames(num_data)
   all_data$Prediction <- predicted_classes$Class
 
   # rownames(all_data) <- rownames(num_data)
 
+  # print("Plot")
+  
   if (heat_plot) {
 
     # dissimilarity matrix
@@ -479,6 +599,8 @@ mcmc_out <- function(MS_object,
     #                                 fontsize_col = fontsize_col)
     # }
   }
+  
+  print("Entropy")
 
   if (entropy_plot) {
     entropy_data <- data.frame(
@@ -521,6 +643,9 @@ mcmc_out <- function(MS_object,
         Implemented = "blue"
       ))
   }
+  
+  print("Sense")
+  
   if (sense_check_map & heat_plot & entropy_plot) {
     return(list(
       gibbs = gibbs,
