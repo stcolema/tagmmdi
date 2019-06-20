@@ -322,10 +322,10 @@ mcmc_out <- function(MS_object,
     }
   }
 
-  if(verbose){
+  if (verbose) {
     cat("Beginning clustering.\n")
   }
-  
+
   # If no second dataset, run a single mixture model
   if (is.null(data_2)) {
     gibbs <- gibbs_sampling(num_data_mat, n_clust_1, labels_0_1, fix_vec_1,
@@ -380,11 +380,11 @@ mcmc_out <- function(MS_object,
       num_load = num_load
     )
   }
-  
-  if(verbose){
+
+  if (verbose) {
     cat("Clustering finished.\n")
   }
-  
+
   # print("Gibbs sampling complete")
 
   if (is.null(data_2)) {
@@ -458,10 +458,10 @@ mcmc_out <- function(MS_object,
   # col_pal <- RColorBrewer::brewer.pal(9, "Blues")
 
   if (sense_check_map) {
-    if(verbose){
+    if (verbose) {
       cat("Constructing heat plot of expression data annotated by clustering.\n")
     }
-    
+
     component_heat_map <- pheatmap_cluster_by_col(num_data,
       annotation_row,
       Predicted_class,
@@ -473,17 +473,33 @@ mcmc_out <- function(MS_object,
       breaks = my_breaks
     )
     if (!is.null(data_2) & sense_check_map_2) {
-      component_heat_map <- pheatmap_cluster_by_col(data_2,
-        annotation_row,
-        Predicted_class,
-        main = sense_check_main,
-        color = col_pal,
-        fontsize = fontsize,
-        fontsize_row = fontsize_row,
-        fontsize_col = fontsize_col,
-        breaks = my_breaks
-      )
-
+      
+      if(type_2 == "G" | type_2 == "Gaussian"){
+      
+        component_heat_map_2 <- annotated_heatmap(data_2, annotation_row,
+          train = train,
+          main = main,
+          cluster_row = cluster_row,
+          cluster_cols = cluster_cols,
+          color = col_pal,
+          fontsize = fontsize,
+          fontsize_row = fontsize_row,
+          fontsize_col = fontsize_col,
+          breaks = my_breaks
+        )
+      } else {
+        component_heat_map_2 <- pheatmap_cluster_by_col(data_2,
+          annotation_row,
+          Predicted_class,
+          main = sense_check_main,
+          color = col_pal,
+          fontsize = fontsize,
+          fontsize_row = fontsize_row,
+          fontsize_col = fontsize_col,
+          breaks = my_breaks
+        )
+          
+      }
       # annotated_heatmap(data_2, annotation_row,
       #                   train = train,
       #                   main = main,
@@ -516,10 +532,10 @@ mcmc_out <- function(MS_object,
     rownames(num_data),
     class_labels$Class
   ) %>% as.data.frame()
-  
+
   # print(head(all_data))
   # print(head(all_data))
-  
+
   # Set the column names
   colnames(all_data)[(d + 1):(d + 4)] <- c(
     "Prediction",
@@ -529,7 +545,7 @@ mcmc_out <- function(MS_object,
   )
 
   if (heat_plot) {
-    if(verbose){
+    if (verbose) {
       cat("Constructing heat plot of posterior similarity matrix.\n")
       # print("")
     }
@@ -563,15 +579,15 @@ mcmc_out <- function(MS_object,
     if (!is.null(data_2) & heat_plot_2) {
       sim_2 <- gibbs$similarity_2
 
-      dissim_2 <- 1 - sim_2
+      # dissim_2 <- 1 - sim_2
 
       # Require names to associate data in annotation columns with original data
-      colnames(dissim_2) <- rownames(num_data)
-      rownames(dissim_2) <- rownames(num_data)
+      colnames(sim_2) <- rownames(num_data)
+      rownames(sim_2) <- rownames(num_data)
 
       # col_pal <- RColorBrewer::brewer.pal(9, "Blues")
 
-      heat_map_2 <- annotated_heatmap(dissim_2, annotation_row,
+      heat_map_2 <- annotated_heatmap(sim_2, annotation_row,
         train = train,
         main = main,
         cluster_row = cluster_row,
@@ -588,7 +604,7 @@ mcmc_out <- function(MS_object,
   # print("Entropy")
 
   if (entropy_plot) {
-    if(verbose){
+    if (verbose) {
       cat("Constructing entropy plot.\n")
     }
     entropy_data <- data.frame(
