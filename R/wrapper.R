@@ -132,6 +132,7 @@
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom attempt try_catch
 mcmc_out <- function(MS_object,
+                     fcol = "markers",
                      data_2 = NULL,
                      labels_0_1 = NULL,
                      args_1 = NULL,
@@ -185,7 +186,7 @@ mcmc_out <- function(MS_object,
     Biobase::exprs()
 
   # Marker data
-  marker_data <- getMarkers(MS_object, fcol = "markers", names = T, verbose = F)
+  marker_data <- getMarkers(MS_object, fcol = fcol, names = T, verbose = F)
 
   # Order by known and unknown
   row_names <- names(marker_data)[c(which(marker_data != "unknown"), which(marker_data == "unknown"))]
@@ -209,19 +210,19 @@ mcmc_out <- function(MS_object,
     # Common order with original data
     data_2 <- data_2[match(row_names, row.names(data_2)), ]
 
-    # I think this can never happen
+    # I think this can ever happen - include as a check
     row_names_2 <- row.names(data_2)
 
     if (sum(row_names != row_names_2) > 0) {
       print(sum(row_names != row_names_2))
       stop("Row names in datasets are not the same. Check compatible data.")
     }
-  }
-
-  # If a fix_vec is not given for dataset 2, allow all points to move
-  # (i.e. unsupervised clustering)
-  if (!is.null(data_2) & is.null(fix_vec_2)) {
-    fix_vec_2 <- rep(0, nrow(data_2))
+    
+    # If a fix_vec is not given for dataset 2, allow all points to move
+    # (i.e. unsupervised clustering)
+    if (is.null(fix_vec_2)) {
+      fix_vec_2 <- rep(0, nrow(data_2))
+    }
   }
 
   # Put marker data in a data.frame
@@ -235,6 +236,7 @@ mcmc_out <- function(MS_object,
   # As this is called a few times for match()
   sorted_classes <- sort(classes_present)
 
+  # Check class_labels and expression data have the same order of row names
   if (sum(row.names(class_labels) != row.names(num_data))) {
     stop("Row names in disagreement")
   }
@@ -244,6 +246,7 @@ mcmc_out <- function(MS_object,
   N <- nrow(num_data)
   d <- ncol(num_data)
 
+  # REDUNDANT
   # Folders to save to
   output_folders(n_clust_1, n_clust_2,
     save_results = save_results,
@@ -266,7 +269,6 @@ mcmc_out <- function(MS_object,
     num_load <- 0
   }
 
-
   # Key to transforming from int to class
   class_labels_key <- data.frame(Class = sorted_classes) %>%
     magrittr::inset2(., "Class_key", value = as.numeric(.$Class))
@@ -286,6 +288,7 @@ mcmc_out <- function(MS_object,
     N
   )
 
+  # Generic mcmc parameters if no input given
   if (is.null(num_iter)) {
     num_iter <- floor(min((d^2) * 1000 / sqrt(N), 10000))
   }
@@ -308,11 +311,8 @@ mcmc_out <- function(MS_object,
     cluster_weight_0_1 <- rep(cluster_weight_0_1, n_clust_1)
   }
 
-
-
   # Convert to matrix format
   num_data_mat <- as.matrix(num_data)
-
 
   if (!is.null(data_2)) {
     data_2_mat <- as.matrix(data_2)

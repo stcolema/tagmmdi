@@ -62,6 +62,8 @@ gibbs_sampling <- function(data, k, class_labels,
                            t_df = 4.0,
                            record_posteriors = FALSE,
                            normalise = FALSE) {
+  
+  # REDUNDANT - DONE IN WRAPPER FUNCTION
   if (is.null(num_iter)) {
     num_iter <- min((d^2) * 1000 / sqrt(N), 10000)
   }
@@ -86,8 +88,7 @@ gibbs_sampling <- function(data, k, class_labels,
     df_0 = df_0
   )
 
-  # parameters_0 <- empirical_bayes_gaussian(data, mu_0, df_0, scale_0, N, k, d)
-
+  # Extract the arguments from the list
   mu_0 <- parameters_0$mu_0
   df_0 <- parameters_0$df_0
   scale_0 <- parameters_0$scale_0
@@ -99,13 +100,6 @@ gibbs_sampling <- function(data, k, class_labels,
     if (is.null(cluster_weight_priors_categorical)) {
       cluster_weight_priors_categorical <- rep(1, num_clusters_cat)
     } else if (length(cluster_weight_priors_categorical) < num_clusters_cat) {
-      # print(paste0(
-      #   "Creating vector of ",
-      #   num_clusters_cat,
-      #   " repetitions of ",
-      #   cluster_weight_priors_categorical,
-      #   " for categorical cluster weights prior."
-      # ))
       cluster_weight_priors_categorical <- rep(
         cluster_weight_priors_categorical,
         num_clusters_cat
@@ -316,6 +310,8 @@ mdi <- function(data_1, data_2,
                 num_load = 0) {
 
   # Calculate all the relevant parameters
+  
+  # Check the datasets are of equal height
   if (N != nrow(data_2)) {
     stop("Unequal number of observations in datasets. Incomparable.\nStopping.")
   }
@@ -362,17 +358,9 @@ mdi <- function(data_1, data_2,
   data_2 <- as.matrix(data_2)
 
   # Declare the cluster weights if not declared in advance
-  # cluster_weight_0_1 <- declare_cluster_weights(fix_vec_1, labels_0_1, n_clust_1,
-  #   weight_0 = cluster_weight_0_1
-  # )
-
   cluster_weight_0_1 <- declare_cluster_weights(c(0, 0), labels_0_1, n_clust_1,
     weight_0 = cluster_weight_0_1
   )
-
-  # cluster_weight_0_2 <- declare_cluster_weights(fix_vec_2, labels_0_2, n_clust_2,
-  #   weight_0 = cluster_weight_0_2
-  # )
 
   cluster_weight_0_2 <- declare_cluster_weights(c(0, 0), labels_0_2, n_clust_2,
     weight_0 = cluster_weight_0_2
@@ -382,16 +370,14 @@ mdi <- function(data_1, data_2,
   if (is.null(labels_0_1)) {
     labels_0_1 <- sample(1:n_clust_1,
       size = N,
-      replace = T # ,
-      # prob = cluster_weight_0_1
+      replace = T
     )
   }
 
   if (is.null(labels_0_2)) {
     labels_0_2 <- sample(1:n_clust_2,
       size = N,
-      replace = T # ,
-      # prob = cluster_weight_0_2
+      replace = T
     )
   }
 
