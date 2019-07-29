@@ -175,3 +175,106 @@ arma::vec mean_posterior(arma::vec mu_0,
   return mu_out;
   
 }
+
+
+// Returns a 2-D field of cubes (i.e. a 5D object) for the current iterations 
+// means and variances across each cluster (hence a field)
+arma::cube sample_cluster_variance(arma::mat data,
+                                   arma::uvec cluster_labels,
+                                   arma::uword k,
+                                   int df_0,
+                                   arma::uword num_cols,
+                                   arma::mat scale_0,
+                                   double lambda_0,
+                                   arma::vec mu_0){
+  arma::mat cluster_data;
+  
+  arma::cube variance(num_cols, num_cols, k);
+  variance.zeros();
+  
+  // sample the variance for each cluster
+  for (arma::uword j = 1; j < k + 1; j++) {
+    cluster_data = data.rows(find(cluster_labels == j ));
+    
+    variance.slice(j - 1) = variance_posterior(
+      df_0,
+      scale_0,
+      lambda_0,
+      mu_0,
+      cluster_data
+    );
+    
+  }
+  return variance;
+}
+
+arma::mat sample_cluster_means(arma::mat data,
+                               arma::uvec cluster_labels,
+                               arma::uword k,
+                               arma::uword num_cols,
+                               arma::cube variance,
+                               double lambda_0,
+                               arma::vec mu_0){
+  arma::mat cluster_data;
+  
+  arma::mat mu(num_cols, k);
+  mu.zeros();
+  
+  // Sample the mean for each cluster
+  for (arma::uword j = 1; j < k + 1; j++) {
+    cluster_data = data.rows(find(cluster_labels == j ));
+    mu.col(j - 1) = mean_posterior(mu_0, 
+           variance.slice(j - 1), 
+           lambda_0,
+           cluster_data);
+    
+  }
+  return mu;
+}
+
+// Returns a 2-D field of cubes (i.e. a 5D object) for the current iterations 
+// means and variances across each cluster (hence a field)
+arma::field<arma::cube> sample_gauss_params(arma::mat data,
+                                            arma::uvec cluster_labels,
+                                            arma::uword k,
+                                            int df_0,
+                                            arma::uword num_cols,
+                                            arma::mat scale_0,
+                                            double lambda_0,
+                                            arma::vec mu_0){
+  arma::mat cluster_data;
+  arma::mat variance(num_cols, num_cols);
+  arma::vec mu(num_cols);
+  
+  arma::field<arma::cube> mean_variance_field(2);
+  
+  arma::cube var_entry = arma::zeros<arma::cube>(num_cols, num_cols, k);
+  arma::cube mu_entry = arma::zeros<arma::cube>(num_cols, 1, k);
+  
+  mean_variance_field(0) = var_entry;
+  mean_variance_field(1) = mu_entry;
+  
+  arma::vec curr_mean(num_cols);
+  curr_mean.zeros();
+  
+  for (arma::uword j = 1; j < k + 1; j++) {
+    cluster_data = data.rows(find(cluster_labels == j ));
+    
+    mean_variance_field(0).slice(j - 1) = variance_posterior(
+      df_0,
+      scale_0,
+      lambda_0,
+      mu_0,
+      cluster_data
+    );
+    
+    curr_mean = mean_posterior(mu_0, 
+                               mean_variance_field(0).slice(j - 1), 
+                               lambda_0,
+                               cluster_data);
+    
+    
+    mean_variance_field(1).slice(j - 1) = curr_mean;
+  }
+  return mean_variance_field;
+}

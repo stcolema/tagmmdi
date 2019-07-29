@@ -560,7 +560,7 @@ arma::field<arma::mat> declare_class_probs_field(arma::uvec cat_count,
 // Sample the probabilities for each category across all clusters for each covariate
 // [[Rcpp::export]]
 arma::field<arma::mat> sample_class_probabilities(arma::umat data,
-                                                  arma::field<arma::mat> class_probabilities,
+                                                  arma::field<arma::mat> class_probs,
                                                   arma::field<arma::vec> phi_prior,
                                                   arma::uvec cluster_labels,
                                                   arma::uvec cat_count,
@@ -576,15 +576,15 @@ arma::field<arma::mat> sample_class_probabilities(arma::umat data,
     for(arma::uword j = 0; j < num_cols; j++){
       
       
-      class_probabilities(j).row(k - 1) = arma::trans(dirichlet_posterior_class(phi_prior(j),
-                                                cluster_data.col(j),
-                                                cat_count(j)
+      class_probs(j).row(k - 1) = arma::trans(dirichlet_posterior_class(phi_prior(j),
+                                                      cluster_data.col(j),
+                                                      cat_count(j)
       )
       );
       
     }
   }
-  return class_probabilities;
+  return class_probs;
 }
 
 // Sample the cluster membership of point
