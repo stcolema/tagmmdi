@@ -8,7 +8,7 @@ using namespace Rcpp ;
 
 
 // update the concentration parameter in the Dirichlet distribution
-arma::vec concentration_n(arma::vec concentration_0,
+arma::vec CalcConcentrationn(arma::vec concentration_0,
                           arma::uvec cluster_labels,
                           arma::uword n_cat){
   arma::uvec class_members;
@@ -34,7 +34,7 @@ arma::vec concentration_n(arma::vec concentration_0,
 }
 
 // THIS SEEMS WEIRD
-arma::vec concentration_n_class(arma::vec concentration_0,
+arma::vec CalcConcentrationnClass(arma::vec concentration_0,
                                 arma::uvec cluster_labels,
                                 arma::uword n_cat){
   
@@ -56,7 +56,7 @@ arma::vec concentration_n_class(arma::vec concentration_0,
 
 // sample parameters for a dirichlet distribution (normally for the clusters)
 // [[Rcpp::export]]
-arma::vec dirichlet_posterior(arma::vec concentration_0,
+arma::vec SampleDirichletPosterior(arma::vec concentration_0,
                               arma::uvec cluster_labels,
                               arma::uword n_clusters){
   
@@ -65,7 +65,7 @@ arma::vec dirichlet_posterior(arma::vec concentration_0,
   
   // Calculate the concentration parameter
   arma::vec concentration(n_clusters);
-  concentration = concentration_n(concentration_0,
+  concentration = CalcConcentrationn(concentration_0,
                                   cluster_labels,
                                   n_clusters);
   
@@ -87,7 +87,7 @@ arma::vec dirichlet_posterior(arma::vec concentration_0,
 
 // Dirichlet posterior for class weights (difference of base 0 compared to vanilla
 // dirichlet_posterior function
-arma::vec dirichlet_posterior_class(arma::vec concentration_0,
+arma::vec SampleDirichletPosteriorClass(arma::vec concentration_0,
                                     arma::uvec cluster_labels,
                                     arma::uword n_clusters){
   // Initialise the cluster weight vector
@@ -95,7 +95,7 @@ arma::vec dirichlet_posterior_class(arma::vec concentration_0,
   
   // Calculate the concentration parameter
   arma::vec concentration(n_clusters);
-  concentration = concentration_n_class(concentration_0,
+  concentration = CalcConcentrationnClass(concentration_0,
                                         cluster_labels,
                                         n_clusters);
   

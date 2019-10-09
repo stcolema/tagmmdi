@@ -10,11 +10,11 @@ using namespace Rcpp ;
 
 
 // Returns the t-distribution log likelihood for a given point
-double t_likelihood(arma::vec point,
-                    arma::vec mu,
-                    arma::mat variance,
-                    arma::uword n_col,
-                    double df
+double CalcTdistnLikelihood(arma::vec point,
+                            arma::vec mu,
+                            arma::mat variance,
+                            arma::uword n_col,
+                            double df
 ){
   
   double log_det = 0.0;
@@ -43,7 +43,7 @@ double t_likelihood(arma::vec point,
 // functions can be used. 
 // See https://en.wikipedia.org/wiki/Beta_distribution#Related_distributions.
 // Used in calculating the weights for allocation to outlier
-double sample_beta(double a, double b, double theta = 1.0){
+double SampleBetaDistn(double a, double b, double theta = 1.0){
   double X = arma::randg( arma::distr_param(a, 1/theta) );
   double Y = arma::randg( arma::distr_param(b, 1/theta) );
   
@@ -54,7 +54,7 @@ double sample_beta(double a, double b, double theta = 1.0){
 
 
 // Samples if the point is an outlier or not (comparing to assigned class)
-double sample_outlier(arma::vec point,
+double SampleOutlier(arma::vec point,
                       arma::mat data,
                       double outlier_weight,
                       arma::vec global_mean,
@@ -77,7 +77,7 @@ double sample_outlier(arma::vec point,
 }
 
 // Calculate the probability of being an outlier
-arma::vec calculate_outlier_prob(arma::vec point,
+arma::vec CalculateOutlierProb(arma::vec point,
                                  arma::vec global_mean,
                                  arma::mat global_variance,
                                  arma::uword n_col,

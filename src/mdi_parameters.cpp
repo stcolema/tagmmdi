@@ -6,26 +6,28 @@
 
 using namespace Rcpp ;
 
-arma::uword predict_ind(arma::vec my_vec){
-  
-  double u = 0.0;
-  arma::uword pred_ind = 0;
-  
-  // Overflow handling and convert from logs
-  my_vec = exp(my_vec - max(my_vec));
-  
-  // Normalise the vector
-  my_vec = my_vec / sum(my_vec);
-  
-  // Sample from uniform distribution to select which value to use
-  u = arma::randu<double>( );
-  
-  // include + 1 if labels begin at 1
-  pred_ind = sum(u > cumsum(my_vec));
-  
-  return pred_ind;
-  
-}
+// Uses gaussian_clusters.cpp for PredictIndex
+
+// arma::uword PredictIndex(arma::vec my_vec){
+//   
+//   double u = 0.0;
+//   arma::uword pred_ind = 0;
+//   
+//   // Overflow handling and convert from logs
+//   my_vec = exp(my_vec - max(my_vec));
+//   
+//   // Normalise the vector
+//   my_vec = my_vec / sum(my_vec);
+//   
+//   // Sample from uniform distribution to select which value to use
+//   u = arma::randu<double>( );
+//   
+//   // include + 1 if labels begin at 1
+//   pred_ind = sum(u > cumsum(my_vec));
+//   
+//   return pred_ind;
+//   
+// }
 
 // The posterior for a gamma distribution
 arma::vec gamma_posterior(arma::vec concentration_0,
@@ -288,7 +290,7 @@ double sample_phi(arma::uvec cl_1,
     prob_vec = phi_weights(count_same_cluster, a_0, b);
     
     // Predict which to use based on prob_vec
-    pred_ind = predict_ind(prob_vec);
+    pred_ind = PredictIndex(prob_vec);
     
     // Sample phi
     phi = arma::randg( arma::distr_param(pred_ind + a_0, 1.0/b) );

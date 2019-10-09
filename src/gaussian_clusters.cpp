@@ -7,7 +7,7 @@
 using namespace Rcpp ;
 
 // Returns the normal distribution log-likelihood
-double normal_likelihood(arma::vec point,
+double CalcNormalLikelihood(arma::vec point,
                          arma::vec mu,
                          arma::mat variance,
                          arma::uword d){
@@ -31,7 +31,7 @@ double normal_likelihood(arma::vec point,
 
 // For k classes returns a k-vector of probabilities for point to belong to said
 // classes
-arma::vec sample_gaussian_cluster(arma::vec point,
+arma::vec SampleGaussianMembership(arma::vec point,
                                   arma::mat data,
                                   arma::uword k,
                                   arma::vec class_weights,
@@ -50,12 +50,33 @@ arma::vec sample_gaussian_cluster(arma::vec point,
   for(arma::uword i = 0; i < k; i++){
     curr_weight = log(class_weights(i));
     
-    log_likelihood = normal_likelihood(point, 
-                                       mu.col(i),
-                                       variance.slice(i),
-                                       d);
+    log_likelihood = CalcNormalLikelihood(point, 
+                                          mu.col(i),
+                                          variance.slice(i),
+                                          d);
     
     prob_vec(i) = curr_weight + log_likelihood;
   } 
   return prob_vec;
+}
+
+arma::uword PredictIndex(arma::vec my_vec){
+  
+  double u = 0.0;
+  arma::uword pred_ind = 0;
+  
+  // Overflow handling and convert from logs
+  my_vec = exp(my_vec - max(my_vec));
+  
+  // Normalise the vector
+  my_vec = my_vec / sum(my_vec);
+  
+  // Sample from uniform distribution to select which value to use
+  u = arma::randu<double>( );
+  
+  // include + 1 if labels begin at 1
+  pred_ind = sum(u > cumsum(my_vec));
+  
+  return pred_ind;
+  
 }

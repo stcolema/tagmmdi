@@ -9,7 +9,7 @@ using namespace Rcpp ;
 // Compares how similar two points are with regards to their clustering across 
 // all iterations.
 // Works for unsupervised methods (i.e. allows label flipping)
-double point_similarity(arma::uword point, 
+double CalcPointSimilarity(arma::uword point, 
                         arma::uword comparison_point,
                         arma::umat cluster_record,
                         arma::uword num_iter) {
@@ -38,7 +38,7 @@ double point_similarity(arma::uword point,
 // Constructs a similarity matrix comparing all points clustering across the 
 // iterations
 // [[Rcpp::export]]
-arma::mat similarity_mat(arma::umat cluster_record){
+arma::mat CreateSimilarityMat(arma::umat cluster_record){
   
   // Sample size
   arma::uword n = cluster_record.n_rows;
@@ -55,7 +55,7 @@ arma::mat similarity_mat(arma::umat cluster_record){
   // entry
   for (arma::uword i = 0; i < n - 1; i++){ 
     for (arma::uword j = i + 1; j < n; j++){
-      out(i, j) = point_similarity(i, j, cluster_record, n_iter);
+      out(i, j) = CalcPointSimilarity(i, j, cluster_record, n_iter);
       out(j, i) = out(i, j);
     }
   }
