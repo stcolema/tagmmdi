@@ -390,3 +390,45 @@ arma::vec SampleMDIGaussClustProbs(arma::uword row_index,
   
   return prob_vec;
 }
+
+
+
+// In a vector changes all values of ``label_1'' to ``label_2'' and vice versa
+arma::uvec swap_labels(arma::uvec cluster_labels, 
+                       arma::uword label_1, 
+                       arma::uword label_2){
+  
+  arma::uvec label_1_ind = find(cluster_labels == label_1);
+  arma::uvec label_2_ind = find(cluster_labels == label_2);
+  
+  cluster_labels.elem(label_1_ind).fill(label_2);
+  cluster_labels.elem(label_2_ind).fill(label_1);
+  return cluster_labels;
+}
+
+// Swap cluster weights
+arma::vec swap_cluster_weights(arma::vec cluster_weights,
+                               arma::uword label_1, 
+                               arma::uword label_2){
+  
+  arma::vec decoy_weights = cluster_weights;
+  
+  cluster_weights(label_1) = decoy_weights(label_2);
+  cluster_weights(label_2) = decoy_weights(label_1);
+  
+  return cluster_weights;
+}
+
+double comp(arma::uword n,
+            double context_similarity,
+            arma::uvec cluster_labels_1,
+            arma::uvec cluster_labels_2){
+  
+  double score = 0.0;
+  
+  for(arma::uword i = 0; i < n; i++){
+    score += log(1 + context_similarity * (cluster_labels_1(i) == cluster_labels_2(i)));
+  }
+  
+  return score;
+}
