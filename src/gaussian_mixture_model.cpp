@@ -40,6 +40,8 @@ Rcpp::List GaussianClustering(arma::uword num_iter,
   arma::uword record_ind = 0;
   arma::uword predicted_outlier = 0;
   arma::uword predicted_class = 0;
+  arma::uword cpp_class_start = 0;
+  arma::uword r_class_start = 1;
   double b = 0.0;
   double outlier_weight = 0.0;
   double non_outlier_weight = 0.0;
@@ -100,40 +102,43 @@ Rcpp::List GaussianClustering(arma::uword num_iter,
   // is 1 - outlier_prob)
   outlier_prob.zeros();
   
-  for(arma::uword i = 0; i < num_iter; i++){
+  for(arma::uword ii = 0; ii < num_iter; ii++){
     
     // To see which points are relevant for defining component parameters
     // use pairwise multiplication between the current label and the outlier
     rel_labels = class_labels % (1 - outlier_vec);
     
     // Update class weights
-    class_weights = SampleDirichletPosterior(concentration_0, class_labels, k);
+    class_weights = SampleDirichletPosterior(concentration_0,
+                                             class_labels, 
+                                             k, 
+                                             r_class_start);
     
     // Calculate the entropy of the current weights
-    entropy_cw(i) = CalcEntropy(class_weights);
+    entropy_cw(ii) = CalcEntropy(class_weights);
     
     // Sample cluster specific parameters
     variance_n = SampleClusterVariance(data,
-                                         rel_labels,
-                                         k,
-                                         nu_0,
-                                         num_cols,
-                                         scale_0,
-                                         lambda_0,
-                                         mu_0);
+                                       rel_labels,
+                                       k,
+                                       nu_0,
+                                       num_cols,
+                                       scale_0,
+                                       lambda_0,
+                                       mu_0);
     
     mu_n = SampleClusterMeans(data,
-                                rel_labels,
-                                k,
-                                num_cols,
-                                variance_n,
-                                lambda_0,
-                                mu_0);
+                              rel_labels,
+                              k,
+                              num_cols,
+                              variance_n,
+                              lambda_0,
+                              mu_0);
     
     // If outliers are allowed calculate the outlier component weight
     if(outlier){
       b = (double) sum(outlier_vec);
-      outlier_weight = sample_beta(b + u, N + v - b);
+      outlier_weight = SampleBetaDistn(b + u, N + v - b);
       non_outlier_weight = 1.0 - outlier_weight;
     }
     
@@ -143,11 +148,11 @@ Rcpp::List GaussianClustering(arma::uword num_iter,
       point = arma::trans(data.row(jj));
       
       cluster_prob = SampleGaussianMembership(point, 
-                                             data,
-                                             k, 
-                                             class_weights, 
-                                             mu_n,
-                                             variance_n
+                                              data,
+                                              k, 
+                                              class_weights, 
+                                              mu_n,
+                                              variance_n
       );
       
       // Predict the label (+1 due to R using a 1:n system rather than 0:(n-1))
@@ -178,8 +183,8 @@ Rcpp::List GaussianClustering(arma::uword num_iter,
     
     
     // Record output
-    if (i >= burn && (i - burn) % thinning == 0) {
-      record_ind = (i - burn) / thinning;
+    if (ii >= burn && (ii - burn) % thinning == 0) {
+      record_ind = (ii - burn) / thinning;
       record.col(record_ind) = class_labels;
       outlier_probs_saved.col(record_ind) = outlier_vec;
       
