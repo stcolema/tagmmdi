@@ -7,6 +7,7 @@
 using namespace Rcpp ;
 
 // Uses gaussian_clusters.cpp for PredictIndex
+// uses categorical_parameters.cpp for calculating the concentration
 
 // arma::uword PredictIndex(arma::vec my_vec){
 //   
@@ -290,7 +291,7 @@ double SampleMDIPhi(arma::uvec cl_1,
     
   } else {
     // Sample from the prior
-    phi = arma::randg( arma::distr_param(a0, 1.0/b) );
+    phi = arma::randg( arma::distr_param(a_0, 1.0/b) );
   }
   
   return phi;
