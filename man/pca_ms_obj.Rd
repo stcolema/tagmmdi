@@ -4,7 +4,7 @@
 \alias{pca_ms_obj}
 \title{PCA MS object}
 \usage{
-pca_ms_obj(MS_object, test_pred, ellipses = FALSE, alpha.ind = 1)
+pca_ms_obj(MS_object, test_pred, ellipses = FALSE, alpha.ind = 1, ...)
 }
 \arguments{
 \item{MS_object}{A dataset from pRolocdata.}

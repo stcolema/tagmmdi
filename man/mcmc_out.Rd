@@ -4,25 +4,31 @@
 \alias{mcmc_out}
 \title{MCMC out}
 \usage{
-mcmc_out(MS_object, labels_0_1 = NULL, args_1 = NULL,
-  cluster_weight_0_1 = NULL, data_2 = NULL, type_1 = "Gaussian",
-  type_2 = "Categorical", cluster_weight_0_2 = 1, args_2 = NULL,
-  labels_0_2 = NULL, n_clust_2 = 50, fix_vec_1 = NULL,
-  fix_vec_2 = NULL, a_0 = 1, b_0 = 0.2, outlier_1 = FALSE,
-  t_df_1 = 4, normalise_1 = FALSE, outlier_2 = FALSE, t_df_2 = 4,
-  normalise_2 = FALSE, record_posteriors = FALSE,
-  save_results = FALSE, overwrite = FALSE, train = NULL,
+mcmc_out(MS_object, fcol = "markers", data_2 = NULL,
+  labels_0_1 = NULL, args_1 = NULL, cluster_weight_0_1 = NULL,
+  type_1 = "Gaussian", type_2 = "Categorical",
+  cluster_weight_0_2 = 1, args_2 = NULL, labels_0_2 = NULL,
+  n_clust_2 = 50, fix_vec_1 = NULL, fix_vec_2 = NULL, a_0 = 1,
+  b_0 = 0.2, outlier_1 = FALSE, t_df_1 = 4, normalise_1 = FALSE,
+  outlier_2 = FALSE, t_df_2 = 4, normalise_2 = FALSE,
+  record_posteriors = TRUE, save_results = FALSE,
+  load_results = FALSE, overwrite = FALSE, train = NULL,
   num_iter = NULL, burn = floor(num_iter/10), thinning = 25,
-  heat_plot = TRUE, main = "heatmap_for_similarity", cluster_row = T,
-  cluster_cols = T, fontsize = 10, fontsize_row = 6,
-  fontsize_col = 6, entropy_plot = TRUE, window_length = min(25,
-  num_iter/5), mean_tolerance = 5e-04, sd_tolerance = 5e-04,
-  sense_check_map = TRUE,
+  heat_plot = TRUE, heat_plot_2 = FALSE,
+  main = "heatmap_for_similarity", cluster_row = T, cluster_cols = T,
+  fontsize = 10, fontsize_row = 6, fontsize_col = 6,
+  entropy_plot = TRUE, window_length = min(25, num_iter/5),
+  mean_tolerance = 5e-04, sd_tolerance = 5e-04,
+  sense_check_map = TRUE, sense_check_map_2 = FALSE,
   sense_check_main = "component_level_clustering",
-  prediction_threshold = 0.5)
+  prediction_threshold = 0.5, verbose = FALSE)
 }
 \arguments{
 \item{MS_object}{A dataset in the format used by pRolocdata.}
+
+\item{data_2}{Second dataset for MDI. Either a matrix of continuous data,
+categorical data or NULL (in which case MDI is not used).
+Default is NULL in which case a generic mixture of Gaussians is used.}
 
 \item{labels_0_1}{An optional prior for clusters in MS_object. If NULL
 defaults to a randomly generated set using the proportion in the labelled
@@ -34,10 +40,6 @@ the function gaussian_arguments or categorical arguments.}
 
 \item{cluster_weight_0_1}{The prior for dirichlet distribution of cluster
 weights.}
-
-\item{data_2}{Second dataset for MDI. Either a matrix of continuous data,
-categorical data or NULL (in which case MDI is not used).
-Default is NULL in which case a generic mixture of Gaussians is used.}
 
 \item{type_1}{String denoting the type of data in MS_object. One of
 "Gaussian" or "Categorical" (shorthand "G" and "C" also suffice). Default is
@@ -97,7 +99,7 @@ dataset 2 (default is false).}
 
 \item{record_posteriors}{A bool instructing the mcmc function to record the
 posterior distributions of the mean and variance for each cluster
-(default is FALSE)}
+(default is TRUE)}
 
 \item{save_results}{Bool instructing program to save results to file. Default
 is FALSE.}

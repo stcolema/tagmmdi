@@ -5,7 +5,8 @@
 \title{Output folders}
 \usage{
 output_folders(n_clust_1, n_clust_2, save_results = TRUE,
-  overwrite = FALSE, type_1 = "Gaussian", type_2 = "Categorical")
+  load_results = FALSE, overwrite = FALSE, type_1 = "Gaussian",
+  type_2 = "Categorical")
 }
 \arguments{
 \item{n_clust_1}{An integer. The number of clusters in the first dataset.}
