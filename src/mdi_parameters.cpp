@@ -298,7 +298,7 @@ double CalcNormalisingConst(arma::vec cl_wgts_1,
 
 // Sample the cluster membership of a categorical sample for MDI
 // Old name: mdi_cat_clust_prob
-arma::vec SampleMDICatClust_prob(arma::uword row_index,
+arma::vec SampleMDICatClustProb(arma::uword row_index,
                              arma::umat data,
                              arma::field<arma::mat> class_probs,
                              arma::uword num_clusters,
@@ -394,9 +394,10 @@ arma::vec SampleMDIGaussClustProbs(arma::uword row_index,
 
 
 // In a vector changes all values of ``label_1'' to ``label_2'' and vice versa
-arma::uvec swap_labels(arma::uvec cluster_labels, 
-                       arma::uword label_1, 
-                       arma::uword label_2){
+// Old name: swap_labels
+arma::uvec SwapLabels(arma::uvec cluster_labels, 
+                      arma::uword label_1, 
+                      arma::uword label_2){
   
   arma::uvec label_1_ind = find(cluster_labels == label_1);
   arma::uvec label_2_ind = find(cluster_labels == label_2);
@@ -407,7 +408,8 @@ arma::uvec swap_labels(arma::uvec cluster_labels,
 }
 
 // Swap cluster weights
-arma::vec swap_cluster_weights(arma::vec cluster_weights,
+// Old name: swap_cluster_weights
+arma::vec SwapClusterWeights(arma::vec cluster_weights,
                                arma::uword label_1, 
                                arma::uword label_2){
   
@@ -419,10 +421,14 @@ arma::vec swap_cluster_weights(arma::vec cluster_weights,
   return cluster_weights;
 }
 
-double comp(arma::uword n,
-            double context_similarity,
-            arma::uvec cluster_labels_1,
-            arma::uvec cluster_labels_2){
+
+// This calculates a score for a labelling. This is to allow comparison of the
+// current labelling to an updated labelling (i.e. to enable label flipping).
+// Old name: comp
+double CalcLabellingScore(arma::uword n,
+                          double context_similarity,
+                          arma::uvec cluster_labels_1,
+                          arma::uvec cluster_labels_2){
   
   double score = 0.0;
   
@@ -431,4 +437,105 @@ double comp(arma::uword n,
   }
   
   return score;
+}
+
+
+//  Have to create a function for label swapping
+// This will involve comparing likelihoods with and without swap and then 
+// a rejection method
+
+// will have to re-order cluster weights vector for dataset 2; easiest to record
+// which classes flip and hence the index of the gammas which have to swap
+// to generate a vector of the indices use: 
+// std::vector<int> v(100) ; // vector with 100 ints.
+// std::iota (std::begin(v), std::end(v), 0);
+// 
+// Will compare improvement in context similarity if cat_cluster_label(j) changed
+// to associating with cont_cluster_label(i) and then record swapping of (j) and 
+// (i) in the cluster labels in context 2 and the change in the gamma vector
+// Old name: cluster_label_update
+arma::vec UpdateClusterLabels(arma::uvec cluster_labels_1,
+                               arma::uvec cluster_labels_2,
+                               arma::vec cluster_weights_1,
+                               arma::vec cluster_weights_2,
+                               arma::uword num_clusters_1,
+                               arma::uword num_clusters_2,
+                               double phi,
+                               arma::uword min_num_clusters,
+                               double v,
+                               arma::uword n,
+                               double a0,
+                               double b0,
+                               double Z){
+  
+  arma::uword new_pos = 0;
+  double log_accept = 0.0;
+  double accept = 0.0;
+  double old_score = 0.0;
+  double new_score = 0.0;
+  arma::uvec new_labels(n);
+  arma::vec new_weights(num_clusters_2);
+
+  old_score = CalcLabellingScore(n, phi, cluster_labels_1, cluster_labels_2);
+  
+  
+  // Should this be bound as the min_num_clusters or min_num_clusters - 1?
+  for(arma::uword i = 0; i < num_clusters_2; i++){
+    
+    // Generate a new position not equal to i
+    // multiply a random number from [0,1] by the upper bound of i less 1
+    // this less 1 is used so that if we equal i we can add 1 and treat all
+    // cases similarly (otherwise we would be biasing the result towards i + 1)
+    // Should it be "- 2" rather than "- 1"? Due to C++'s method of accessing
+    // elements and the +1 to avoid selecting the same position as i, I think we
+    // need to use "- 2".
+    new_pos = floor(arma::randu<double>( ) * (num_clusters_2 - 1));
+    
+    if(new_pos >= i){
+      new_pos++;
+    }
+    
+    new_labels = SwapLabels(cluster_labels_2, i + 1, new_pos + 1);
+    
+    new_weights = SwapClusterWeights(cluster_weights_2, i, new_pos);
+    
+    new_score = CalcLabellingScore(n, phi, cluster_labels_1, new_labels);
+    
+    log_accept = new_score - old_score;
+    
+    accept = 1.0;
+    
+    if(log_accept < 0){
+      accept = exp(log_accept);
+    }
+    
+    if(arma::randu<double>( ) < accept){
+      cluster_labels_2 = new_labels;
+      cluster_weights_2 = new_weights;
+      
+      old_score = CalcLabellingScore(n, phi, cluster_labels_1, cluster_labels_2);
+      
+    }
+  }
+  
+  arma::vec output = arma::zeros<arma::vec>(n + num_clusters_2 + 1);
+  output.subvec(0, n - 1) = arma::conv_to<arma::vec>::from(cluster_labels_2);
+  
+  output.subvec(n, n + num_clusters_2 - 1) = cluster_weights_2;
+  output(n + num_clusters_2) = phi;
+  return output;
+}
+
+// Predicts the cluster assignments based on a vector of probabilities using
+// the rejection method
+// Old name: cluster_predictor
+// [[Rcpp::export]]
+arma::uword PredictClusterMembership(arma::vec probabilities){
+  double u;
+  arma::uword pred;
+  u = arma::randu<double>( );
+  
+  // include + 1 if labels centred on 1
+  pred = 1 + sum(u > cumsum(probabilities)); 
+  return pred;
 }
