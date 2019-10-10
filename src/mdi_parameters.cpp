@@ -347,3 +347,45 @@ arma::vec SampleMDICatClust_prob(arma::uword row_index,
   return prob_vec;
 }
 
+// sample calculate probabilties for cluster allocation in the gaussian data in 
+// MDI (hence the presence of the context similarity parameter)
+// Old name: mdi_gauss_clust_probs
+arma::vec SampleMDIGaussClustProbs(arma::uword row_index,
+                                arma::mat data,
+                                arma::uword k,
+                                arma::mat mu,
+                                arma::cube variance,
+                                double context_similarity,
+                                arma::vec cluster_weights,
+                                arma::uvec cluster_labels,
+                                arma::uvec cluster_labels_comp){
+  
+  arma::uword d = data.n_cols;
+  arma::uword common_cluster = 0;
+  double curr_weight = 0.0;
+  double log_likelihood = 0.0;
+  double similarity_upweight = 0.0; // Upweight for similarity of contexts
+  arma::uvec count_probs;
+  arma::vec prob_vec(k);
+  arma::vec point = arma::trans(data.row(row_index));
+  
+  common_cluster = 1 * (cluster_labels(row_index) == cluster_labels_comp(row_index));
+  
+  for(arma::uword i = 0; i < k ; i++){
+    curr_weight = log(cluster_weights(i));
+    
+    // If in the cluster that the point is in in the comparison context, upweight
+    if((i + 1) == cluster_labels(row_index)){
+      similarity_upweight = log(1 + context_similarity * common_cluster);
+    }
+    
+    log_likelihood = CalcNormalLikelihood(point, mu.col(i), variance.slice(i), d);
+    
+    prob_vec(i) = curr_weight + log_likelihood + similarity_upweight;
+    
+    similarity_upweight = 0.0;
+    
+  }
+  
+  return prob_vec;
+}
