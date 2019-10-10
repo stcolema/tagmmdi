@@ -383,6 +383,7 @@ arma::vec SampleMDIGaussClustProbs(arma::uword row_index,
     
     prob_vec(i) = curr_weight + log_likelihood + similarity_upweight;
     
+    // This is reset to 0 for the next iteration
     similarity_upweight = 0.0;
     
   }
