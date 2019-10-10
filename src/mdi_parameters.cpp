@@ -338,11 +338,11 @@ arma::vec SampleMDICatClustProb(arma::uword row_index,
     prob_vec(i) = curr_weight + prob_vec(i) + similarity_upweight;
   }
   
-  // to handle overflowing
-  prob_vec = exp(prob_vec - max(prob_vec));
-  
-  // normalise
-  prob_vec = prob_vec / sum(prob_vec);
+  // // to handle overflowing
+  // prob_vec = exp(prob_vec - max(prob_vec));
+  // 
+  // // normalise
+  // prob_vec = prob_vec / sum(prob_vec);
   
   return prob_vec;
 }

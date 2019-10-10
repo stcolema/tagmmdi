@@ -46,9 +46,7 @@ double CalcTdistnLikelihood(arma::vec point,
 double SampleBetaDistn(double a, double b, double theta = 1.0){
   double X = arma::randg( arma::distr_param(a, 1/theta) );
   double Y = arma::randg( arma::distr_param(b, 1/theta) );
-  
   double beta = X / (double)(X + Y);
-  
   return beta;
 }
 
@@ -61,12 +59,10 @@ double SampleOutlier(arma::vec point,
                       arma::mat global_variance,
                       double t_df = 4.0){
   
-  double log_likelihood = 0.0;
-  // double class_weight = 0.0;
-  double prob = 0.0;
-  
   arma::uword n = data.n_rows;
   arma::uword d = data.n_cols;
+  double log_likelihood = 0.0;
+  double prob = 0.0;
   
   // The probability of belonging to the outlier class
   log_likelihood = t_likelihood(point, global_mean, global_variance, d, t_df);

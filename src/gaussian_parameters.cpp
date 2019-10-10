@@ -96,29 +96,17 @@ arma::mat SampleVariancePosterior(int df_0,
                                   double lambda,
                                   arma::vec mu_0,
                                   arma::mat data
-){
+) {
   
-  // The sample size
-  int n = data.n_rows;
   
-  // The dimension of the data
-  int d = data.n_cols;
-
-  // Declare the degrees of freedom and scale parameters, initially setting to
-  // the prior values (in case n = 0 and there's no update to our belief about 
-  // them)
-  double df_n = df_0;
-  arma::mat scale_n(d, d) = scale_0;
-  
-  // Declare the vairables entirely dependent upon some points being assigned to 
-  // the cluster
+  int n = data.n_rows; // The sample size
+  int d = data.n_cols; // The dimension of the data
+  double df_n = df_0; // the degrees of freedom
+  arma::mat scale_n(d, d) = scale_0; // the scale
   arma::vec sample_mean(d);
   arma::mat sample_cov(d, d);
-  
-  // Declare the output variable, the variance matrix
-  arma::mat variance(d, d);
+  arma::mat variance(d, d); // the output variable, the variance matrix
   variance.zeros();
-  // scale_n = scale_0;
   
   // if any points belong to this data update the priors
   if(n > 0){
@@ -149,23 +137,23 @@ arma::mat SampleVariancePosterior(int df_0,
 
 // sample from the mean posterior
 arma::vec SampleMeanPosterior(arma::vec mu_0,
-                         arma::mat variance,
-                         double lambda_0,
-                         arma::mat data){
+                              arma::mat variance,
+                              double lambda_0,
+                              arma::mat data
+) {
   
+  arma::uword n = data.n_rows;
   arma::uword n_col = data.n_cols;
+  double lambda_n = lambda_0 + n;
   arma::vec sample_mean = arma::zeros<arma::vec>(n_col);
   arma::vec mu_out = arma::zeros<arma::vec>(n_col);
   arma::vec mu_n = arma::zeros<arma::vec>(n_col);
   arma::mat variance_n = arma::zeros<arma::mat>(n_col, n_col);
-  arma::uword n = data.n_rows;
   
-  if (n > 0){
+  
+  if (n > 0) {
     sample_mean = trans(arma::mean(data, 0));
   }
-  
-  // The lambda hyperparameter posterior value
-  double lambda_n = lambda_0 + n;
   
   // Update mean hyperparameter
   mu_n = CalcMun(lambda_0, mu_0, n, n_col, sample_mean);
@@ -178,7 +166,6 @@ arma::vec SampleMeanPosterior(arma::vec mu_0,
   mu_out = x.col(0);
   
   return mu_out;
-  
 }
 
 
@@ -191,13 +178,11 @@ arma::cube SampleClusterVariance(arma::mat data,
                                    arma::uword num_cols,
                                    arma::mat scale_0,
                                    double lambda_0,
-                                   arma::vec mu_0){
+                                   arma::vec mu_0
+) {
   
-  // A matrix to hold the data specific to a given cluster
-  arma::mat cluster_data;
-  
-  // The cube that will hold the k cluster-specific variance matrices
-  arma::cube variance(num_cols, num_cols, k);
+  arma::mat cluster_data; // the data specific to a given cluster
+  arma::cube variance(num_cols, num_cols, k); // holds the k cluster-specific variance matrices
   variance.zeros();
   
   // sample the variance for each cluster
@@ -223,9 +208,9 @@ arma::mat SampleClusterMeans(arma::mat data,
                                arma::uword num_cols,
                                arma::cube variance,
                                double lambda_0,
-                               arma::vec mu_0){
+                               arma::vec mu_0
+) {
   arma::mat cluster_data;
-  
   arma::mat mu(num_cols, k);
   mu.zeros();
   
@@ -250,24 +235,23 @@ arma::field<arma::cube> SampleGaussParams(arma::mat data,
                                             arma::uword num_cols,
                                             arma::mat scale_0,
                                             double lambda_0,
-                                            arma::vec mu_0){
+                                            arma::vec mu_0
+) {
   arma::mat cluster_data;
   arma::mat variance(num_cols, num_cols);
   arma::vec mu(num_cols);
-  
-  arma::field<arma::cube> mean_variance_field(2);
-  
+  arma::vec curr_mean(num_cols);
   arma::cube var_entry = arma::zeros<arma::cube>(num_cols, num_cols, k);
   arma::cube mu_entry = arma::zeros<arma::cube>(num_cols, 1, k);
+  arma::field<arma::cube> mean_variance_field(2);
   
   mean_variance_field(0) = var_entry;
   mean_variance_field(1) = mu_entry;
   
-  arma::vec curr_mean(num_cols);
   curr_mean.zeros();
   
   for (arma::uword j = 1; j < k + 1; j++) {
-    cluster_data = data.rows(find(cluster_labels == j ));
+    cluster_data = data.rows(find(cluster_labels == j ) );
     
     mean_variance_field(0).slice(j - 1) = SampleVariancePosterior(
       df_0,
@@ -278,9 +262,10 @@ arma::field<arma::cube> SampleGaussParams(arma::mat data,
     );
     
     curr_mean = SampleMeanPosterior(mu_0, 
-                               mean_variance_field(0).slice(j - 1), 
-                               lambda_0,
-                               cluster_data);
+                                    mean_variance_field(0).slice(j - 1), 
+                                    lambda_0,
+                                    cluster_data
+    );
     
     
     mean_variance_field(1).slice(j - 1) = curr_mean;
