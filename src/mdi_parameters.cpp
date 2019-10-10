@@ -9,27 +9,6 @@ using namespace Rcpp ;
 // Uses gaussian_clusters.cpp for PredictIndex
 // uses categorical_parameters.cpp for calculating the concentration
 
-// arma::uword PredictIndex(arma::vec my_vec){
-//   
-//   double u = 0.0;
-//   arma::uword pred_ind = 0;
-//   
-//   // Overflow handling and convert from logs
-//   my_vec = exp(my_vec - max(my_vec));
-//   
-//   // Normalise the vector
-//   my_vec = my_vec / sum(my_vec);
-//   
-//   // Sample from uniform distribution to select which value to use
-//   u = arma::randu<double>( );
-//   
-//   // include + 1 if labels begin at 1
-//   pred_ind = sum(u > cumsum(my_vec));
-//   
-//   return pred_ind;
-//   
-// }
-
 // The posterior for a gamma distribution
 // Old name: gamma_posterior
 arma::vec SampleGammaPosterior(arma::vec concentration_0,
