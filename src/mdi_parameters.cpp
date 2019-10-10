@@ -294,3 +294,56 @@ double CalcNormalisingConst(arma::vec cl_wgts_1,
   }
   return Z;
 }
+
+
+// Sample the cluster membership of a categorical sample for MDI
+// Old name: mdi_cat_clust_prob
+arma::vec SampleMDICatClust_prob(arma::uword row_index,
+                             arma::umat data,
+                             arma::field<arma::mat> class_probs,
+                             arma::uword num_clusters,
+                             arma::uword num_cols_cat,
+                             double phi,
+                             arma::vec cluster_weights_categorical,
+                             arma::uvec clust_labels,
+                             arma::uvec clust_labels_comp){
+  
+  // cluster_labels_comparison is the labels of the data in the other context
+  arma::uword common_cluster = 0;
+  double curr_weight = 0.0;
+  double similarity_upweight = 0.0; // Upweight for similarity of contexts
+  arma::urowvec point = data.row(row_index);
+  arma::vec prob_vec = arma::zeros<arma::vec>(num_clusters);
+  
+  for(arma::uword i = 0; i < num_clusters; i++){
+    
+    // calculate the log-weights for the context specific cluster and the across
+    // context similarity
+    // pretty much this is the product of probabilities possibly up-weighted by
+    // being in the same cluster in a different context and weighted by the cluster
+    // weight in the current context
+    curr_weight = log(cluster_weights_categorical(i));
+    
+    // Check if in the same cluster in both contexts
+    common_cluster = 1 * (clust_labels_comp(row_index) == clust_labels(row_index));
+    
+    similarity_upweight = log(1 + phi * common_cluster);
+    
+    for(arma::uword j = 0; j < num_cols_cat; j++){
+      
+      prob_vec(i) = prob_vec(i) + std::log(class_probs(j)(i, point(j)));
+    }
+    
+    // As logs can sum rather than multiply the components
+    prob_vec(i) = curr_weight + prob_vec(i) + similarity_upweight;
+  }
+  
+  // to handle overflowing
+  prob_vec = exp(prob_vec - max(prob_vec));
+  
+  // normalise
+  prob_vec = prob_vec / sum(prob_vec);
+  
+  return prob_vec;
+}
+
