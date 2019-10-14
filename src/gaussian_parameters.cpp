@@ -8,12 +8,22 @@ using namespace Rcpp ;
 
 // --- Hyperparameters ---------------------------------------------------------
 
-// Returns a variable involved in updating the scale, it is similar to sample 
-// covariance
+//' Returns a variable involved in updating the scale, it is similar to sample 
+//' covariance
+//' 
+//' @param data Data in matrix format
+//' @param sample_mean Sample mean for data
+//' @param n The number of samples in data
+//' @param n_col The number of columns in data
+//' 
+//' @return One of the parameters required to calculate the posterior of the
+//'  Multivariate normal with uknown mena and covariance (the unnormalised 
+//'  sample covariance).
 arma::mat CalcSn(arma::mat data,
-              arma::vec sample_mean,
-              arma::uword n,
-              arma::uword n_col){
+                 arma::vec sample_mean,
+                 arma::uword n,
+                 arma::uword n_col
+) {
   
   arma::mat sample_covariance = arma::zeros<arma::mat>(n_col, n_col);
   // sample_covariance.zeros();
@@ -26,12 +36,21 @@ arma::mat CalcSn(arma::mat data,
   return sample_covariance;
 }
 
-// Returns a vector of the mean of a cluster of size n
+//' Returns a vector of the mean of a cluster of size n
+//' 
+//' @param lambda_0 The prior on the shrinkage of the variance estimated from 
+//' the Inverse Wishart as the variance of the mean parameter.
+//' @param mu_0 The prior on the mean.
+//' @param n The number of samples in the pertinent dataset.
+//' @param n_col The number of columns in the pertinent dataset.
+//' @param sample_mean The sample mean of the pertinent dataset.
+//' 
+//' @return The updated values of the mean parameter for the Multivariate Normal.
 arma::vec CalcMun(double lambda_0,
-                    arma::vec mu_0,
-                    arma::uword n,
-                    arma::uword n_col,
-                    arma::vec sample_mean){
+                  arma::vec mu_0,
+                  arma::uword n,
+                  arma::uword n_col,
+                  arma::vec sample_mean){
     
   arma::vec mu_n(n_col);
   
@@ -40,13 +59,23 @@ arma::vec CalcMun(double lambda_0,
 }
 
 // Returns the matrix for the scale hyperparameter for n observations
+//' @param scale_0 The prior on the scale parameter of the Inverse Wishart 
+//' distribution.
+//' @param sample_cov The sample covariance of the pertinent dataset.
+//' @param lambda The prior on the shrinkage of the variance.
+//' @param n The number of pobservations in the pertinent dataset.
+//' @param sample_mean The sample mean from the pertinent dataset.
+//' @param mu_0 The prior on the mean parameter.
+//' @param d The number of columns in the dataset used.
+//' 
+//' @return The updated scale parameter.
 arma::mat CalcScalen(arma::mat scale_0, 
-                       arma::mat sample_cov, 
-                       double lambda, 
-                       int n, 
-                       arma::vec sample_mean, 
-                       arma::vec mu_0,
-                       int d){
+                     arma::mat sample_cov, 
+                     double lambda, 
+                     int n, 
+                     arma::vec sample_mean, 
+                     arma::vec mu_0,
+                     int d){
   
   arma::mat dist_from_prior(d, d);
   arma::mat scale_n(d, d);
@@ -91,7 +120,19 @@ arma::mat CalcScalen(arma::mat scale_0,
 
 // --- Variance and mean posteriors --------------------------------------------
 
-arma::mat SampleVariancePosterior(int df_0,
+//' Function to sample a nxn covariance matrix from the inverse wishart for given 
+//' priors.
+//' 
+//' @param nu_0 The prior on the nu parameter of the inverse Wishart (must be
+//' greater than or equal to the number of columns in the data).
+//' @param scale_0 The prior on the scale parameter of the inverse-Wishart.
+//' @param lambda The prior on the shrinkage on variance of the Normal 
+//' distribution.
+//' @param mu_0 The prior on the mean parameter.
+//' @param data The dataset updating our belief of the variance.
+//' 
+//' @return A covariance matrix sampled from the posterior distribution.
+arma::mat SampleVariancePosterior(int nu_0,
                                   arma::mat scale_0,
                                   double lambda,
                                   arma::vec mu_0,
@@ -101,7 +142,7 @@ arma::mat SampleVariancePosterior(int df_0,
   
   int n = data.n_rows; // The sample size
   int d = data.n_cols; // The dimension of the data
-  double df_n = df_0; // the degrees of freedom
+  double df_n = nu_0; // the degrees of freedom
   arma::mat scale_n(d, d) = scale_0; // the scale
   arma::vec sample_mean(d);
   arma::mat sample_cov(d, d);
@@ -135,7 +176,14 @@ arma::mat SampleVariancePosterior(int df_0,
   return variance;
 }
 
-// sample from the mean posterior
+//' Function sampling from the mean posterior.
+//' 
+//' @param mu_0 Prior on the mean parameter.
+//' @param variance The covariance matrix for the Multivariate normal distribution (sampled from the inverse-Wishart).
+//' @param lambda_0 Prior on the shrinkage applied to the variance parameter.
+//' @param data The data used to update our prior.
+//' 
+//' @return A mean vector sampled from the posterior distribution.
 arma::vec SampleMeanPosterior(arma::vec mu_0,
                               arma::mat variance,
                               double lambda_0,
@@ -169,16 +217,28 @@ arma::vec SampleMeanPosterior(arma::vec mu_0,
 }
 
 
-// Returns a 2-D field of cubes (i.e. a 5D object) for the current iterations 
-// means and variances across each cluster (hence a field)
+//' Returns a 2-D field of cubes (i.e. a 5D object) for the current iterations 
+//' means and variances across each cluster (hence a field)
+//' 
+//' @param data The entrie dataset.
+//' @param cluster_labels Binary vector of cluster labels with the ith entry 
+//' corresponding to the membership of the ith observation in data.
+//' @param k The maximum number of clusters allowed.
+//' @param nu_0 The prior on the nu parameter for the inverse-Wishart.
+//' @param num_cols The number of columns in data.
+//' @param scale_0 The prior on the sclae parameter. A positive definite matrix.
+//' @param mu_0 The prior on the mean parameter.
+//' 
+//' @return A cube of covariance matrices sampled from the posterior 
+//' distribution for each cluster within the data.
 arma::cube SampleClusterVariance(arma::mat data,
-                                   arma::uvec cluster_labels,
-                                   arma::uword k,
-                                   int df_0,
-                                   arma::uword num_cols,
-                                   arma::mat scale_0,
-                                   double lambda_0,
-                                   arma::vec mu_0
+                                 arma::uvec cluster_labels,
+                                 arma::uword k,
+                                 int nu_0,
+                                 arma::uword num_cols,
+                                 arma::mat scale_0,
+                                 double lambda_0,
+                                 arma::vec mu_0
 ) {
   
   arma::mat cluster_data; // the data specific to a given cluster
@@ -191,7 +251,7 @@ arma::cube SampleClusterVariance(arma::mat data,
     cluster_data = data.rows(find(cluster_labels == j ));
     
     variance.slice(j - 1) = SampleVariancePosterior(
-      df_0,
+      nu_0,
       scale_0,
       lambda_0,
       mu_0,
@@ -202,13 +262,29 @@ arma::cube SampleClusterVariance(arma::mat data,
   return variance;
 }
 
+//' Returns a matrix of the sampled means for each cluster within the data. The
+//' means are column vectors within the outputted matrix.
+//' 
+//' @param data Matrix of entire dataset.
+//' @param cluster_labels Vector of membership labels with entries corresponding 
+//' to the data (i.ew. the ith entry is for the observaiton in the ith row of 
+//' data).
+//' @param k The number of clusters present.
+//' @param num_cols The number of columns in the dataset.
+//' @param variance A cube of covaraince matrices with that associated with the
+//' ith cluster in the ith entry.
+//' @param lambda_0 The prior on the shrinkage parameter.
+//' @param mu_0 The prior on the mean parameter.
+//' 
+//' @return A num_cols x k matrix consisting of column vectors of the sampled
+//' means for each cluster.
 arma::mat SampleClusterMeans(arma::mat data,
-                               arma::uvec cluster_labels,
-                               arma::uword k,
-                               arma::uword num_cols,
-                               arma::cube variance,
-                               double lambda_0,
-                               arma::vec mu_0
+                             arma::uvec cluster_labels,
+                             arma::uword k,
+                             arma::uword num_cols,
+                             arma::cube variance,
+                             double lambda_0,
+                             arma::vec mu_0
 ) {
   arma::mat cluster_data;
   arma::mat mu(num_cols, k);
@@ -226,16 +302,31 @@ arma::mat SampleClusterMeans(arma::mat data,
   return mu;
 }
 
-// Returns a 2-D field of cubes (i.e. a 5D object) for the current iterations 
-// means and variances across each cluster (hence a field)
+// I think this function is not ever used.
+//' Returns a 2-D field of cubes (i.e. a 5D object) for the current iterations 
+//' means and variances across each cluster (hence a field)
+//' 
+//' @param data Matrix of the data.
+//' @param cluster_labels Vector of membership labels with entries corresponding 
+//' to the data (i.ew. the ith entry is for the observaiton in the ith row of 
+//' data).
+//' @param k The number of clusters present.
+//' @param nu_0 The prior on the nu parameter for the inverse-Wishart.
+//' @param num_cols The number of columns in the dataset.
+//' @param @param scale_0 The prior on the sclae parameter. A positive definite matrix.
+//' @param lambda_0 The prior on the shrinkage parameter.
+//' @param mu_0 The prior on the mean parameter.
+//' 
+//' @return cube of the mean and covariance sampled from the posterior of each 
+//' cluster.
 arma::field<arma::cube> SampleGaussParams(arma::mat data,
-                                            arma::uvec cluster_labels,
-                                            arma::uword k,
-                                            int df_0,
-                                            arma::uword num_cols,
-                                            arma::mat scale_0,
-                                            double lambda_0,
-                                            arma::vec mu_0
+                                          arma::uvec cluster_labels,
+                                          arma::uword k,
+                                          int nu_0,
+                                          arma::uword num_cols,
+                                          arma::mat scale_0,
+                                          double lambda_0,
+                                          arma::vec mu_0
 ) {
   arma::mat cluster_data;
   arma::mat variance(num_cols, num_cols);
@@ -254,7 +345,7 @@ arma::field<arma::cube> SampleGaussParams(arma::mat data,
     cluster_data = data.rows(find(cluster_labels == j ) );
     
     mean_variance_field(0).slice(j - 1) = SampleVariancePosterior(
-      df_0,
+      nu_0,
       scale_0,
       lambda_0,
       mu_0,

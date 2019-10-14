@@ -6,13 +6,24 @@
 
 using namespace Rcpp ;
 
-// Compares how similar two points are with regards to their clustering across 
-// all iterations.
-// Works for unsupervised methods (i.e. allows label flipping)
+//' Compares how similar two points are with regards to their clustering across 
+//' all iterations. Works for unsupervised methods (i.e. allows label flipping).
+//' 
+//' @param point The index row within cluster_record for the first object.
+//' @param comparison_point The comparison row index from cluster_record.
+//' @param cluster_record A matrix of combined membership column vectors where 
+//' the ijth entry is the membership assigned to the ith person in the jth 
+//' iteration of sampling.
+//' @param num_iter The number of samples recorded.
+//' 
+//' @return A score between 0 and 1 of the fraction of iterations for which the 
+//' objects denoted by the point and comparison_point rows are assigned the same
+//' label.
 double CalcPointSimilarity(arma::uword point, 
-                        arma::uword comparison_point,
-                        arma::umat cluster_record,
-                        arma::uword num_iter) {
+                           arma::uword comparison_point,
+                           arma::umat cluster_record,
+                           arma::uword num_iter
+) {
   
   // Declare objects
   double out = 0.0;
@@ -35,8 +46,14 @@ double CalcPointSimilarity(arma::uword point,
   return out;
 }
 
-// Constructs a similarity matrix comparing all points clustering across the 
-// iterations
+//' Constructs a similarity matrix comparing all points clustering across the 
+//' iterations.
+//' 
+//' @param cluster_record Matrix of label assignment for data across iterations.
+//' 
+//' @return A symmetric n x n matrix (for n rows in cluster record) describing 
+//' the fraction of iterations for which each pairwise combination of points are
+//' assigned the same label.
 // [[Rcpp::export]]
 arma::mat CreateSimilarityMat(arma::umat cluster_record){
   
