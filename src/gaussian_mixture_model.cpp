@@ -1,6 +1,7 @@
 # include <RcppArmadillo.h>
 # include <iostream>
 # include <fstream>
+#include "common_functions.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -28,15 +29,15 @@ Rcpp::List GaussianClustering(arma::uword num_iter,
                               double t_df = 4.0,
                               bool normalise = false,
                               double u = 2,
-                              double v = 10){
-  
+                              double v = 10
+) {
   
   // To allow using < and keeping in line with object sizes
   num_iter++;
   
   arma::uword N = data.n_rows;
   arma::uword num_cols = data.n_cols;
-  arma::uword eff_count = ceil((double)(num_iter - burn) / (double)thinning);
+  arma::uword eff_count = ceil((double) (num_iter - burn) / (double) thinning);
   arma::uword record_ind = 0;
   arma::uword predicted_outlier = 0;
   arma::uword predicted_class = 0;
@@ -102,7 +103,7 @@ Rcpp::List GaussianClustering(arma::uword num_iter,
   // is 1 - outlier_prob)
   outlier_prob.zeros();
   
-  for(arma::uword ii = 0; ii < num_iter; ii++){
+  for(arma::uword ii = 0; ii < num_iter; ii++) {
     
     // To see which points are relevant for defining component parameters
     // use pairwise multiplication between the current label and the outlier
@@ -136,14 +137,14 @@ Rcpp::List GaussianClustering(arma::uword num_iter,
                               mu_0);
     
     // If outliers are allowed calculate the outlier component weight
-    if(outlier){
+    if(outlier) {
       b = (double) sum(outlier_vec);
       outlier_weight = SampleBetaDistn(b + u, N + v - b);
       non_outlier_weight = 1.0 - outlier_weight;
     }
     
     
-    for (arma::uword jj = 0; jj < N; jj++){
+    for (arma::uword jj = 0; jj < N; jj++) {
       // sample class allocation
       point = arma::trans(data.row(jj));
       
@@ -158,7 +159,7 @@ Rcpp::List GaussianClustering(arma::uword num_iter,
       // Predict the label (+1 due to R using a 1:n system rather than 0:(n-1))
       predicted_class = PredictIndex(cluster_prob) + 1; 
       
-      if(outlier){
+      if(outlier) {
         
         // Calculate the probabilities of being an outlier or not
         outlier_prob = CalculateOutlierProb(point, 
@@ -168,14 +169,15 @@ Rcpp::List GaussianClustering(arma::uword num_iter,
                                             t_df,
                                             outlier_weight,
                                             mu_n.col(predicted_class - 1),
-                                            variance_n.slice(predicted_class - 1));
+                                            variance_n.slice(predicted_class - 1)
+                                            );
         
         // Predict membership in the outlier set or not
         predicted_outlier = PredictIndex(outlier_prob);
       }
       
       // If point is not known, update allocation
-      if(fix_vec[jj] == 0){
+      if(fix_vec[jj] == 0) {
         class_labels(jj) = predicted_class;
         outlier_vec(jj) = predicted_outlier;
       }
