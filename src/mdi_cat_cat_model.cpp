@@ -1,6 +1,7 @@
 # include <RcppArmadillo.h>
-# include <iostream>
-# include <fstream>
+// # include <iostream>
+// # include <fstream>
+# include "common_functions.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -86,14 +87,14 @@ Rcpp::List mdi_cat_cat(arma::umat data_1,
   
     // sample cluster weights for the two datasets
     clust_weights_1 = SampleMDIClusterWeights(clust_weight_priors_1,
-                                          rate_0_1,
-                                          v,
-                                          n_clust_1,
-                                          n_clust_2,
-                                          clust_weights_2,
-                                          clust_labels_1,
-                                          clust_labels_2,
-                                          phi);
+                                              rate_0_1,
+                                              v,
+                                              n_clust_1,
+                                              n_clust_2,
+                                              clust_weights_2,
+                                              clust_labels_1,
+                                              clust_labels_2,
+                                              phi);
     
     clust_weights_2 = SampleMDIClusterWeights(clust_weight_priors_2,
                                           rate_0_2,
@@ -129,10 +130,10 @@ Rcpp::List mdi_cat_cat(arma::umat data_1,
     // Calculate the current normalising constant (consider being more clever 
     // about this) 
     Z = CalcNormalisingConst(clust_weights_1,
-                                       clust_weights_2,
-                                       phi,
-                                       n_clust_1,
-                                       n_clust_2);
+                             clust_weights_2,
+                             phi,
+                             n_clust_1,
+                             n_clust_2);
     
     // sample the strategic latent variable, v
     v = arma::randg( arma::distr_param(v_a_0 + n, 1.0/(v_b_0 + Z) ) );
@@ -140,14 +141,14 @@ Rcpp::List mdi_cat_cat(arma::umat data_1,
     // sample the context similarity parameter (as only two contexts this is a
     // single double - number not a drink)
     phi = SampleMDIPhi(clust_labels_1,
-                     clust_labels_2,
-                     clust_weights_1,
-                     clust_weights_2,
-                     v,
-                     n,
-                     min_n_clust,
-                     a_0,
-                     b_0);
+                       clust_labels_2,
+                       clust_weights_1,
+                       clust_weights_2,
+                       v,
+                       n,
+                       min_n_clust,
+                       a_0,
+                       b_0);
     
     // sample 
     for(arma::uword j = 0; j < n; j++){
@@ -156,51 +157,51 @@ Rcpp::List mdi_cat_cat(arma::umat data_1,
       // assignment to each cluster
       
       curr_prob_vec_1 = SampleMDICatClustProb(j, 
-                                           data_1,
-                                           class_prob_1,
-                                           n_clust_1,
-                                           n_cols_1,
-                                           phi,
-                                           clust_weights_1,
-                                           clust_labels_1,
-                                           clust_labels_2);
+                                              data_1,
+                                              class_prob_1,
+                                              n_clust_1,
+                                              n_cols_1,
+                                              phi,
+                                              clust_weights_1,
+                                              clust_labels_1,
+                                              clust_labels_2);
       
       curr_prob_vec_2 = SampleMDICatClustProb(j, 
-                                           data_2,
-                                           class_prob_2,
-                                           n_clust_2,
-                                           n_cols_2,
-                                           phi,
-                                           clust_weights_2,
-                                           clust_labels_2,
-                                           clust_labels_1);
+                                              data_2,
+                                              class_prob_2,
+                                              n_clust_2,
+                                              n_cols_2,
+                                              phi,
+                                              clust_weights_2,
+                                              clust_labels_2,
+                                              clust_labels_1);
       
       // update labels - in gaussian data this is only if the current point is 
       // not fixed
       if(fix_vec_1[j] == 0){
-        clust_labels_1(j) = PredictClusterMembership(curr_prob_vec_1);
+        clust_labels_1(j) = PredictIndex(curr_prob_vec_1) + 1;
       }
       
       if(fix_vec_2[j] == 0){
-        clust_labels_2(j) = PredictClusterMembership(curr_prob_vec_2);
+        clust_labels_2(j) = PredictIndex(curr_prob_vec_2) + 1;
       }
     }
     
     // Update cluster labels in second dataset
     // Return the new labels, weights and similarity in a single vector
     labels_weights_phi = UpdateClusterLabels(clust_labels_1,
-                                              clust_labels_2,
-                                              clust_weights_1,
-                                              clust_weights_2,
-                                              n_clust_1,
-                                              n_clust_2,
-                                              phi,
-                                              min_n_clust,
-                                              v,
-                                              n,
-                                              a_0,
-                                              b_0,
-                                              Z);
+                                             clust_labels_2,
+                                             clust_weights_1,
+                                             clust_weights_2,
+                                             n_clust_1,
+                                             n_clust_2,
+                                             phi,
+                                             min_n_clust,
+                                             v,
+                                             n,
+                                             a_0,
+                                             b_0,
+                                             Z);
     
     // Separate the output into the relevant components
     clust_labels_2 = arma::conv_to<arma::uvec>::from(labels_weights_phi.subvec(0, n - 1));

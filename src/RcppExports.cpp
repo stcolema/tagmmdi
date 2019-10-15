@@ -6,41 +6,6 @@
 
 using namespace Rcpp;
 
-// similarity_mat
-arma::mat similarity_mat(arma::umat cluster_record);
-RcppExport SEXP _tagmmdi_similarity_mat(SEXP cluster_recordSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::umat >::type cluster_record(cluster_recordSEXP);
-    rcpp_result_gen = Rcpp::wrap(similarity_mat(cluster_record));
-    return rcpp_result_gen;
-END_RCPP
-}
-// entropy
-double entropy(arma::vec class_weights);
-RcppExport SEXP _tagmmdi_entropy(SEXP class_weightsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type class_weights(class_weightsSEXP);
-    rcpp_result_gen = Rcpp::wrap(entropy(class_weights));
-    return rcpp_result_gen;
-END_RCPP
-}
-// dirichlet_posterior
-arma::vec dirichlet_posterior(arma::vec concentration_0, arma::uvec cluster_labels, arma::uword num_clusters);
-RcppExport SEXP _tagmmdi_dirichlet_posterior(SEXP concentration_0SEXP, SEXP cluster_labelsSEXP, SEXP num_clustersSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type concentration_0(concentration_0SEXP);
-    Rcpp::traits::input_parameter< arma::uvec >::type cluster_labels(cluster_labelsSEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type num_clusters(num_clustersSEXP);
-    rcpp_result_gen = Rcpp::wrap(dirichlet_posterior(concentration_0, cluster_labels, num_clusters));
-    return rcpp_result_gen;
-END_RCPP
-}
 // cat_counter
 arma::uvec cat_counter(arma::umat data);
 RcppExport SEXP _tagmmdi_cat_counter(SEXP dataSEXP) {
@@ -66,52 +31,25 @@ BEGIN_RCPP
 END_RCPP
 }
 // sample_class_probabilities
-arma::field<arma::mat> sample_class_probabilities(arma::umat data, arma::field<arma::mat> class_probabilities, arma::field<arma::vec> phi_prior, arma::uvec cluster_labels, arma::uvec cat_count, arma::uword num_clusters, arma::uword num_cols);
-RcppExport SEXP _tagmmdi_sample_class_probabilities(SEXP dataSEXP, SEXP class_probabilitiesSEXP, SEXP phi_priorSEXP, SEXP cluster_labelsSEXP, SEXP cat_countSEXP, SEXP num_clustersSEXP, SEXP num_colsSEXP) {
+arma::field<arma::mat> sample_class_probabilities(arma::umat data, arma::field<arma::mat> class_probs, arma::field<arma::vec> phi_prior, arma::uvec cluster_labels, arma::uvec cat_count, arma::uword num_clusters, arma::uword num_cols);
+RcppExport SEXP _tagmmdi_sample_class_probabilities(SEXP dataSEXP, SEXP class_probsSEXP, SEXP phi_priorSEXP, SEXP cluster_labelsSEXP, SEXP cat_countSEXP, SEXP num_clustersSEXP, SEXP num_colsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::umat >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< arma::field<arma::mat> >::type class_probabilities(class_probabilitiesSEXP);
+    Rcpp::traits::input_parameter< arma::field<arma::mat> >::type class_probs(class_probsSEXP);
     Rcpp::traits::input_parameter< arma::field<arma::vec> >::type phi_prior(phi_priorSEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type cluster_labels(cluster_labelsSEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type cat_count(cat_countSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type num_clusters(num_clustersSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type num_cols(num_colsSEXP);
-    rcpp_result_gen = Rcpp::wrap(sample_class_probabilities(data, class_probabilities, phi_prior, cluster_labels, cat_count, num_clusters, num_cols));
+    rcpp_result_gen = Rcpp::wrap(sample_class_probabilities(data, class_probs, phi_prior, cluster_labels, cat_count, num_clusters, num_cols));
     return rcpp_result_gen;
 END_RCPP
 }
-// categorical_cluster_probabilities
-arma::vec categorical_cluster_probabilities(arma::urowvec point, arma::umat data, arma::field<arma::mat> class_probabilities, arma::vec cluster_weights, arma::uword num_clusters, arma::uword num_cols);
-RcppExport SEXP _tagmmdi_categorical_cluster_probabilities(SEXP pointSEXP, SEXP dataSEXP, SEXP class_probabilitiesSEXP, SEXP cluster_weightsSEXP, SEXP num_clustersSEXP, SEXP num_colsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::urowvec >::type point(pointSEXP);
-    Rcpp::traits::input_parameter< arma::umat >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< arma::field<arma::mat> >::type class_probabilities(class_probabilitiesSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type cluster_weights(cluster_weightsSEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type num_clusters(num_clustersSEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type num_cols(num_colsSEXP);
-    rcpp_result_gen = Rcpp::wrap(categorical_cluster_probabilities(point, data, class_probabilities, cluster_weights, num_clusters, num_cols));
-    return rcpp_result_gen;
-END_RCPP
-}
-// cluster_predictor
-arma::uword cluster_predictor(arma::vec probabilities);
-RcppExport SEXP _tagmmdi_cluster_predictor(SEXP probabilitiesSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type probabilities(probabilitiesSEXP);
-    rcpp_result_gen = Rcpp::wrap(cluster_predictor(probabilities));
-    return rcpp_result_gen;
-END_RCPP
-}
-// categorical_clustering
-Rcpp::List categorical_clustering(arma::umat data, arma::field<arma::vec> phi_prior, arma::uvec cluster_labels, arma::uvec fix_vec, arma::vec cluster_weight_priors, arma::uword num_clusters, arma::uword num_iter, arma::uword burn, arma::uword thinning);
-RcppExport SEXP _tagmmdi_categorical_clustering(SEXP dataSEXP, SEXP phi_priorSEXP, SEXP cluster_labelsSEXP, SEXP fix_vecSEXP, SEXP cluster_weight_priorsSEXP, SEXP num_clustersSEXP, SEXP num_iterSEXP, SEXP burnSEXP, SEXP thinningSEXP) {
+// CategoricalClustering
+// Rcpp::List arma::umat CategoricalClustering(arma::umat data, arma::field<arma::vec> phi_prior, arma::uvec cluster_labels, arma::uvec fix_vec, arma::vec cluster_weight_priors, arma::uword num_clusters, arma::uword num_iter, arma::uword burn, arma::uword thinning);
+RcppExport SEXP _tagmmdi_CategoricalClustering(SEXP dataSEXP, SEXP phi_priorSEXP, SEXP cluster_labelsSEXP, SEXP fix_vecSEXP, SEXP cluster_weight_priorsSEXP, SEXP num_clustersSEXP, SEXP num_iterSEXP, SEXP burnSEXP, SEXP thinningSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -124,13 +62,96 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::uword >::type num_iter(num_iterSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type burn(burnSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type thinning(thinningSEXP);
-    rcpp_result_gen = Rcpp::wrap(categorical_clustering(data, phi_prior, cluster_labels, fix_vec, cluster_weight_priors, num_clusters, num_iter, burn, thinning));
+    rcpp_result_gen = Rcpp::wrap(CategoricalClustering(data, phi_prior, cluster_labels, fix_vec, cluster_weight_priors, num_clusters, num_iter, burn, thinning));
     return rcpp_result_gen;
 END_RCPP
 }
-// gaussian_clustering
-Rcpp::List gaussian_clustering(arma::uword num_iter, arma::vec concentration_0, arma::mat scale_0, arma::uvec class_labels, arma::uvec fix_vec, arma::vec mu_0, double lambda_0, arma::mat data, int df_0, arma::uword k, arma::uword burn, arma::uword thinning, bool outlier, double t_df, bool record_posteriors, bool normalise, double u, double v);
-RcppExport SEXP _tagmmdi_gaussian_clustering(SEXP num_iterSEXP, SEXP concentration_0SEXP, SEXP scale_0SEXP, SEXP class_labelsSEXP, SEXP fix_vecSEXP, SEXP mu_0SEXP, SEXP lambda_0SEXP, SEXP dataSEXP, SEXP df_0SEXP, SEXP kSEXP, SEXP burnSEXP, SEXP thinningSEXP, SEXP outlierSEXP, SEXP t_dfSEXP, SEXP record_posteriorsSEXP, SEXP normaliseSEXP, SEXP uSEXP, SEXP vSEXP) {
+// SampleDirichletPosterior
+arma::vec SampleDirichletPosterior(arma::vec concentration_0, arma::uvec cluster_labels, arma::uword n_clusters, arma::uword count_from);
+RcppExport SEXP _tagmmdi_SampleDirichletPosterior(SEXP concentration_0SEXP, SEXP cluster_labelsSEXP, SEXP n_clustersSEXP, SEXP count_fromSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type concentration_0(concentration_0SEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type cluster_labels(cluster_labelsSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type n_clusters(n_clustersSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type count_from(count_fromSEXP);
+    rcpp_result_gen = Rcpp::wrap(SampleDirichletPosterior(concentration_0, cluster_labels, n_clusters, count_from));
+    return rcpp_result_gen;
+END_RCPP
+}
+// CountCatergories
+arma::uvec CountCatergories(arma::umat data);
+RcppExport SEXP _tagmmdi_CountCatergories(SEXP dataSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::umat >::type data(dataSEXP);
+    rcpp_result_gen = Rcpp::wrap(CountCatergories(data));
+    return rcpp_result_gen;
+END_RCPP
+}
+// DeclareClassProbsField
+arma::field<arma::mat> DeclareClassProbsField(arma::uvec cat_count, arma::uword n_col, arma::uword n_clust);
+RcppExport SEXP _tagmmdi_DeclareClassProbsField(SEXP cat_countSEXP, SEXP n_colSEXP, SEXP n_clustSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::uvec >::type cat_count(cat_countSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type n_col(n_colSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type n_clust(n_clustSEXP);
+    rcpp_result_gen = Rcpp::wrap(DeclareClassProbsField(cat_count, n_col, n_clust));
+    return rcpp_result_gen;
+END_RCPP
+}
+// SampleCategoryProbabilities
+arma::field<arma::mat> SampleCategoryProbabilities(arma::umat data, arma::field<arma::mat> class_probs, arma::field<arma::vec> phi_prior, arma::uvec cluster_labels, arma::uvec cat_count, arma::uword n_clust, arma::uword n_col, arma::uword class_start);
+RcppExport SEXP _tagmmdi_SampleCategoryProbabilities(SEXP dataSEXP, SEXP class_probsSEXP, SEXP phi_priorSEXP, SEXP cluster_labelsSEXP, SEXP cat_countSEXP, SEXP n_clustSEXP, SEXP n_colSEXP, SEXP class_startSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::umat >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< arma::field<arma::mat> >::type class_probs(class_probsSEXP);
+    Rcpp::traits::input_parameter< arma::field<arma::vec> >::type phi_prior(phi_priorSEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type cluster_labels(cluster_labelsSEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type cat_count(cat_countSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type n_clust(n_clustSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type n_col(n_colSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type class_start(class_startSEXP);
+    rcpp_result_gen = Rcpp::wrap(SampleCategoryProbabilities(data, class_probs, phi_prior, cluster_labels, cat_count, n_clust, n_col, class_start));
+    return rcpp_result_gen;
+END_RCPP
+}
+// SampleCategoricalDistn
+arma::vec SampleCategoricalDistn(arma::urowvec point, arma::umat data, arma::field<arma::mat> class_probabilities, arma::vec cluster_weights, arma::uword n_clust, arma::uword n_col);
+RcppExport SEXP _tagmmdi_SampleCategoricalDistn(SEXP pointSEXP, SEXP dataSEXP, SEXP class_probabilitiesSEXP, SEXP cluster_weightsSEXP, SEXP n_clustSEXP, SEXP n_colSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::urowvec >::type point(pointSEXP);
+    Rcpp::traits::input_parameter< arma::umat >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< arma::field<arma::mat> >::type class_probabilities(class_probabilitiesSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type cluster_weights(cluster_weightsSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type n_clust(n_clustSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type n_col(n_colSEXP);
+    rcpp_result_gen = Rcpp::wrap(SampleCategoricalDistn(point, data, class_probabilities, cluster_weights, n_clust, n_col));
+    return rcpp_result_gen;
+END_RCPP
+}
+// CalcEntropy
+double CalcEntropy(arma::vec class_weights);
+RcppExport SEXP _tagmmdi_CalcEntropy(SEXP class_weightsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type class_weights(class_weightsSEXP);
+    rcpp_result_gen = Rcpp::wrap(CalcEntropy(class_weights));
+    return rcpp_result_gen;
+END_RCPP
+}
+// GaussianClustering
+Rcpp::List GaussianClustering(arma::uword num_iter, arma::vec concentration_0, arma::mat scale_0, arma::uvec class_labels, arma::uvec fix_vec, arma::vec mu_0, double lambda_0, arma::mat data, int nu_0, arma::uword k, arma::uword burn, arma::uword thinning, bool outlier, double t_df, bool normalise, double u, double v);
+RcppExport SEXP _tagmmdi_GaussianClustering(SEXP num_iterSEXP, SEXP concentration_0SEXP, SEXP scale_0SEXP, SEXP class_labelsSEXP, SEXP fix_vecSEXP, SEXP mu_0SEXP, SEXP lambda_0SEXP, SEXP dataSEXP, SEXP nu_0SEXP, SEXP kSEXP, SEXP burnSEXP, SEXP thinningSEXP, SEXP outlierSEXP, SEXP t_dfSEXP, SEXP normaliseSEXP, SEXP uSEXP, SEXP vSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -142,23 +163,22 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::vec >::type mu_0(mu_0SEXP);
     Rcpp::traits::input_parameter< double >::type lambda_0(lambda_0SEXP);
     Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< int >::type df_0(df_0SEXP);
+    Rcpp::traits::input_parameter< int >::type nu_0(nu_0SEXP);
     Rcpp::traits::input_parameter< arma::uword >::type k(kSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type burn(burnSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type thinning(thinningSEXP);
     Rcpp::traits::input_parameter< bool >::type outlier(outlierSEXP);
     Rcpp::traits::input_parameter< double >::type t_df(t_dfSEXP);
-    Rcpp::traits::input_parameter< bool >::type record_posteriors(record_posteriorsSEXP);
     Rcpp::traits::input_parameter< bool >::type normalise(normaliseSEXP);
     Rcpp::traits::input_parameter< double >::type u(uSEXP);
     Rcpp::traits::input_parameter< double >::type v(vSEXP);
-    rcpp_result_gen = Rcpp::wrap(gaussian_clustering(num_iter, concentration_0, scale_0, class_labels, fix_vec, mu_0, lambda_0, data, df_0, k, burn, thinning, outlier, t_df, record_posteriors, normalise, u, v));
+    rcpp_result_gen = Rcpp::wrap(GaussianClustering(num_iter, concentration_0, scale_0, class_labels, fix_vec, mu_0, lambda_0, data, nu_0, k, burn, thinning, outlier, t_df, normalise, u, v));
     return rcpp_result_gen;
 END_RCPP
 }
 // mdi_cat_cat
-Rcpp::List mdi_cat_cat(arma::umat data_1, arma::umat data_2, arma::field<arma::vec> class_dist_prior_1, arma::field<arma::vec> class_dist_prior_2, arma::vec clust_weight_priors_1, arma::vec clust_weight_priors_2, arma::uvec clust_labels_1, arma::uvec clust_labels_2, arma::uword n_clust_1, arma::uword n_clust_2, arma::uvec fix_vec_1, arma::uvec fix_vec_2, double a0, double b0, arma::uword num_iter, arma::uword burn, arma::uword thinning);
-RcppExport SEXP _tagmmdi_mdi_cat_cat(SEXP data_1SEXP, SEXP data_2SEXP, SEXP class_dist_prior_1SEXP, SEXP class_dist_prior_2SEXP, SEXP clust_weight_priors_1SEXP, SEXP clust_weight_priors_2SEXP, SEXP clust_labels_1SEXP, SEXP clust_labels_2SEXP, SEXP n_clust_1SEXP, SEXP n_clust_2SEXP, SEXP fix_vec_1SEXP, SEXP fix_vec_2SEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP num_iterSEXP, SEXP burnSEXP, SEXP thinningSEXP) {
+Rcpp::List mdi_cat_cat(arma::umat data_1, arma::umat data_2, arma::field<arma::vec> class_dist_prior_1, arma::field<arma::vec> class_dist_prior_2, arma::vec clust_weight_priors_1, arma::vec clust_weight_priors_2, arma::uvec clust_labels_1, arma::uvec clust_labels_2, arma::uword n_clust_1, arma::uword n_clust_2, arma::uvec fix_vec_1, arma::uvec fix_vec_2, double a_0, double b_0, arma::uword num_iter, arma::uword burn, arma::uword thinning);
+RcppExport SEXP _tagmmdi_mdi_cat_cat(SEXP data_1SEXP, SEXP data_2SEXP, SEXP class_dist_prior_1SEXP, SEXP class_dist_prior_2SEXP, SEXP clust_weight_priors_1SEXP, SEXP clust_weight_priors_2SEXP, SEXP clust_labels_1SEXP, SEXP clust_labels_2SEXP, SEXP n_clust_1SEXP, SEXP n_clust_2SEXP, SEXP fix_vec_1SEXP, SEXP fix_vec_2SEXP, SEXP a_0SEXP, SEXP b_0SEXP, SEXP num_iterSEXP, SEXP burnSEXP, SEXP thinningSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -174,59 +194,55 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::uword >::type n_clust_2(n_clust_2SEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type fix_vec_1(fix_vec_1SEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type fix_vec_2(fix_vec_2SEXP);
-    Rcpp::traits::input_parameter< double >::type a0(a0SEXP);
-    Rcpp::traits::input_parameter< double >::type b0(b0SEXP);
+    Rcpp::traits::input_parameter< double >::type a_0(a_0SEXP);
+    Rcpp::traits::input_parameter< double >::type b_0(b_0SEXP);
     Rcpp::traits::input_parameter< arma::uword >::type num_iter(num_iterSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type burn(burnSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type thinning(thinningSEXP);
-    rcpp_result_gen = Rcpp::wrap(mdi_cat_cat(data_1, data_2, class_dist_prior_1, class_dist_prior_2, clust_weight_priors_1, clust_weight_priors_2, clust_labels_1, clust_labels_2, n_clust_1, n_clust_2, fix_vec_1, fix_vec_2, a0, b0, num_iter, burn, thinning));
+    rcpp_result_gen = Rcpp::wrap(mdi_cat_cat(data_1, data_2, class_dist_prior_1, class_dist_prior_2, clust_weight_priors_1, clust_weight_priors_2, clust_labels_1, clust_labels_2, n_clust_1, n_clust_2, fix_vec_1, fix_vec_2, a_0, b_0, num_iter, burn, thinning));
     return rcpp_result_gen;
 END_RCPP
 }
 // mdi_gauss_cat
-Rcpp::List mdi_gauss_cat(arma::mat gaussian_data, arma::umat categorical_data, arma::vec mu_0, double lambda_0, arma::mat scale_0, int df_0, double a0, double b0, arma::vec cluster_weight_priors_gaussian, arma::vec cluster_weight_priors_categorical, arma::field<arma::vec> phi_prior, arma::uvec cluster_labels_gaussian, arma::uvec cluster_labels_categorical, arma::uword num_clusters_gaussian, arma::uword num_clusters_categorical, arma::uvec fix_vec_1, arma::uvec fix_vec_2, arma::uword num_iter, arma::uword burn, arma::uword thinning, bool outlier, double t_df, bool record_posteriors, bool normalise, double u_1, double v_1, arma::uword rate_gauss_0, arma::uword rate_cat_0, bool save_results, bool load_results, arma::uword num_load);
-RcppExport SEXP _tagmmdi_mdi_gauss_cat(SEXP gaussian_dataSEXP, SEXP categorical_dataSEXP, SEXP mu_0SEXP, SEXP lambda_0SEXP, SEXP scale_0SEXP, SEXP df_0SEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP cluster_weight_priors_gaussianSEXP, SEXP cluster_weight_priors_categoricalSEXP, SEXP phi_priorSEXP, SEXP cluster_labels_gaussianSEXP, SEXP cluster_labels_categoricalSEXP, SEXP num_clusters_gaussianSEXP, SEXP num_clusters_categoricalSEXP, SEXP fix_vec_1SEXP, SEXP fix_vec_2SEXP, SEXP num_iterSEXP, SEXP burnSEXP, SEXP thinningSEXP, SEXP outlierSEXP, SEXP t_dfSEXP, SEXP record_posteriorsSEXP, SEXP normaliseSEXP, SEXP u_1SEXP, SEXP v_1SEXP, SEXP rate_gauss_0SEXP, SEXP rate_cat_0SEXP, SEXP save_resultsSEXP, SEXP load_resultsSEXP, SEXP num_loadSEXP) {
+Rcpp::List mdi_gauss_cat(arma::mat cont_data, arma::umat cat_data, arma::vec mu_0, double lambda_0, arma::mat scale_0, int nu_0, double a_0, double b_0, arma::vec clust_wgt_priors_gauss, arma::vec clust_wgt_priors_cat, arma::field<arma::vec> phi_prior, arma::uvec clust_labels_gauss, arma::uvec clust_labels_cat, arma::uword n_clust_gauss, arma::uword n_clust_cat, arma::uvec fix_vec_1, arma::uvec fix_vec_2, arma::uword n_iter, arma::uword burn, arma::uword thin, bool allow_outliers, double t_df, bool normalise, double u_1, double v_1, arma::uword rate_gauss_0, arma::uword rate_cat_0);
+RcppExport SEXP _tagmmdi_mdi_gauss_cat(SEXP cont_dataSEXP, SEXP cat_dataSEXP, SEXP mu_0SEXP, SEXP lambda_0SEXP, SEXP scale_0SEXP, SEXP nu_0SEXP, SEXP a_0SEXP, SEXP b_0SEXP, SEXP clust_wgt_priors_gaussSEXP, SEXP clust_wgt_priors_catSEXP, SEXP phi_priorSEXP, SEXP clust_labels_gaussSEXP, SEXP clust_labels_catSEXP, SEXP n_clust_gaussSEXP, SEXP n_clust_catSEXP, SEXP fix_vec_1SEXP, SEXP fix_vec_2SEXP, SEXP n_iterSEXP, SEXP burnSEXP, SEXP thinSEXP, SEXP allow_outliersSEXP, SEXP t_dfSEXP, SEXP normaliseSEXP, SEXP u_1SEXP, SEXP v_1SEXP, SEXP rate_gauss_0SEXP, SEXP rate_cat_0SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type gaussian_data(gaussian_dataSEXP);
-    Rcpp::traits::input_parameter< arma::umat >::type categorical_data(categorical_dataSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type cont_data(cont_dataSEXP);
+    Rcpp::traits::input_parameter< arma::umat >::type cat_data(cat_dataSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type mu_0(mu_0SEXP);
     Rcpp::traits::input_parameter< double >::type lambda_0(lambda_0SEXP);
     Rcpp::traits::input_parameter< arma::mat >::type scale_0(scale_0SEXP);
-    Rcpp::traits::input_parameter< int >::type df_0(df_0SEXP);
-    Rcpp::traits::input_parameter< double >::type a0(a0SEXP);
-    Rcpp::traits::input_parameter< double >::type b0(b0SEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type cluster_weight_priors_gaussian(cluster_weight_priors_gaussianSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type cluster_weight_priors_categorical(cluster_weight_priors_categoricalSEXP);
+    Rcpp::traits::input_parameter< int >::type nu_0(nu_0SEXP);
+    Rcpp::traits::input_parameter< double >::type a_0(a_0SEXP);
+    Rcpp::traits::input_parameter< double >::type b_0(b_0SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type clust_wgt_priors_gauss(clust_wgt_priors_gaussSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type clust_wgt_priors_cat(clust_wgt_priors_catSEXP);
     Rcpp::traits::input_parameter< arma::field<arma::vec> >::type phi_prior(phi_priorSEXP);
-    Rcpp::traits::input_parameter< arma::uvec >::type cluster_labels_gaussian(cluster_labels_gaussianSEXP);
-    Rcpp::traits::input_parameter< arma::uvec >::type cluster_labels_categorical(cluster_labels_categoricalSEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type num_clusters_gaussian(num_clusters_gaussianSEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type num_clusters_categorical(num_clusters_categoricalSEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type clust_labels_gauss(clust_labels_gaussSEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type clust_labels_cat(clust_labels_catSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type n_clust_gauss(n_clust_gaussSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type n_clust_cat(n_clust_catSEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type fix_vec_1(fix_vec_1SEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type fix_vec_2(fix_vec_2SEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type num_iter(num_iterSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type n_iter(n_iterSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type burn(burnSEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type thinning(thinningSEXP);
-    Rcpp::traits::input_parameter< bool >::type outlier(outlierSEXP);
+    Rcpp::traits::input_parameter< arma::uword >::type thin(thinSEXP);
+    Rcpp::traits::input_parameter< bool >::type allow_outliers(allow_outliersSEXP);
     Rcpp::traits::input_parameter< double >::type t_df(t_dfSEXP);
-    Rcpp::traits::input_parameter< bool >::type record_posteriors(record_posteriorsSEXP);
     Rcpp::traits::input_parameter< bool >::type normalise(normaliseSEXP);
     Rcpp::traits::input_parameter< double >::type u_1(u_1SEXP);
     Rcpp::traits::input_parameter< double >::type v_1(v_1SEXP);
     Rcpp::traits::input_parameter< arma::uword >::type rate_gauss_0(rate_gauss_0SEXP);
     Rcpp::traits::input_parameter< arma::uword >::type rate_cat_0(rate_cat_0SEXP);
-    Rcpp::traits::input_parameter< bool >::type save_results(save_resultsSEXP);
-    Rcpp::traits::input_parameter< bool >::type load_results(load_resultsSEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type num_load(num_loadSEXP);
-    rcpp_result_gen = Rcpp::wrap(mdi_gauss_cat(gaussian_data, categorical_data, mu_0, lambda_0, scale_0, df_0, a0, b0, cluster_weight_priors_gaussian, cluster_weight_priors_categorical, phi_prior, cluster_labels_gaussian, cluster_labels_categorical, num_clusters_gaussian, num_clusters_categorical, fix_vec_1, fix_vec_2, num_iter, burn, thinning, outlier, t_df, record_posteriors, normalise, u_1, v_1, rate_gauss_0, rate_cat_0, save_results, load_results, num_load));
+    rcpp_result_gen = Rcpp::wrap(mdi_gauss_cat(cont_data, cat_data, mu_0, lambda_0, scale_0, nu_0, a_0, b_0, clust_wgt_priors_gauss, clust_wgt_priors_cat, phi_prior, clust_labels_gauss, clust_labels_cat, n_clust_gauss, n_clust_cat, fix_vec_1, fix_vec_2, n_iter, burn, thin, allow_outliers, t_df, normalise, u_1, v_1, rate_gauss_0, rate_cat_0));
     return rcpp_result_gen;
 END_RCPP
 }
 // mdi_gauss_gauss
-Rcpp::List mdi_gauss_gauss(arma::mat data_1, arma::mat data_2, arma::vec mu_0_1, double lambda_0_1, arma::mat scale_0_1, int df_0_1, arma::vec mu_0_2, double lambda_0_2, arma::mat scale_0_2, int df_0_2, arma::vec clust_weight_priors_1, arma::vec clust_weight_priors_2, arma::uvec clust_labels_1, arma::uvec clust_labels_2, arma::uword n_clust_1, arma::uword n_clust_2, arma::uvec fix_vec_1, arma::uvec fix_vec_2, double a0, double b0, arma::uword num_iter, arma::uword burn, arma::uword thinning, bool outlier_1, double t_df_1, bool outlier_2, double t_df_2, bool record_posteriors, bool normalise_1, bool normalise_2, double u_1, double v_1, double u_2, double v_2, arma::uword rate_1_0, arma::uword rate_2_0, bool save_results, bool load_results, arma::uword num_load);
-RcppExport SEXP _tagmmdi_mdi_gauss_gauss(SEXP data_1SEXP, SEXP data_2SEXP, SEXP mu_0_1SEXP, SEXP lambda_0_1SEXP, SEXP scale_0_1SEXP, SEXP df_0_1SEXP, SEXP mu_0_2SEXP, SEXP lambda_0_2SEXP, SEXP scale_0_2SEXP, SEXP df_0_2SEXP, SEXP clust_weight_priors_1SEXP, SEXP clust_weight_priors_2SEXP, SEXP clust_labels_1SEXP, SEXP clust_labels_2SEXP, SEXP n_clust_1SEXP, SEXP n_clust_2SEXP, SEXP fix_vec_1SEXP, SEXP fix_vec_2SEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP num_iterSEXP, SEXP burnSEXP, SEXP thinningSEXP, SEXP outlier_1SEXP, SEXP t_df_1SEXP, SEXP outlier_2SEXP, SEXP t_df_2SEXP, SEXP record_posteriorsSEXP, SEXP normalise_1SEXP, SEXP normalise_2SEXP, SEXP u_1SEXP, SEXP v_1SEXP, SEXP u_2SEXP, SEXP v_2SEXP, SEXP rate_1_0SEXP, SEXP rate_2_0SEXP, SEXP save_resultsSEXP, SEXP load_resultsSEXP, SEXP num_loadSEXP) {
+Rcpp::List mdi_gauss_gauss(arma::mat data_1, arma::mat data_2, arma::vec mu_0_1, double lambda_0_1, arma::mat scale_0_1, int df_0_1, arma::vec mu_0_2, double lambda_0_2, arma::mat scale_0_2, int df_0_2, arma::vec clust_weight_priors_1, arma::vec clust_weight_priors_2, arma::uvec clust_labels_1, arma::uvec clust_labels_2, arma::uword n_clust_1, arma::uword n_clust_2, arma::uvec fix_vec_1, arma::uvec fix_vec_2, double a_0, double b_0, arma::uword num_iter, arma::uword burn, arma::uword thinning, bool outlier_1, double t_df_1, bool outlier_2, double t_df_2, bool record_posteriors, bool normalise_1, bool normalise_2, double u_1, double v_1, double u_2, double v_2, arma::uword rate_1_0, arma::uword rate_2_0, bool save_results, bool load_results, arma::uword num_load);
+RcppExport SEXP _tagmmdi_mdi_gauss_gauss(SEXP data_1SEXP, SEXP data_2SEXP, SEXP mu_0_1SEXP, SEXP lambda_0_1SEXP, SEXP scale_0_1SEXP, SEXP df_0_1SEXP, SEXP mu_0_2SEXP, SEXP lambda_0_2SEXP, SEXP scale_0_2SEXP, SEXP df_0_2SEXP, SEXP clust_weight_priors_1SEXP, SEXP clust_weight_priors_2SEXP, SEXP clust_labels_1SEXP, SEXP clust_labels_2SEXP, SEXP n_clust_1SEXP, SEXP n_clust_2SEXP, SEXP fix_vec_1SEXP, SEXP fix_vec_2SEXP, SEXP a_0SEXP, SEXP b_0SEXP, SEXP num_iterSEXP, SEXP burnSEXP, SEXP thinningSEXP, SEXP outlier_1SEXP, SEXP t_df_1SEXP, SEXP outlier_2SEXP, SEXP t_df_2SEXP, SEXP record_posteriorsSEXP, SEXP normalise_1SEXP, SEXP normalise_2SEXP, SEXP u_1SEXP, SEXP v_1SEXP, SEXP u_2SEXP, SEXP v_2SEXP, SEXP rate_1_0SEXP, SEXP rate_2_0SEXP, SEXP save_resultsSEXP, SEXP load_resultsSEXP, SEXP num_loadSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -248,8 +264,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::uword >::type n_clust_2(n_clust_2SEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type fix_vec_1(fix_vec_1SEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type fix_vec_2(fix_vec_2SEXP);
-    Rcpp::traits::input_parameter< double >::type a0(a0SEXP);
-    Rcpp::traits::input_parameter< double >::type b0(b0SEXP);
+    Rcpp::traits::input_parameter< double >::type a_0(a_0SEXP);
+    Rcpp::traits::input_parameter< double >::type b_0(b_0SEXP);
     Rcpp::traits::input_parameter< arma::uword >::type num_iter(num_iterSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type burn(burnSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type thinning(thinningSEXP);
@@ -269,72 +285,50 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type save_results(save_resultsSEXP);
     Rcpp::traits::input_parameter< bool >::type load_results(load_resultsSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type num_load(num_loadSEXP);
-    rcpp_result_gen = Rcpp::wrap(mdi_gauss_gauss(data_1, data_2, mu_0_1, lambda_0_1, scale_0_1, df_0_1, mu_0_2, lambda_0_2, scale_0_2, df_0_2, clust_weight_priors_1, clust_weight_priors_2, clust_labels_1, clust_labels_2, n_clust_1, n_clust_2, fix_vec_1, fix_vec_2, a0, b0, num_iter, burn, thinning, outlier_1, t_df_1, outlier_2, t_df_2, record_posteriors, normalise_1, normalise_2, u_1, v_1, u_2, v_2, rate_1_0, rate_2_0, save_results, load_results, num_load));
+    rcpp_result_gen = Rcpp::wrap(mdi_gauss_gauss(data_1, data_2, mu_0_1, lambda_0_1, scale_0_1, df_0_1, mu_0_2, lambda_0_2, scale_0_2, df_0_2, clust_weight_priors_1, clust_weight_priors_2, clust_labels_1, clust_labels_2, n_clust_1, n_clust_2, fix_vec_1, fix_vec_2, a_0, b_0, num_iter, burn, thinning, outlier_1, t_df_1, outlier_2, t_df_2, record_posteriors, normalise_1, normalise_2, u_1, v_1, u_2, v_2, rate_1_0, rate_2_0, save_results, load_results, num_load));
     return rcpp_result_gen;
 END_RCPP
 }
-// rcpparma_hello_world
-arma::mat rcpparma_hello_world();
-RcppExport SEXP _tagmmdi_rcpparma_hello_world() {
+// PredictClusterMembership
+arma::uword PredictClusterMembership(arma::vec probabilities);
+RcppExport SEXP _tagmmdi_PredictClusterMembership(SEXP probabilitiesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(rcpparma_hello_world());
+    Rcpp::traits::input_parameter< arma::vec >::type probabilities(probabilitiesSEXP);
+    rcpp_result_gen = Rcpp::wrap(PredictClusterMembership(probabilities));
     return rcpp_result_gen;
 END_RCPP
 }
-// rcpparma_outerproduct
-arma::mat rcpparma_outerproduct(const arma::colvec& x);
-RcppExport SEXP _tagmmdi_rcpparma_outerproduct(SEXP xSEXP) {
+// CreateSimilarityMat
+arma::mat CreateSimilarityMat(arma::umat cluster_record);
+RcppExport SEXP _tagmmdi_CreateSimilarityMat(SEXP cluster_recordSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::colvec& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpparma_outerproduct(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcpparma_innerproduct
-double rcpparma_innerproduct(const arma::colvec& x);
-RcppExport SEXP _tagmmdi_rcpparma_innerproduct(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::colvec& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpparma_innerproduct(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcpparma_bothproducts
-Rcpp::List rcpparma_bothproducts(const arma::colvec& x);
-RcppExport SEXP _tagmmdi_rcpparma_bothproducts(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::colvec& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpparma_bothproducts(x));
+    Rcpp::traits::input_parameter< arma::umat >::type cluster_record(cluster_recordSEXP);
+    rcpp_result_gen = Rcpp::wrap(CreateSimilarityMat(cluster_record));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_tagmmdi_similarity_mat", (DL_FUNC) &_tagmmdi_similarity_mat, 1},
-    {"_tagmmdi_entropy", (DL_FUNC) &_tagmmdi_entropy, 1},
-    {"_tagmmdi_dirichlet_posterior", (DL_FUNC) &_tagmmdi_dirichlet_posterior, 3},
     {"_tagmmdi_cat_counter", (DL_FUNC) &_tagmmdi_cat_counter, 1},
     {"_tagmmdi_declare_class_probs_field", (DL_FUNC) &_tagmmdi_declare_class_probs_field, 3},
     {"_tagmmdi_sample_class_probabilities", (DL_FUNC) &_tagmmdi_sample_class_probabilities, 7},
-    {"_tagmmdi_categorical_cluster_probabilities", (DL_FUNC) &_tagmmdi_categorical_cluster_probabilities, 6},
-    {"_tagmmdi_cluster_predictor", (DL_FUNC) &_tagmmdi_cluster_predictor, 1},
-    {"_tagmmdi_categorical_clustering", (DL_FUNC) &_tagmmdi_categorical_clustering, 9},
-    {"_tagmmdi_gaussian_clustering", (DL_FUNC) &_tagmmdi_gaussian_clustering, 18},
+    {"_tagmmdi_CategoricalClustering", (DL_FUNC) &_tagmmdi_CategoricalClustering, 9},
+    {"_tagmmdi_SampleDirichletPosterior", (DL_FUNC) &_tagmmdi_SampleDirichletPosterior, 4},
+    {"_tagmmdi_CountCatergories", (DL_FUNC) &_tagmmdi_CountCatergories, 1},
+    {"_tagmmdi_DeclareClassProbsField", (DL_FUNC) &_tagmmdi_DeclareClassProbsField, 3},
+    {"_tagmmdi_SampleCategoryProbabilities", (DL_FUNC) &_tagmmdi_SampleCategoryProbabilities, 8},
+    {"_tagmmdi_SampleCategoricalDistn", (DL_FUNC) &_tagmmdi_SampleCategoricalDistn, 6},
+    {"_tagmmdi_CalcEntropy", (DL_FUNC) &_tagmmdi_CalcEntropy, 1},
+    {"_tagmmdi_GaussianClustering", (DL_FUNC) &_tagmmdi_GaussianClustering, 17},
     {"_tagmmdi_mdi_cat_cat", (DL_FUNC) &_tagmmdi_mdi_cat_cat, 17},
-    {"_tagmmdi_mdi_gauss_cat", (DL_FUNC) &_tagmmdi_mdi_gauss_cat, 31},
+    {"_tagmmdi_mdi_gauss_cat", (DL_FUNC) &_tagmmdi_mdi_gauss_cat, 27},
     {"_tagmmdi_mdi_gauss_gauss", (DL_FUNC) &_tagmmdi_mdi_gauss_gauss, 39},
-    {"_tagmmdi_rcpparma_hello_world", (DL_FUNC) &_tagmmdi_rcpparma_hello_world, 0},
-    {"_tagmmdi_rcpparma_outerproduct", (DL_FUNC) &_tagmmdi_rcpparma_outerproduct, 1},
-    {"_tagmmdi_rcpparma_innerproduct", (DL_FUNC) &_tagmmdi_rcpparma_innerproduct, 1},
-    {"_tagmmdi_rcpparma_bothproducts", (DL_FUNC) &_tagmmdi_rcpparma_bothproducts, 1},
+    {"_tagmmdi_PredictClusterMembership", (DL_FUNC) &_tagmmdi_PredictClusterMembership, 1},
+    {"_tagmmdi_CreateSimilarityMat", (DL_FUNC) &_tagmmdi_CreateSimilarityMat, 1},
     {NULL, NULL, 0}
 };
 

@@ -1,6 +1,7 @@
 # include <RcppArmadillo.h>
-# include <iostream>
-# include <fstream>
+// # include <iostream>
+// # include <fstream>
+# include "common_functions.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -20,7 +21,8 @@ arma::umat  CategoricalClustering(arma::umat data,
                                   arma::uword num_clusters,
                                   arma::uword num_iter,
                                   arma::uword burn,
-                                  arma::uword thinning){
+                                  arma::uword thinning
+) {
   
   // To allow using < and keeping in line with object sizes
   num_iter++;
@@ -50,7 +52,8 @@ arma::umat  CategoricalClustering(arma::umat data,
   // variable
   class_probabilities = DeclareClassProbsField(cat_count,
                                                num_cols,
-                                               num_clusters);
+                                               num_clusters
+  );
   
   // Cluster weights
   cluster_weights.zeros();
@@ -65,13 +68,14 @@ arma::umat  CategoricalClustering(arma::umat data,
   sim.zeros()
   
   // Iterate over the desired number of iterations
-  for(arma::uword i = 0; i < num_iter; i++){
+  for(arma::uword i = 0; i < num_iter; i++) {
     
     // Sample cluster weights from a Dirichlet distribution
     cluster_weights = SampleDirichletPosterior(cluster_weight_priors,
                                                cluster_labels,
                                                num_clusters,
-                                               r_class_start);
+                                               r_class_start
+    );
     
     
     // sample probabilities for each class for each cluster (categorical)

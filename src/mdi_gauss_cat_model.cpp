@@ -1,6 +1,7 @@
 # include <RcppArmadillo.h>
-# include <iostream>
-# include <fstream>
+// # include <iostream>
+// # include <fstream>
+# include "common_functions.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -147,23 +148,23 @@ Rcpp::List mdi_gauss_cat(arma::mat cont_data,
     entropy_cw(i) = CalcEntropy(clust_wgt_gauss);
     
     // ## Sample the parameters for the two datasets ##
-    variance_n = SampleVariancePosterior(cont_data,
-                                         relevant_labels,
-                                         n_clust_gauss,
-                                         nu_0,
-                                         n_cols_cont,
-                                         scale_0,
-                                         lambda_0,
-                                         mu_0
+    variance_n = SampleClusterVariance(cont_data,
+                                       relevant_labels,
+                                       n_clust_gauss,
+                                       nu_0,
+                                       n_cols_cont,
+                                       scale_0,
+                                       lambda_0,
+                                       mu_0
     );
     
-    mu_n = SampleMeanPosterior(cont_data,
-                               relevant_labels,
-                               n_clust_gauss,
-                               n_cols_cont,
-                               variance_n,
-                               lambda_0,
-                               mu_0
+    mu_n = SampleClusterMeans(cont_data,
+                              relevant_labels,
+                              n_clust_gauss,
+                              n_cols_cont,
+                              variance_n,
+                              lambda_0,
+                              mu_0
     );
     
     // For the categorical data, sample the probabilities for each class

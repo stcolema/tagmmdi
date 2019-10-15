@@ -1,13 +1,11 @@
 # include <RcppArmadillo.h>
-# include <iostream>
-# include <fstream>
+// # include <iostream>
+// # include <fstream>
+# include "common_functions.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
 using namespace Rcpp ;
-
-
-
 
 //' Calculates the t-distribution log likelihood for a given point.
 //' 
@@ -23,7 +21,7 @@ double CalcTdistnLikelihood(arma::vec point,
                             arma::mat variance,
                             arma::uword n_col,
                             double df
-){
+) {
   
   double log_det = 0.0;
   double exponent = 0.0;
@@ -57,9 +55,11 @@ double CalcTdistnLikelihood(arma::vec point,
 //' @param theta (Default = 1.0) Rate of the two Gamma distributions.
 //' 
 //' @return Sample from Beta(a, b).
-double SampleBetaDistn(double a, double b, double theta = 1.0) {
-  double X = arma::randg( arma::distr_param(a, 1/theta) );
-  double Y = arma::randg( arma::distr_param(b, 1/theta) );
+double SampleBetaDistn(double a, double b) { // double theta = 1.0) {
+  double X = arma::randg( arma::distr_param(a, 1.0) );
+  double Y = arma::randg( arma::distr_param(b, 1.0) );
+  // double X = arma::randg( arma::distr_param(a, 1.0 / theta) );
+  // double Y = arma::randg( arma::distr_param(b, 1.0 / theta) );
   double beta = X / (double)(X + Y);
   return beta;
 }
@@ -91,7 +91,7 @@ double SampleOutlier(arma::vec point,
   double prob = 0.0;
   
   // The probability of belonging to the outlier class
-  log_likelihood = t_likelihood(point, global_mean, global_variance, d, t_df);
+  log_likelihood = CalcTdistnLikelihood(point, global_mean, global_variance, d, t_df);
   
   prob = log(outlier_weight) + log_likelihood;
   
@@ -117,7 +117,7 @@ arma::vec CalculateOutlierProb(arma::vec point,
                                arma::uword n_col,
                                double t_df,
                                double outlier_weight,
-                               arma::col mu,
+                               arma::vec mu,
                                arma::mat var
 ) {
   double out_likelihood = 0.0;
@@ -127,13 +127,13 @@ arma::vec CalculateOutlierProb(arma::vec point,
   outlier_prob.zeros();
   
   // Calculate outlier likelihood
-  out_likelihood = t_likelihood(point, global_mean,  global_variance, n_col, t_df);
+  out_likelihood = CalcTdistnLikelihood(point, global_mean,  global_variance, n_col, t_df);
   out_likelihood += log(outlier_weight);
   
   outlier_prob(1) = out_likelihood;
   
   // Calculate likelihood of belonging to current cluster
-  in_likelihood = normal_likelihood(point, mu, var, n_col);
+  in_likelihood = CalcNormalLikelihood(point, mu, var, n_col);
   
   // Update with the non-outlier weight
   in_likelihood += log(non_outlier_weight);

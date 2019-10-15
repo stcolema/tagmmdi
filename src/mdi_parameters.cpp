@@ -1,6 +1,7 @@
 # include <RcppArmadillo.h>
-# include <iostream>
-# include <fstream>
+// # include <iostream>
+// # include <fstream>
+# include "common_functions.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -11,39 +12,61 @@ using namespace Rcpp ;
 
 // The posterior for a gamma distribution
 // Old name: gamma_posterior
+//' Sample from the posterior of a Gamma distribution.
+//' 
+//' @param concentration_0 The prior on the concentraion parameter.
+//' @param cluster_lables The current clustering.
+//' @param k The number of clusters present.
+//' @param rate (Default = 1.0) The rate of the gamma distribution.
+//' @param count_from The number counting begins at (R = 1, C++ = 0).
+//' 
+//' @return k-vector of samples from k Gamma distributions.
 arma::vec SampleGammaPosterior(arma::vec concentration_0,
                                arma::uvec cluster_labels,
-                               arma::uword num_clusters,
-                               double rate
-){
+                               arma::uword k,
+                               double rate = 1.0,
+                               arma::urword count_from = 1
+) {
   
   // Initialise the cluster weights and the concentration parameter
-  arma::uword r_class_start = 1;
-  arma::vec cluster_weight = arma::zeros<arma::vec>(num_clusters);
-  arma::vec concentration = arma::zeros<arma::vec>(num_clusters);
+  // arma::uword r_class_start = 1;
+  arma::vec cluster_weight = arma::zeros<arma::vec>(k);
+  arma::vec concentration = arma::zeros<arma::vec>(k);
   
   // Calculate the concentration parameter
   concentration = CalcConcentrationn(concentration_0,
                                      cluster_labels,
-                                     num_clusters,
-                                     r_class_start);
+                                     k,
+                                     count_from);
   
   // Sample the cluster weights from a Gamma distribution
-  for (arma::uword i = 0; i < num_clusters; i++) {
-    cluster_weight(i) = arma::randg( arma::distr_param(arma::as_scalar(concentration(i)), 1.0) );
+  for (arma::uword i = 0; i < k; i++) {
+    cluster_weight(i) = arma::randg( arma::distr_param(arma::as_scalar(concentration(i) ), rate) );
   }
   return cluster_weight;
 }
 
-// Calculate the rate for the gamma distribution for the class weights for MDI
-// This is defined as the sume of the cluster weights (upweighted by the 
-// correlation parameter, phi, if the labels match) multiplied by the variable v
 // Old name: mdi_cluster_rate
+//' Calculate the rate for the gamma distribution for the class weights for MDI.
+//' This is defined as the sume of the cluster weights (upweighted by the 
+//' correlation parameter, phi, if the labels match) multiplied by the variable v.
+//' 
+//' @param v The strategic latent variable (as in Nieto-Barajas et al., 2004) to 
+//' ensure that the posterior of most of the model parameters are Gamma
+//' distributions.
+//' @param n_clust The number of clusters present.
+//' @param cluster_index The current cluster of interest.
+//' @param cluster_weights The mixture weights.
+//' @param phi The context similarity parameter from MDI; this is a measure of 
+//' the similarity of clustering between datasets.
+//' 
+//' @return The rate for the Gamma distribution to sample the cluster weight from.
 double CalcRateMDIClassWeights(double v,
                                arma::uword n_clust,
                                arma::uword cluster_index,
                                arma::vec cluster_weights,
-                               double phi){
+                               double phi
+) {
   // Initialise b, the rate
   double b = 0.0;
 
@@ -56,18 +79,33 @@ double CalcRateMDIClassWeights(double v,
 }
 
 
-
-// Returns the cluster weights for MDI
 // Old name: mdi_cluster_weights
+//' Returns the cluster weights for MDI.
+//' @param shape_0 The prior on the shape for the cluster weights.
+//' @param rate_0 The prior on the rate for the cluster weights.
+//' @param v The strategic latent variable (as in Nieto-Barajas et al., 2004) to 
+//' ensure that the posterior of most of the model parameters are Gamma
+//' distributions.
+//' @param n_clust The number of clusters present in the current dataset.
+//' @param n_clust_comp The number of clusters present in the other dataset.
+//' @param cluster_weights_comp The mixture weights for the other dataset.
+//' @param cluster_labels The membership vector for the clustering in the 
+//' current dataset.
+//' @param cluster_labels_comp The membership vector for the clustering in the 
+//' other dataset.
+//' @param phi The context similarity parameter from MDI; this is a measure of 
+//' the similarity of clustering between datasets.
+//' 
+//' @return A vector of mixture weights.
 arma::vec SampleMDIClusterWeights(arma::vec shape_0,
-                              arma::vec rate_0,
-                              double v,
-                              arma::uword n_clust,
-                              arma::uword n_clust_comp,
-                              arma::vec cluster_weights_comp,
-                              arma::uvec cluster_labels,
-                              arma::uvec cluster_labels_comp,
-                              double phi){
+                                  arma::vec rate_0,
+                                  double v,
+                                  arma::uword n_clust,
+                                  arma::uword n_clust_comp,
+                                  arma::vec cluster_weights_comp,
+                                  arma::uvec cluster_labels,
+                                  arma::uvec cluster_labels_comp,
+                                  double phi){
   
   // The number of clusters relevant to MDI is the minimum of the number of
   // clusters present in either dataset
@@ -107,6 +145,14 @@ arma::vec SampleMDIClusterWeights(arma::vec shape_0,
 
 // returns the count of the number of points with the same label in both contexts
 // Old name: count_common_cluster
+//' Counts the number of samples with the same label in both datasets.
+//' 
+//' @param cl_1 The vector of membership labels for the first dataset.
+//' @param cl_2 The vector of membership labels for the second dataset.
+//' @param n The number of samples in each dataset.
+//' 
+//' @return A count of the number of samples with common labelling in both cl_1
+//' and cl_2.
 arma::uword CountCommonLabel(arma::uvec cl_1,
                              arma::uvec cl_2,
                              arma::uword n){
@@ -124,7 +170,10 @@ arma::uword CountCommonLabel(arma::uvec cl_1,
 }
 
 
-// Calculate the factorial
+//' Calculate the factorial of n (i.e. n!).
+//' @param n The number to calculate the factorial of.
+//' 
+//' @return n!
 int Factorial(arma::uword n)
 {
   if(n <= 1){
@@ -137,7 +186,11 @@ int Factorial(arma::uword n)
 
 
 
-// Returns the log of the factorial of n
+//' Returns the log of the factorial of n.
+//' 
+//' @param n The number to calculate the log factorial of.
+//' 
+//' @return log(n!)
 double LogFactorial(arma::uword n){
   if(n <= 1){
     return 0;
@@ -238,7 +291,8 @@ double SampleMDIPhi(arma::uvec cl_1,
                     arma::uword n,
                     arma::uword min_n_clust,
                     double a_0,
-                    double b_0){
+                    double b_0
+) {
   
   // The predicted index of the weighted sum to use
   arma::uword count_same_cluster = 0;
@@ -283,7 +337,8 @@ double CalcNormalisingConst(arma::vec cl_wgts_1,
                             arma::vec cl_wgts_2,
                             double phi,
                             arma::uword n_clust_1,
-                            arma::uword n_clust_2){
+                            arma::uword n_clust_2
+) {
   double Z = 0.0;
   
   for(arma::uword i = 0; i < n_clust_1; i++){
@@ -306,7 +361,8 @@ arma::vec SampleMDICatClustProb(arma::uword row_index,
                              double phi,
                              arma::vec cluster_weights_categorical,
                              arma::uvec clust_labels,
-                             arma::uvec clust_labels_comp){
+                             arma::uvec clust_labels_comp
+) {
   
   // cluster_labels_comparison is the labels of the data in the other context
   arma::uword common_cluster = 0;
@@ -351,14 +407,15 @@ arma::vec SampleMDICatClustProb(arma::uword row_index,
 // MDI (hence the presence of the context similarity parameter)
 // Old name: mdi_gauss_clust_probs
 arma::vec SampleMDIGaussClustProbs(arma::uword row_index,
-                                arma::mat data,
-                                arma::uword k,
-                                arma::mat mu,
-                                arma::cube variance,
-                                double context_similarity,
-                                arma::vec cluster_weights,
-                                arma::uvec cluster_labels,
-                                arma::uvec cluster_labels_comp){
+                                   arma::mat data,
+                                   arma::uword k,
+                                   arma::mat mu,
+                                   arma::cube variance,
+                                   double context_similarity,
+                                   arma::vec cluster_weights,
+                                   arma::uvec cluster_labels,
+                                   arma::uvec cluster_labels_comp
+) {
   
   arma::uword d = data.n_cols;
   arma::uword common_cluster = 0;
@@ -455,18 +512,19 @@ double CalcLabellingScore(arma::uword n,
 // (i) in the cluster labels in context 2 and the change in the gamma vector
 // Old name: cluster_label_update
 arma::vec UpdateClusterLabels(arma::uvec cluster_labels_1,
-                               arma::uvec cluster_labels_2,
-                               arma::vec cluster_weights_1,
-                               arma::vec cluster_weights_2,
-                               arma::uword num_clusters_1,
-                               arma::uword num_clusters_2,
-                               double phi,
-                               arma::uword min_num_clusters,
-                               double v,
-                               arma::uword n,
-                               double a0,
-                               double b0,
-                               double Z){
+                              arma::uvec cluster_labels_2,
+                              arma::vec cluster_weights_1,
+                              arma::vec cluster_weights_2,
+                              arma::uword num_clusters_1,
+                              arma::uword num_clusters_2,
+                              double phi,
+                              arma::uword min_num_clusters,
+                              double v,
+                              arma::uword n,
+                              double a0,
+                              double b0,
+                              double Z
+) {
   
   arma::uword new_pos = 0;
   double log_accept = 0.0;
@@ -475,7 +533,8 @@ arma::vec UpdateClusterLabels(arma::uvec cluster_labels_1,
   double new_score = 0.0;
   arma::uvec new_labels(n);
   arma::vec new_weights(num_clusters_2);
-
+  arma::vec output = arma::zeros<arma::vec>(n + num_clusters_2 + 1);
+  
   old_score = CalcLabellingScore(n, phi, cluster_labels_1, cluster_labels_2);
   
   
@@ -518,7 +577,7 @@ arma::vec UpdateClusterLabels(arma::uvec cluster_labels_1,
     }
   }
   
-  arma::vec output = arma::zeros<arma::vec>(n + num_clusters_2 + 1);
+  
   output.subvec(0, n - 1) = arma::conv_to<arma::vec>::from(cluster_labels_2);
   
   output.subvec(n, n + num_clusters_2 - 1) = cluster_weights_2;

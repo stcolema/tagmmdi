@@ -1,6 +1,7 @@
 # include <RcppArmadillo.h>
-# include <iostream>
-# include <fstream>
+// # include <iostream>
+// # include <fstream>
+# include "common_functions.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -133,13 +134,22 @@ arma::vec SampleDirichletPosterior(arma::vec concentration_0,
 
 
 // count unique entries in a vector (Armadillo has this already - unnecssary)
+//' Counts the number of unique entries in a vector v.
+//' 
+//' @param v Vector of discrete labels.
+//' 
+//' @return Count of the number of unique labels in v.
 arma::uword CountUniqueCases(arma::uvec v) {
   std::sort(v.begin(), v.end() );
   arma::uword unique_count = std::unique(v.begin(), v.end() ) - v.begin();
   return unique_count;
 }
 
-// returns a vector of the number of unqiue values in each column
+//' Returns a vector of the number of unqiue values in each column of data.
+//' 
+//' @param data Matrix of categorical data.
+//' 
+//' @return Vector of counts of the number of categories in each variable in data.
 // [[Rcpp::export]]
 arma::uvec CountCatergories(arma::umat data) {
   arma::uword n_col = data.n_cols;
