@@ -46,7 +46,7 @@ Rcpp::List mdi_gauss_cat(arma::mat cont_data,
   
   // Declare the sample size and dimensionality of the continuous and 
   // categorical data
-  arma::uword eff_count = ceil((double)(n_iter + num_load - burn) / (double)thin);
+  arma::uword eff_count = ceil((double)(n_iter - burn) / (double)thin);
   arma::uword n = cont_data.n_rows;
   arma::uword n_cols_cont = cont_data.n_cols;
   arma::uword n_cols_cat = cat_data.n_cols;
@@ -55,12 +55,14 @@ Rcpp::List mdi_gauss_cat(arma::mat cont_data,
   arma::uword predicted_class = 0; // the predicted class (assuming the point is not an outlier)
   arma::uword predicted_outlier = 0;
   arma::uword phi_count = 0; // index for recording phis
+  arma::uword cpp_class_start = 0;
+  arma::uword r_class_start = 1;
   double v = 1.0; // strategic latent variable
   double b = 0.0; // a will be N - b, no need to declare
   double context_similarity = 0.0;
   double Z = 1.0; // Declare the normalising constant
   double curr_outlier_likelihood = 0.0;
-  double outlier_weight = 1.0 - sample_beta(u_1, v_1);
+  double outlier_weight = 1.0 - SampleBetaDistn(u_1, v_1);
   double predicted_norm_likelihood = 0.0; // likelihood of being non-outlier
   double gaussian_score = 0.0; // Likelihood of the current gaussian model
   double cat_score = 0.0; // Likelihood of the current categorical model
@@ -76,7 +78,7 @@ Rcpp::List mdi_gauss_cat(arma::mat cont_data,
   arma::vec curr_cat_prob_vec(n_clust_cat);
   arma::vec context_similarity_record(eff_count);
   arma::vec labels_weights_phi(n + n_clust_cat + 1); // hold output of label flipping function
-  arma::vec entropy_cw(n_iter - num_load); // record of entropy at each iteration
+  arma::vec entropy_cw(n_iter); // record of entropy at each iteration
   arma::vec rate_0_gauss(n_clust_gauss); // Rate priors for weight sampling from Gamma distn
   arma::vec rate_0_cat(n_clust_cat);// Rate priors for weight sampling from Gamma distn
   arma::vec curr_outlier_prob(2);
@@ -113,7 +115,7 @@ Rcpp::List mdi_gauss_cat(arma::mat cont_data,
   variance_n.zeros();
 
   // Declare the field for the phi variable for the categorical data
-  cat_count = cat_counter(cat_data);
+  cat_count = CountCatergories(cat_data);
   class_probabilities = DeclareClassProbsField(cat_count,
                                                n_cols_cat,
                                                n_clust_cat
@@ -176,7 +178,8 @@ Rcpp::List mdi_gauss_cat(arma::mat cont_data,
                                                       clust_labels_cat,
                                                       cat_count,
                                                       n_clust_cat,
-                                                      n_cols_cat
+                                                      n_cols_cat,
+                                                      r_class_start
     );
     
     // ## Sample cluster weights for the two datasets ##
@@ -275,10 +278,10 @@ Rcpp::List mdi_gauss_cat(arma::mat cont_data,
         curr_outlier_prob(1) = curr_outlier_likelihood;
         
         // The normal likelihood for the current class allocation
-        predicted_norm_likelihood = normal_likelihood( (cont_data.row(j) ).t(),
-                                                      mu_n.col(predicted_class - 1),
-                                                      variance_n.slice(predicted_class - 1),
-                                                      n_cols_cont);
+        predicted_norm_likelihood = CalcNormalLikelihood( (cont_data.row(j) ).t(),
+                                                         mu_n.col(predicted_class - 1),
+                                                         variance_n.slice(predicted_class - 1),
+                                                         n_cols_cont);
         
         predicted_norm_likelihood += log(1 - outlier_weight);
         curr_outlier_prob(0) = predicted_norm_likelihood;

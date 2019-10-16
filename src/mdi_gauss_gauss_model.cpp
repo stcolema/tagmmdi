@@ -76,9 +76,9 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
   double b_1 = 0.0; // the number of items in the outlier component
   double b_2 = 0.0; // the number of items in the outlier component
   double outlier_likelihood_1 = 0.0;
-  double outlier_weight_1 = 1 - sample_beta(u_1, v_1);
+  double outlier_weight_1 = 1 - SampleBetaDistn(u_1, v_1);
   double outlier_likelihood_2 = 0.0;
-  double outlier_weight_2 = 1 - sample_beta(u_2, v_2);
+  double outlier_weight_2 = 1 - SampleBetaDistn(u_2, v_2);
   arma::uvec outlier_vec_1(n);
   arma::uvec outlier_vec_2(n);
   arma::uvec relevant_labels_1(n); // Class labels of points not currently assigned as outliers

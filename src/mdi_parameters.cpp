@@ -25,7 +25,7 @@ arma::vec SampleGammaPosterior(arma::vec concentration_0,
                                arma::uvec cluster_labels,
                                arma::uword k,
                                double rate = 1.0,
-                               arma::urword count_from = 1
+                               arma::uword count_from = 1
 ) {
   
   // Initialise the cluster weights and the concentration parameter
@@ -110,7 +110,7 @@ arma::vec SampleMDIClusterWeights(arma::vec shape_0,
   // The number of clusters relevant to MDI is the minimum of the number of
   // clusters present in either dataset
   // Initialise the cluster weights, the rate and shape
-  arma::uword n_rel = min(n_clust, n_clust_comp);
+  arma::uword n_rel = std::min(n_clust, n_clust_comp);
   arma::uword r_class_start = 1;
   double b = 0.0;
   double b_n = 0.0;
@@ -226,9 +226,10 @@ double CalcObservedRate(double v,
 // correlation parameter, phi, if the labels match) multiplied by the variable v
 // Old name: mdi_phi_rate
 double CalcRateMDIPhi(double v,
-                    arma::uword n_clust,
-                    arma::vec cluster_weights_1,
-                    arma::vec cluster_weights_2){
+                      arma::uword n_clust,
+                      arma::vec cluster_weights_1,
+                      arma::vec cluster_weights_2
+) {
   // Initialise b, the rate
   double b = 0.0;
   
@@ -240,23 +241,25 @@ double CalcRateMDIPhi(double v,
   sub_weights_2 = cluster_weights_2(arma::span(0, n_clust - 1) );
   
   // Calculate b
-  b = v * (sub_weights_1 % sub_weights_2);
+  b = v * sum(sub_weights_1 % sub_weights_2);
   
-  // double b1 = 0.0;
-  // 
-  // // Loop over the number of clusters
-  // for(arma::uword i = 0; i < n_clust; i++){
-  //   b1 += cluster_weights_1(i) * cluster_weights_2(i);
-  // }
-  // 
-  // b1 = b1 * v;
-  // 
-  // if(b1 != b){
-  //   return "x";
-  // }
-  // 
+  // Small test using less efficient calculation
+  double b1 = 0.0;
+
+  // Loop over the number of clusters
+  for(arma::uword i = 0; i < n_clust; i++){
+    b1 += cluster_weights_1(i) * cluster_weights_2(i);
+  }
+
+  b1 = b1 * v;
+
+  if(b1 != b){
+    std::cout << "ERROR: rate calculations disagree. Please inspect CalcRateMDIPhi function.\n";
+    return 0.0;
+  }
   
   return b;
+  
 }
 
 

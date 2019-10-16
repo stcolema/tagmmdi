@@ -44,6 +44,8 @@ Rcpp::List mdi_cat_cat(arma::umat data_1,
   arma::uword eff_count = ceil((double)(num_iter - burn) / (double)thinning);
   arma::uword v_a_0 = 1;
   arma::uword v_b_0 = 1;
+  arma::uword cpp_class_start = 0;
+  arma::uword r_class_start = 1;
   double v = 0.0; // strategic latent variable
   double phi = arma::randg(arma::distr_param(a_0, 1/b_0) ); // Context similarity
   double Z = 1.0; // Normalising constant
@@ -66,17 +68,18 @@ Rcpp::List mdi_cat_cat(arma::umat data_1,
   arma::field<arma::mat> class_prob_2(n_cols_2);
   
   // Declare the field for the phi variable for the categorical data
-  cat_count_1 = cat_counter(data_1);
-  class_prob_1 = declare_class_probs_field(cat_count_1,
-                                           n_cols_1,
-                                           n_clust_1);
+  cat_count_1 = CountCatergories(data_1);
+  
+  class_prob_1 = DeclareClassProbsField(cat_count_1,
+                                        n_cols_1,
+                                        n_clust_1);
   
   
   
-  cat_count_2 = cat_counter(data_2);
-  class_prob_2 = declare_class_probs_field(cat_count_2,
-                                           n_cols_2,
-                                           n_clust_2);
+  cat_count_2 = CountCatergories(data_2);
+  class_prob_2 = DeclareClassProbsField(cat_count_2,
+                                        n_cols_2,
+                                        n_clust_2);
   
   // Placeholder prior
   rate_0_1.fill(1);
@@ -121,7 +124,8 @@ Rcpp::List mdi_cat_cat(arma::umat data_1,
                                               clust_labels_1,
                                               cat_count_1,
                                               n_clust_1,
-                                              n_cols_1);
+                                              n_cols_1,
+                                              r_class_start);
     
     class_prob_2 = SampleCategoryProbabilities(data_2,
                                               class_prob_2,
@@ -129,7 +133,8 @@ Rcpp::List mdi_cat_cat(arma::umat data_1,
                                               clust_labels_2,
                                               cat_count_2,
                                               n_clust_2,
-                                              n_cols_2);
+                                              n_cols_2,
+                                              r_class_start);
     
     
     // Calculate the current normalising constant (consider being more clever 
