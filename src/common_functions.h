@@ -78,6 +78,10 @@ arma::vec SampleGaussianMembership(arma::vec point,
 
 arma::uword PredictIndex(arma::vec my_vec);
 
+arma::vec HandleOverflow(arma::vec my_log_vec);
+
+arma::uword PredictClusterMembership(arma::vec probabilities);
+
 double CalcTdistnLikelihood(arma::vec point,
                             arma::vec mu,
                             arma::mat variance,
@@ -163,7 +167,5 @@ arma::vec UpdateClusterLabels(arma::uvec cluster_labels_1,
                               double b0,
                               double Z
 );
-
-
 
 #endif

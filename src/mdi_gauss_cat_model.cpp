@@ -89,6 +89,8 @@ Rcpp::List mdi_gauss_cat(arma::mat cont_data,
   arma::mat alloc_prob_cat(n, n_clust_cat); // hold the allocation probabilities
   arma::mat alloc_prob_gauss_curr(n, n_clust_gauss); // current allocation probs
   arma::mat alloc_prob_cat_curr(n, n_clust_cat); // current allocation probs
+  arma::mat sim(n, n); 
+  arma::mat cat_sim(n, n);
   arma::cube variance_n(n_cols_cont, n_cols_cont, n_clust_gauss);
   arma::field<arma::mat> class_probabilities(n_cols_cat);
   
@@ -364,8 +366,6 @@ Rcpp::List mdi_gauss_cat(arma::mat cont_data,
   alloc_prob_cat = alloc_prob_cat / eff_count;
   
   // construct similarity matrices
-  arma::mat sim(n, n); 
-  arma::mat cat_sim(n, n);
   sim = CreateSimilarityMat(gaussian_record);
   cat_sim = CreateSimilarityMat(categorical_record);
   

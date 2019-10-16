@@ -144,11 +144,13 @@ arma::mat SampleVariancePosterior(int nu_0,
   int n = data.n_rows; // The sample size
   int d = data.n_cols; // The dimension of the data
   double df_n = nu_0; // the degrees of freedom
-  arma::mat scale_n(d, d) = scale_0; // the scale
+  arma::mat scale_n(d, d); // the scale
   arma::vec sample_mean(d);
   arma::mat sample_cov(d, d);
   arma::mat variance(d, d); // the output variable, the variance matrix
+
   variance.zeros();
+  scale_n = scale_0;
   
   // if any points belong to this data update the priors
   if(n > 0){

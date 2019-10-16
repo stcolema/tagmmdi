@@ -6,49 +6,8 @@
 
 using namespace Rcpp;
 
-// cat_counter
-arma::uvec cat_counter(arma::umat data);
-RcppExport SEXP _tagmmdi_cat_counter(SEXP dataSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::umat >::type data(dataSEXP);
-    rcpp_result_gen = Rcpp::wrap(cat_counter(data));
-    return rcpp_result_gen;
-END_RCPP
-}
-// declare_class_probs_field
-arma::field<arma::mat> declare_class_probs_field(arma::uvec cat_count, arma::uword num_cols, arma::uword num_clusters);
-RcppExport SEXP _tagmmdi_declare_class_probs_field(SEXP cat_countSEXP, SEXP num_colsSEXP, SEXP num_clustersSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::uvec >::type cat_count(cat_countSEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type num_cols(num_colsSEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type num_clusters(num_clustersSEXP);
-    rcpp_result_gen = Rcpp::wrap(declare_class_probs_field(cat_count, num_cols, num_clusters));
-    return rcpp_result_gen;
-END_RCPP
-}
-// sample_class_probabilities
-arma::field<arma::mat> sample_class_probabilities(arma::umat data, arma::field<arma::mat> class_probs, arma::field<arma::vec> phi_prior, arma::uvec cluster_labels, arma::uvec cat_count, arma::uword num_clusters, arma::uword num_cols);
-RcppExport SEXP _tagmmdi_sample_class_probabilities(SEXP dataSEXP, SEXP class_probsSEXP, SEXP phi_priorSEXP, SEXP cluster_labelsSEXP, SEXP cat_countSEXP, SEXP num_clustersSEXP, SEXP num_colsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::umat >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< arma::field<arma::mat> >::type class_probs(class_probsSEXP);
-    Rcpp::traits::input_parameter< arma::field<arma::vec> >::type phi_prior(phi_priorSEXP);
-    Rcpp::traits::input_parameter< arma::uvec >::type cluster_labels(cluster_labelsSEXP);
-    Rcpp::traits::input_parameter< arma::uvec >::type cat_count(cat_countSEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type num_clusters(num_clustersSEXP);
-    Rcpp::traits::input_parameter< arma::uword >::type num_cols(num_colsSEXP);
-    rcpp_result_gen = Rcpp::wrap(sample_class_probabilities(data, class_probs, phi_prior, cluster_labels, cat_count, num_clusters, num_cols));
-    return rcpp_result_gen;
-END_RCPP
-}
 // CategoricalClustering
-// Rcpp::List arma::umat CategoricalClustering(arma::umat data, arma::field<arma::vec> phi_prior, arma::uvec cluster_labels, arma::uvec fix_vec, arma::vec cluster_weight_priors, arma::uword num_clusters, arma::uword num_iter, arma::uword burn, arma::uword thinning);
+Rcpp::List CategoricalClustering(arma::umat data, arma::field<arma::vec> phi_prior, arma::uvec cluster_labels, arma::uvec fix_vec, arma::vec cluster_weight_priors, arma::uword num_clusters, arma::uword num_iter, arma::uword burn, arma::uword thinning);
 RcppExport SEXP _tagmmdi_CategoricalClustering(SEXP dataSEXP, SEXP phi_priorSEXP, SEXP cluster_labelsSEXP, SEXP fix_vecSEXP, SEXP cluster_weight_priorsSEXP, SEXP num_clustersSEXP, SEXP num_iterSEXP, SEXP burnSEXP, SEXP thinningSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -146,6 +105,17 @@ BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::vec >::type class_weights(class_weightsSEXP);
     rcpp_result_gen = Rcpp::wrap(CalcEntropy(class_weights));
+    return rcpp_result_gen;
+END_RCPP
+}
+// PredictClusterMembership
+arma::uword PredictClusterMembership(arma::vec probabilities);
+RcppExport SEXP _tagmmdi_PredictClusterMembership(SEXP probabilitiesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type probabilities(probabilitiesSEXP);
+    rcpp_result_gen = Rcpp::wrap(PredictClusterMembership(probabilities));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -289,17 +259,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// PredictClusterMembership
-arma::uword PredictClusterMembership(arma::vec probabilities);
-RcppExport SEXP _tagmmdi_PredictClusterMembership(SEXP probabilitiesSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type probabilities(probabilitiesSEXP);
-    rcpp_result_gen = Rcpp::wrap(PredictClusterMembership(probabilities));
-    return rcpp_result_gen;
-END_RCPP
-}
 // CreateSimilarityMat
 arma::mat CreateSimilarityMat(arma::umat cluster_record);
 RcppExport SEXP _tagmmdi_CreateSimilarityMat(SEXP cluster_recordSEXP) {
@@ -313,9 +272,6 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_tagmmdi_cat_counter", (DL_FUNC) &_tagmmdi_cat_counter, 1},
-    {"_tagmmdi_declare_class_probs_field", (DL_FUNC) &_tagmmdi_declare_class_probs_field, 3},
-    {"_tagmmdi_sample_class_probabilities", (DL_FUNC) &_tagmmdi_sample_class_probabilities, 7},
     {"_tagmmdi_CategoricalClustering", (DL_FUNC) &_tagmmdi_CategoricalClustering, 9},
     {"_tagmmdi_SampleDirichletPosterior", (DL_FUNC) &_tagmmdi_SampleDirichletPosterior, 4},
     {"_tagmmdi_CountCatergories", (DL_FUNC) &_tagmmdi_CountCatergories, 1},
@@ -323,11 +279,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tagmmdi_SampleCategoryProbabilities", (DL_FUNC) &_tagmmdi_SampleCategoryProbabilities, 8},
     {"_tagmmdi_SampleCategoricalDistn", (DL_FUNC) &_tagmmdi_SampleCategoricalDistn, 6},
     {"_tagmmdi_CalcEntropy", (DL_FUNC) &_tagmmdi_CalcEntropy, 1},
+    {"_tagmmdi_PredictClusterMembership", (DL_FUNC) &_tagmmdi_PredictClusterMembership, 1},
     {"_tagmmdi_GaussianClustering", (DL_FUNC) &_tagmmdi_GaussianClustering, 17},
     {"_tagmmdi_mdi_cat_cat", (DL_FUNC) &_tagmmdi_mdi_cat_cat, 17},
     {"_tagmmdi_mdi_gauss_cat", (DL_FUNC) &_tagmmdi_mdi_gauss_cat, 27},
     {"_tagmmdi_mdi_gauss_gauss", (DL_FUNC) &_tagmmdi_mdi_gauss_gauss, 39},
-    {"_tagmmdi_PredictClusterMembership", (DL_FUNC) &_tagmmdi_PredictClusterMembership, 1},
     {"_tagmmdi_CreateSimilarityMat", (DL_FUNC) &_tagmmdi_CreateSimilarityMat, 1},
     {NULL, NULL, 0}
 };

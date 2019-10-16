@@ -103,3 +103,35 @@ arma::uword PredictIndex(arma::vec my_vec) {
   return pred_ind;
   
 }
+
+//' Converts a vector of log, unnormalised probabilities to probabilities.
+//' @param my_log_vec A vector of log, unnormalised porbabilities.
+//' 
+//' @return The exponentiated, normalised transform of my_log_vec.
+arma::vec HandleOverflow(arma::vec my_log_vec) {
+  
+  arma::uword p = my_log_vec.n_cols;
+  arma::vec my_vec(p);
+  
+  // Overflow handling and convert from logs
+  my_vec = exp(my_log_vec - max(my_log_vec) );
+  
+  // Normalise the vector
+  my_vec = my_vec / sum(my_vec);
+  
+  return(my_vec);
+}
+
+// Predicts the cluster assignments based on a vector of probabilities using
+// the rejection method
+// Old name: cluster_predictor
+// [[Rcpp::export]]
+arma::uword PredictClusterMembership(arma::vec probabilities) {
+  double u;
+  arma::uword pred;
+  u = arma::randu<double>( );
+  
+  // include + 1 if labels centred on 1
+  pred = 1 + sum(u > cumsum(probabilities)); 
+  return pred;
+}

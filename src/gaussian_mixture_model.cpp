@@ -53,6 +53,7 @@ Rcpp::List GaussianClustering(arma::uword num_iter,
   arma::vec point;
   arma::vec class_weights(k);
   arma::vec cluster_prob(k);
+  arma::vec curr_prob_vec(k);
   arma::vec outlier_weights(2);
   arma::vec outlier_prob(2);
   arma::umat record(N, eff_count);
@@ -61,6 +62,8 @@ Rcpp::List GaussianClustering(arma::uword num_iter,
   arma::mat sim(N, N);
   arma::mat cluster_data;
   arma::mat mu_n(num_cols, k);
+  arma::mat alloc_prob_curr(N, k);
+  arma::mat alloc_prob(N, k);
   arma::cube variance_n(num_cols, num_cols, k);
 
   //  Normalise the continuous data
@@ -102,6 +105,9 @@ Rcpp::List GaussianClustering(arma::uword num_iter,
   // the current iterations probabilities of being an outlier (non-outlier prob
   // is 1 - outlier_prob)
   outlier_prob.zeros();
+  
+  // Record allocation probabilities
+  alloc_prob.zeros();
   
   for(arma::uword ii = 0; ii < num_iter; ii++) {
     
@@ -156,8 +162,11 @@ Rcpp::List GaussianClustering(arma::uword num_iter,
                                               variance_n
       );
       
+      // Convert these to true probabiltieis for saving in the allocation matrix
+      curr_prob_vec = HandleOverflow(cluster_prob);
+      
       // Predict the label (+1 due to R using a 1:n system rather than 0:(n-1))
-      predicted_class = PredictIndex(cluster_prob) + 1; 
+      predicted_class = PredictClusterMembership(curr_prob_vec); 
       
       if(outlier) {
         
@@ -176,6 +185,10 @@ Rcpp::List GaussianClustering(arma::uword num_iter,
         predicted_outlier = PredictIndex(outlier_prob);
       }
       
+      if (ii >= burn && (ii - burn) % thinning == 0) {
+        alloc_prob_curr.row(jj) = arma::trans(curr_prob_vec);
+      }
+      
       // If point is not known, update allocation
       if(fix_vec[jj] == 0) {
         class_labels(jj) = predicted_class;
@@ -189,15 +202,16 @@ Rcpp::List GaussianClustering(arma::uword num_iter,
       record_ind = (ii - burn) / thinning;
       record.col(record_ind) = class_labels;
       outlier_probs_saved.col(record_ind) = outlier_vec;
+      alloc_prob += alloc_prob_curr;
       
     }
   }
   
   // Calculate similarity matrix
-  sim = similarity_mat(record);
+  sim = CreateSimilarityMat(record);
   
   // Convert sum of recorded allocaiton probabilities to average probability
-  alloc_prob_gauss = alloc_prob_gauss / eff_count; 
+  alloc_prob = alloc_prob / eff_count; 
   
   return List::create(Named("similarity") = sim,
                       Named("class_record") = record,

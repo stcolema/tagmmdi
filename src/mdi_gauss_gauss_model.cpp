@@ -56,7 +56,6 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
   // Done here as many objects are sized based on this.
   num_iter++;
   
-  
   arma::uword n = data_1.n_rows; // Declare the sample size and dimensionality
   arma::uword n_cols_1 = data_1.n_cols;
   arma::uword n_cols_2 = data_2.n_cols;
@@ -69,7 +68,6 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
   arma::uword predicted_outlier_2 = 0;
   arma::uword start_iter = 0;
   arma::uword phi_count = 0;
-  
   double v = 1.0; // strategic latent variable
   double phi = arma::randg(arma::distr_param(a_0, 1/b_0) ); // Context similarity - sample prior
   double Z = 1.0; // Declare normalising constant
@@ -81,12 +79,10 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
   double outlier_weight_1 = 1 - sample_beta(u_1, v_1);
   double outlier_likelihood_2 = 0.0;
   double outlier_weight_2 = 1 - sample_beta(u_2, v_2);
-  
   arma::uvec outlier_vec_1(n);
   arma::uvec outlier_vec_2(n);
   arma::uvec relevant_labels_1(n); // Class labels of points not currently assigned as outliers
   arma::uvec relevant_labels_2(n);
-  
   arma::vec curr_prob_vec_1(n_clust_1);
   arma::vec curr_prob_vec_2(n_clust_2);
   arma::vec clust_weights_1(n_clust_1);
@@ -104,12 +100,10 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
   arma::vec norm_likelihoods_2(n_clust_2);
   arma::vec curr_outlier_prob_1(2);
   arma::vec curr_outlier_prob_2(2);
-  
   arma::umat outlier_probs_saved_1(n, eff_count); // To save the outlier labels
   arma::umat outlier_probs_saved_2(n, eff_count); // To save the outlier labels
   arma::umat record_1(n, eff_count);
   arma::umat record_2(n, eff_count);
-  
   arma::mat global_variance_1(n_cols_1, n_cols_1); // For outlier assignmnet
   arma::mat global_variance_2(n_cols_2, n_cols_2);
   arma::mat alloc_prob_1(n, n_clust_1); // The allocation probabilities for each class
@@ -118,7 +112,8 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
   arma::mat alloc_prob_curr_2(n, n_clust_2); // allocation probability matrix
   arma::mat mu_n_1(n_cols_1, n_clust_1);
   arma::mat mu_n_2(n_cols_2, n_clust_2);
-  
+  arma::mat sim_1(n, n); 
+  arma::mat sim_2(n, n);
   arma::cube variance_n_1(n_cols_1, n_cols_1, n_clust_1);
   arma::cube variance_n_2(n_cols_2, n_cols_2, n_clust_2);
   // Local 
@@ -313,17 +308,15 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
                                                     relevant_labels_2,
                                                     clust_labels_1);
 
-      // Predict cluster membership
-      predicted_class_1 = PredictIndex(norm_likelihoods_1) + 1;
-      predicted_class_2 = PredictIndex(norm_likelihoods_2) + 1;
-      
       // Convert to likelihoods, handle overflow and normalise
-      // curr_prob_vec_1 = over_flow_handling(norm_likelihoods_1);
-      // curr_prob_vec_2 = over_flow_handling(norm_likelihoods_2);
-      // 
-      // // Predict the component to which the obersation belongs
-      // predicted_class_1 = cluster_predictor(curr_prob_vec_1);
-      // predicted_class_2 = cluster_predictor(curr_prob_vec_2);
+      // We specifically save this value tp construct a matrix of allocation 
+      // probabilities
+      curr_prob_vec_1 = HandleOverflow(norm_likelihoods_1);
+      curr_prob_vec_2 = HandleOverflow(norm_likelihoods_2);
+
+      // Predict the component to which the obersation belongs
+      predicted_class_1 = PredictClusterMembership(curr_prob_vec_1);
+      predicted_class_2 = PredictClusterMembership(curr_prob_vec_2);
       
       // The various probabilities to determine if the observation is considered 
       // an outlier or not (if using TAGM rather than traditional mixtures)
@@ -472,10 +465,8 @@ Rcpp::List mdi_gauss_gauss(arma::mat data_1,
   alloc_prob_2 = alloc_prob_2 / eff_count;
   
   // construct similarity matrices
-  arma::mat sim_1(n, n); 
-  arma::mat sim_2(n, n);
-  sim_1 = similarity_mat(record_1);
-  sim_2 = similarity_mat(record_2);
+  sim_1 = CreateSimilarityMat(record_1);
+  sim_2 = CreateSimilarityMat(record_2);
   
   return List::create(Named("similarity_1") = sim_1,
                       Named("similarity_2") = sim_2,

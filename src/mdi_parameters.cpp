@@ -584,17 +584,3 @@ arma::vec UpdateClusterLabels(arma::uvec cluster_labels_1,
   output(n + num_clusters_2) = phi;
   return output;
 }
-
-// Predicts the cluster assignments based on a vector of probabilities using
-// the rejection method
-// Old name: cluster_predictor
-// [[Rcpp::export]]
-arma::uword PredictClusterMembership(arma::vec probabilities){
-  double u;
-  arma::uword pred;
-  u = arma::randu<double>( );
-  
-  // include + 1 if labels centred on 1
-  pred = 1 + sum(u > cumsum(probabilities)); 
-  return pred;
-}

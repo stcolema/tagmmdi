@@ -12,16 +12,15 @@ using namespace Rcpp ;
 
 // The actual categorical clustering all wrapped up in one function
 // [[Rcpp::export]]
-// Rcpp::List
-arma::umat  CategoricalClustering(arma::umat data,
-                                  arma::field<arma::vec> phi_prior,
-                                  arma::uvec cluster_labels,
-                                  arma::uvec fix_vec,
-                                  arma::vec cluster_weight_priors,
-                                  arma::uword num_clusters,
-                                  arma::uword num_iter,
-                                  arma::uword burn,
-                                  arma::uword thinning
+Rcpp::List CategoricalClustering(arma::umat data,
+                                 arma::field<arma::vec> phi_prior,
+                                 arma::uvec cluster_labels,
+                                 arma::uvec fix_vec,
+                                 arma::vec cluster_weight_priors,
+                                 arma::uword num_clusters,
+                                 arma::uword num_iter,
+                                 arma::uword burn,
+                                 arma::uword thinning
 ) {
   
   // To allow using < and keeping in line with object sizes
@@ -65,7 +64,7 @@ arma::umat  CategoricalClustering(arma::umat data,
   record.zeros();
   
   // The posterior similarity matrix (I think this should be outside this function)
-  sim.zeros()
+  sim.zeros();
   
   // Iterate over the desired number of iterations
   for(arma::uword i = 0; i < num_iter; i++) {
@@ -115,7 +114,7 @@ arma::umat  CategoricalClustering(arma::umat data,
     }
   }
   
-  sim = similarity_mat(record);
+  sim = CreateSimilarityMat(record);
   
   return List::create(Named("similarity") = sim,
                       Named("class_record") = record);

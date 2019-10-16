@@ -58,8 +58,10 @@ Rcpp::List mdi_cat_cat(arma::umat data_1,
   arma::vec entropy_cw(num_iter);
   arma::vec rate_0_1(n_clust_1);
   arma::vec rate_0_2(n_clust_2);
-  arma::umat record_1(n, eff_count) = arma::zeros<arma::umat>(n, eff_count);
-  arma::umat record_2(n, eff_count) = arma::zeros<arma::umat>(n, eff_count);
+  arma::umat record_1(n, eff_count);
+  arma::umat record_2(n, eff_count);
+  arma::mat sim_1(n, n); 
+  arma::mat sim_2(n, n);
   arma::field<arma::mat> class_prob_1(n_cols_1);
   arma::field<arma::mat> class_prob_2(n_cols_2);
   
@@ -82,6 +84,9 @@ Rcpp::List mdi_cat_cat(arma::umat data_1,
   
   // Initialise v based on the prior
   v = arma::randg( arma::distr_param(v_a_0, 1.0/(v_b_0) ) );
+  
+  record_1.zeros();
+  record_2.zeros();
   
   for(arma::uword i = 0; i < num_iter; i++){
   
@@ -217,10 +222,8 @@ Rcpp::List mdi_cat_cat(arma::umat data_1,
   }
   
   // construct similarity matrix
-  arma::mat sim_1(n, n); 
-  arma::mat sim_2(n, n);
-  sim_1 = similarity_mat(record_1);
-  sim_2 = similarity_mat(record_2);
+  sim_1 = CreateSimilarityMat(record_1);
+  sim_2 = CreateSimilarityMat(record_2);
   
   // std::cout << "Context similarity: " << context_similarity << "\n";
   
