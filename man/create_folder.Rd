@@ -4,7 +4,8 @@
 \alias{create_folder}
 \title{Create folder}
 \usage{
-create_folder(folder_name, root_dir = ".", overwrite = FALSE)
+create_folder(folder_name, root_dir = ".", overwrite = FALSE,
+  load_results = FALSE)
 }
 \arguments{
 \item{folder_name}{A string. The name for the folder.}

@@ -108,7 +108,7 @@ gibbs_sampling <- function(data, k, class_labels,
   }
 
   # Gaussian clustering
-  sim <- gaussian_clustering(
+  sim <- GaussianClustering(
     num_iter,
     concentration_0,
     scale_0,
@@ -211,7 +211,7 @@ categorical_gibbs_sampling <- function(data,
     )
   }
 
-  sim <- categorical_clustering(
+  sim <- CategoricalClustering(
     data,
     phi_0,
     c_clusters_label_0,

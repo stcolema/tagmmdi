@@ -1,14 +1,18 @@
 # include <RcppArmadillo.h>
-# include <iostream>
-# include <fstream>
+// # include <iostream>
+// # include <fstream>
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
 using namespace Rcpp ;
 
-// Calculate the entropy for the current cluster weights
+//' Calculate the entropy for the current cluster weights.
+//' 
+//' @param class_weights The vector of the cluster weights from a mixture model.
+//' 
+//' @return The information entropy for the current cluster weights.
 // [[Rcpp::export]]
-double entropy(arma::vec class_weights){
+double CalcEntropy(arma::vec class_weights) {
   
   // Declare objects
   arma::uword n = class_weights.n_elem;

@@ -6,7 +6,7 @@
 \usage{
 mdi_cross_validate(MS_object, MS_cat_object = NULL, times = 10,
   test_size = 0.2, num_iter = 1000, burn = floor(num_iter/10),
-  thinning = 25, ...)
+  thinning = 25, n_clust_cat = 50, ...)
 }
 \arguments{
 \item{MS_object}{A dataset in the format used by pRolocdata.}

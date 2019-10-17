@@ -13,7 +13,8 @@ mdi(data_1, data_2, args_1 = NULL, args_2 = NULL,
   num_iter = NULL, burn = floor(num_iter/10), thinning = 25,
   outlier_1 = FALSE, t_df_1 = 4, normalise_1 = FALSE,
   outlier_2 = FALSE, t_df_2 = 4, normalise_2 = FALSE,
-  record_posteriors = FALSE, save_results = FALSE)
+  record_posteriors = FALSE, save_results = FALSE,
+  load_results = FALSE, num_load = 0)
 }
 \arguments{
 \item{data_1}{A matrix of the data being analysed (context 1).}
