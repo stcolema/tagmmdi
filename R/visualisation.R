@@ -6,7 +6,8 @@
 # === VISUALISATION ============================================================
 
 # --- Heatmap ------------------------------------------------------------------
-#' @title Annotated Heatmap
+# Old name: annotated_heatmap
+#' @title Plot Annotated Heatmap
 #' @description Returns and prints an annotated pheatmap
 #'
 #' @param input_data A matrix of data to be heat mapped. Needs column and
@@ -25,10 +26,10 @@
 #' @importFrom pheatmap pheatmap
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom rlang enquo quo_text
-annotated_heatmap <- function(input_data, annotation_row = NULL,
-                              sort_by_col = NULL,
-                              train = NULL,
-                              ...) {
+plotAnnotatedHeatmap <- function(input_data, annotation_row = NULL,
+                                 sort_by_col = NULL,
+                                 train = NULL,
+                                 ...) {
   if (is.null(annotation_row) & !(isTRUE(train) | is.null(train))) {
     stop("If data")
   }
@@ -180,10 +181,10 @@ annotated_heatmap <- function(input_data, annotation_row = NULL,
 #' @importFrom dplyr select
 #' @importFrom rlang enquo
 #' @importFrom stats hclust
-pheatmap_cluster_by_col <- function(num_data, annotation_row, sort_col,
-                                    main = "sense_check",
-                                    use_col_gaps = TRUE,
-                                    ...) {
+pheatmapClusterByCol <- function(num_data, annotation_row, sort_col,
+                                 main = "sense_check",
+                                 use_col_gaps = TRUE,
+                                 ...) {
 
   # save row names as dplyr removes them
   row_names <- row.names(num_data)
@@ -296,8 +297,9 @@ pca_ms_obj <- function(MS_object, test_pred,
                        ellipses = FALSE,
                        alpha.ind = 1,
                        ...) {
-  ms_data <- MS_dataset(MS_object)
-  rel_data <- ms_data$data
+  rel_data <- MS_object %>%
+    Biobase::exprs()
+
   last_col <- ncol(rel_data)
   data_pca <- rel_data[, -last_col]
   data_pca$class <- test_pred

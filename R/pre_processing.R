@@ -4,87 +4,14 @@
 
 # === PRE-PROCESSING ===========================================================
 
-# --- Data preparation ---------------------------------------------------------
-
-#' @title MS dataset
-#' @description Given an MS object from pRolocData, returns the numerical data,
-#' the count of each class and the vector recording which labels are fixed (i.e
-#' from the training set) and unfixed.
-#'
-#' @param MS_object A dataset in the format used by pRolocdata.
-#' @param train: instruction to include all data (NULL), labelled data (TRUE) or
-#' unlabelled data (FALSE). Default is NULL.
-#' @examples
-#' data("hyperLOPIT2015") # MS object from pRolocData
-#' MS_data <- MS_dataset(hyperLOPIT2015)
-#' @importFrom dplyr bind_rows
-MS_dataset <- function(MS_object, train = NULL) {
-  # Data with labels
-  mydata_labels <- pRoloc:::subsetAsDataFrame(
-    object = MS_object,
-    fcol = "markers",
-    train = TRUE
-  )
-
-  # fixed <- rep(TRUE, nrow(mydata_labels))
-  fixed <- rep(1, nrow(mydata_labels))
-
-  mydata_no_labels <- pRoloc:::subsetAsDataFrame(
-    object = MS_object,
-    fcol = "markers",
-    train = FALSE
-  )
-
-  # not_fixed <- rep(FALSE, nrow(mydata_no_labels))
-  not_fixed <- rep(0, nrow(mydata_no_labels))
-
-  nk <- tabulate(fData(markerMSnSet(MS_object))[, "markers"])
-
-  if (nrow(mydata_no_labels) > 0) {
-    mydata_no_labels$markers <- NA
-  }
-
-  if (is.null(train)) {
-    row_names <- c(rownames(mydata_labels), rownames(mydata_no_labels))
-    mydata <- suppressWarnings(dplyr::bind_rows(mydata_labels, mydata_no_labels))
-    fix_vec <- c(fixed, not_fixed)
-  } else if (isTRUE(train)) {
-    row_names <- c(rownames(mydata_labels))
-    mydata <- mydata_labels
-    fix_vec <- fixed
-  } else {
-    row_names <- c(rownames(mydata_no_labels))
-    mydata <- mydata_no_labels
-    fix_vec <- not_fixed
-  }
-  return(list(data = mydata, fix_vec = fix_vec, row_names = row_names, nk = nk))
-}
-
-#' @title Prepare cat data
-#' @description Converts categorical data to numerical format appropriate for
-#' analysis (i.e. integers with a null class of 0)
-#'
-#' @param data  A data frame or matrix of categorical data
-#' @return A matrix of integers where the lowest class fval
-prepare_cat_data <- function(data) {
-  data <- data %>%
-    as.data.frame() %>%
-    lapply(as.character) %>%
-    lapply(as.factor) %>%
-    lapply(as.numeric) %>%
-    do.call(rbind, .) %>%
-    "-"(1) %>%
-    t()
-}
-
 # --- Parameters  --------------------------------------------------------------
 
-#' @title Thinning warning
+#' @title Check Thinning Factor
 #' @description Generates an error or warning if the relative values of
 #' thinning, num_iter and burn (the arguments controlling the number of recorded
 #' MCMC samples) are strange.
 #' @return None.
-thinning_warning <- function(thinning, num_iter, burn) {
+checkThinningFactor <- function(thinning, num_iter, burn) {
   if (thinning > (num_iter - burn)) {
     if (thinning > (num_iter - burn) & thinning < 5 * (num_iter - burn)) {
       stop("Thinning factor exceeds iterations feasibly recorded. Stopping.")
@@ -99,6 +26,8 @@ thinning_warning <- function(thinning, num_iter, burn) {
   }
 }
 
+# Old name: empirical_bayes_gaussian
+#' @title Generate Gaussian Empirical Bayes Prior
 #' Generates priors for the mean, degrees of freedom and scale parameters if not
 #' set.
 #'
@@ -113,8 +42,14 @@ thinning_warning <- function(thinning, num_iter, burn) {
 #' @param lambda_0 A positive real number; the shrinkage prior for the mean.
 #' @return A named list of the three hyperparameters, mean, scale and degrees of
 #'  freedom
-empirical_bayes_gaussian <- function(data, mu_0, df_0, scale_0, N, k, d,
-                                     lambda_0 = 0.01) {
+generateGaussianEmpiricalBayesPrior <- function(data,
+                                                mu_0,
+                                                df_0,
+                                                scale_0,
+                                                N,
+                                                k,
+                                                d,
+                                                lambda_0 = 0.01) {
   parameters <- list()
   if (is.null(mu_0)) {
     mu_0 <- colMeans(data)
@@ -135,13 +70,14 @@ empirical_bayes_gaussian <- function(data, mu_0, df_0, scale_0, N, k, d,
   return(parameters)
 }
 
+# Old name: phi_prior
 #' @title Phi prior
 #' @description Generates a prior for the phi vector for each variable for the
 #' Dirichlet distribution
 #' @param matrix_data A matrix of data.
 #' @return A list of vectors of the proportion of each level across all of
 #' matrix_data.
-phi_prior <- function(matrix_data) {
+generateCategoricalEmpiricalBayesPrior <- function(matrix_data) {
 
   # lambda function applies ``table'' to each column of matr_data before
   # removing names. This ensures the same output type for the case when all
@@ -157,8 +93,8 @@ phi_prior <- function(matrix_data) {
     lapply("/", nrow(matrix_data))
 }
 
-
-#' @title Gaussian arguments
+# Old name: gaussian_arguments
+#' @title Create Gaussian Arguments
 #' @description Creates a named list of the priors required for a mixture of
 #' Gaussians. If the user provides values the function will wrap them in a
 #' single object appropriate for input into the MDI function. If values are not
@@ -177,12 +113,12 @@ phi_prior <- function(matrix_data) {
 #' distribution from which the variance is sampled. If NULL defaults to d + 2.
 #' @return A named list ready to be used as input into the MDI function.
 #' @examples
-#' args <- gaussian_arguments(data, 5)
-gaussian_arguments <- function(data, n_clust,
-                               mu_0 = NULL,
-                               scale_0 = NULL,
-                               lambda_0 = NULL,
-                               df_0 = NULL) {
+#' args <- CreateGaussianArguments(data, 5)
+createGaussianArguments <- function(data, n_clust,
+                                    mu_0 = NULL,
+                                    scale_0 = NULL,
+                                    lambda_0 = NULL,
+                                    df_0 = NULL) {
   N <- nrow(data)
   d <- ncol(data)
 
@@ -190,14 +126,21 @@ gaussian_arguments <- function(data, n_clust,
     lambda_0 <- 0.01
   }
 
-  args <- empirical_bayes_gaussian(data, mu_0, df_0, scale_0, N, n_clust, d,
+  args <- generateGaussianEmpiricalBayesPrior(data,
+    mu_0,
+    df_0,
+    scale_0,
+    N,
+    n_clust,
+    d,
     lambda_0 = lambda_0
   )
 
   args
 }
 
-#' @title Categorical arguments
+# Old name: categorical_arguments
+#' @title Create Categorical Arguments
 #' @description Creates a named list of the priors required for a mixture of
 #' Dirichlets. The priors are generated using an empirical method (hence the
 #' need for inputting the data and the number of clusters).
@@ -205,14 +148,14 @@ gaussian_arguments <- function(data, n_clust,
 #' @param n_clust A unsigned integer; the number of clusters to be used in the
 #' clustering method.
 #' @return A named list ready to be used as input into the MDI function.
-categorical_arguments <- function(data, n_clust) {
-  args <- list(phi = phi_prior(data))
+createCategoricalArguments <- function(data, n_clust) {
+  args <- list(phi = generateCategoricalEmpiricalBayesPrior(data))
   args
 }
 
 #' @title Cluster weight prior
 #' @description Produces a vector of prior weights for clusters
-cluster_weight_prior <- function(train_data, outlier = FALSE) {
+generateClusterWeightPrior <- function(train_data, outlier = FALSE) {
   weights <- train_data %>%
     table() %>%
     unname() %>%
@@ -226,6 +169,7 @@ cluster_weight_prior <- function(train_data, outlier = FALSE) {
   weights
 }
 
+# declare_cluster_weights
 #' @title Declare cluster weights
 #' @description Creates a vector for the mass parameter for cluster weights.
 #' @param fix_vec Vector of 1's and 0's indicating if the corresponding entry in
@@ -238,8 +182,8 @@ cluster_weight_prior <- function(train_data, outlier = FALSE) {
 #' defaults to a p-vector of p repetitions of said int.
 #' @return A vector of values to be used as the mass parameters for the weights
 #' for the clusters.
-declare_cluster_weights <- function(fix_vec, clust_labels, n_clust,
-                                    weight_0 = NULL) {
+createClusterWeights <- function(fix_vec, clust_labels, n_clust,
+                                 weight_0 = NULL) {
   if (any(fix_vec == 1) & is.null(weight_0)) {
     relevant_labels <- clust_labels[fix_vec == 1]
     weight_0 <- unname(table(relevant_labels) / sum(table(relevant_labels)))
@@ -261,7 +205,8 @@ declare_cluster_weights <- function(fix_vec, clust_labels, n_clust,
   weight_0
 }
 
-#' @title Cluster label prior
+# Old name: cluster_label_prior
+#' @title Generate Cluster Label Prior
 #' @description Generates a vector of labels if required
 #' @param class_labels_0 An optional prior for clusters in MS_object. If NULL
 #' defaults to a randomly generated set using the proportion in the labelled
@@ -276,11 +221,11 @@ declare_cluster_weights <- function(fix_vec, clust_labels, n_clust,
 #' observations
 #' @importFrom MSnbase fData
 #' @importFrom pRoloc markerMSnSet
-cluster_label_prior <- function(class_labels_0,
-                                train,
-                                MS_object,
-                                k,
-                                N) {
+generateClusterLabelPrior <- function(class_labels_0,
+                                      train,
+                                      MS_object,
+                                      k,
+                                      N) {
   # Generate class labels
   if (is.null(class_labels_0)) {
     if (is.null(train)) {

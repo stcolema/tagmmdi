@@ -4,7 +4,8 @@
 
 # === Cross-Validation =========================================================
 
-#' @title MDI cross validate
+# Old name: mdi_cross_validate
+#' @title Cross validate MDI
 #' @description Returns the allocation confusion matrix and quadratic loss score
 #' of MDI applied to the expression data from MS object and MS cat object.
 #'
@@ -22,21 +23,22 @@
 #' @return A named list of the confusion matrix for allocaitons across each fold
 #' and the associated quadratic loss.
 #' @examples
-#' cv_metrics <- mdi_cross_validate(tan2009r1, tan2009r1goCC)
+#' cv_metrics <- CrossValidateMDI(tan2009r1, tan2009r1goCC)
 #' @importFrom BiocGenerics combine
 #' @importFrom caret confusionMatrix
 #' @importFrom MSnbase fData MSnSet exprs pData
 #' @importFrom pRoloc markerMSnSet getMarkerClasses
 #' @importFrom sampling strata
-mdi_cross_validate <- function(MS_object,
-                               MS_cat_object = NULL,
-                               times = 10,
-                               test_size = 0.2,
-                               num_iter = 1000,
-                               burn = floor(num_iter / 10),
-                               thinning = 25,
-                               n_clust_cat = 50,
-                               ...) {
+#' @export
+crossValidateMDI <- function(MS_object,
+                             MS_cat_object = NULL,
+                             times = 10,
+                             test_size = 0.2,
+                             num_iter = 1000,
+                             burn = floor(num_iter / 10),
+                             thinning = 25,
+                             n_clust_cat = 50,
+                             ...) {
   
   marker.data <- pRoloc::markerMSnSet(MS_object)
 
@@ -143,7 +145,7 @@ mdi_cross_validate <- function(MS_object,
     }
     
     # MDI
-    params <- mcmc_out(mydata,
+    params <- clusteringWrapper(mydata,
       data_2 = cat_data,
       fix_vec_1 = fix_vec_1,
       n_clust_2 = n_clust_cat,

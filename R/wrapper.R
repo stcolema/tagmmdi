@@ -4,7 +4,8 @@
 # the appropriate pre-sampling, sampling and post-sampling steps
 
 # === WRAPPER FUNCTION==========================================================
-#' @title MCMC out
+# Old name: mcmc_out
+#' @title Clustering Wrapper
 #' @description Returns mean, variance and similarity posteriors from Gibbs
 #' sampling with option of pheatmap
 #' @param MS_object A dataset in the format used by pRolocdata.
@@ -59,13 +60,6 @@
 #' is 4).
 #' @param normalise_2 Bool instructing normalisation of continuous data in
 #' dataset 2 (default is false).
-#' @param record_posteriors A bool instructing the mcmc function to record the
-#' posterior distributions of the mean and variance for each cluster
-#' (default is TRUE)
-#' @param save_results Bool instructing program to save results to file. Default
-#' is FALSE.
-#' @param overwrite Bool instructing program to overwrite pre-existing results
-#' if they exist in the current directroy. Default is FALSE with warnings anyway.
 #' @param train instruction to include all data (NULL), labelled data (TRUE) or
 #' unlabelled data (FALSE). Default is NULL.
 #' @param num_iter The number of iterations to sample over.
@@ -98,9 +92,9 @@
 #' but can include two pheatmaps and a scatter plot of the entropy over
 #' iterations.
 #' @examples
-#' Single dataset clustering
+#' # Single dataset clustering
 #' data("hyperLOPIT2015") # MS object from pRolocData
-#' mcmc_object <- mcmc_out(hyperLOPIT2015,
+#' mcmc_object <- clusteringWrapper(hyperLOPIT2015,
 #'   num_iter = 10000,
 #'   burn = 1000,
 #'   thinning = 50,
@@ -110,20 +104,20 @@
 #'   prediction_threshold = 0.5
 #' )
 #'
-#' Use some categorical data
+#' # Use some categorical data
 #' cat_data <- as.matrix(exprs(tan2009r1goCC))
 #'
-#' Implement MDI
-#' stuff <- mcmc_out(tan2009r1,
-#'                   data_2 = cat_data,
-#'                   num_iter = 10,
-#'                   burn = 1,
-#'                   thinning = 1,
-#'                   outlier_1 = TRUE,
-#'                   heat_plot = T,
-#'                   main = "Gene clustering by organelle",
-#'                   prediction_threshold = 0.4,
-#'                   sense_check_map = F
+#' # Implement MDI
+#' stuff <- clusteringWrapper(tan2009r1,
+#'   data_2 = cat_data,
+#'   num_iter = 10,
+#'   burn = 1,
+#'   thinning = 1,
+#'   outlier_1 = TRUE,
+#'   heat_plot = T,
+#'   main = "Gene clustering by organelle",
+#'   prediction_threshold = 0.4,
+#'   sense_check_map = F
 #' )
 #' @importFrom dplyr select arrange mutate bind_cols
 #' @importFrom ggplot2 ggplot aes geom_point geom_vline ggtitle xlab ylab scale_color_manual
@@ -131,53 +125,50 @@
 #' @importFrom pRoloc markerMSnSet
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom attempt try_catch
-mcmc_out <- function(MS_object,
-                     fcol = "markers",
-                     data_2 = NULL,
-                     labels_0_1 = NULL,
-                     args_1 = NULL,
-                     cluster_weight_0_1 = NULL,
-                     type_1 = "Gaussian",
-                     type_2 = "Categorical",
-                     cluster_weight_0_2 = 1,
-                     args_2 = NULL,
-                     labels_0_2 = NULL,
-                     n_clust_2 = 50,
-                     fix_vec_1 = NULL,
-                     fix_vec_2 = NULL,
-                     a_0 = 1,
-                     b_0 = 0.2,
-                     outlier_1 = FALSE,
-                     t_df_1 = 4.0,
-                     normalise_1 = FALSE,
-                     outlier_2 = FALSE,
-                     t_df_2 = 4.0,
-                     normalise_2 = FALSE,
-                     record_posteriors = TRUE,
-                     save_results = FALSE,
-                     load_results = FALSE,
-                     overwrite = FALSE,
-                     train = NULL,
-                     num_iter = NULL,
-                     burn = floor(num_iter / 10),
-                     thinning = 25,
-                     heat_plot = TRUE,
-                     heat_plot_2 = FALSE,
-                     main = "heatmap_for_similarity",
-                     cluster_row = T,
-                     cluster_cols = T,
-                     fontsize = 10,
-                     fontsize_row = 6,
-                     fontsize_col = 6,
-                     entropy_plot = TRUE,
-                     window_length = min(25, num_iter / 5),
-                     mean_tolerance = 0.0005,
-                     sd_tolerance = 0.0005,
-                     sense_check_map = TRUE,
-                     sense_check_map_2 = FALSE,
-                     sense_check_main = "component_level_clustering",
-                     prediction_threshold = 0.5,
-                     verbose = FALSE) {
+#' @export
+clusteringWrapper <- function(MS_object,
+                              fcol = "markers",
+                              data_2 = NULL,
+                              labels_0_1 = NULL,
+                              args_1 = NULL,
+                              cluster_weight_0_1 = NULL,
+                              type_1 = "Gaussian",
+                              type_2 = "Categorical",
+                              cluster_weight_0_2 = 1,
+                              args_2 = NULL,
+                              labels_0_2 = NULL,
+                              n_clust_2 = 50,
+                              fix_vec_1 = NULL,
+                              fix_vec_2 = NULL,
+                              a_0 = 1,
+                              b_0 = 0.2,
+                              outlier_1 = FALSE,
+                              t_df_1 = 4.0,
+                              normalise_1 = FALSE,
+                              outlier_2 = FALSE,
+                              t_df_2 = 4.0,
+                              normalise_2 = FALSE,
+                              train = NULL,
+                              num_iter = NULL,
+                              burn = floor(num_iter / 10),
+                              thinning = 25,
+                              heat_plot = TRUE,
+                              heat_plot_2 = FALSE,
+                              main = "heatmap_for_similarity",
+                              cluster_row = T,
+                              cluster_cols = T,
+                              fontsize = 10,
+                              fontsize_row = 6,
+                              fontsize_col = 6,
+                              entropy_plot = TRUE,
+                              window_length = min(25, num_iter / 5),
+                              mean_tolerance = 0.0005,
+                              sd_tolerance = 0.0005,
+                              sense_check_map = TRUE,
+                              sense_check_map_2 = FALSE,
+                              sense_check_main = "component_level_clustering",
+                              prediction_threshold = 0.5,
+                              verbose = FALSE) {
 
   # Consider allowing input of fcol in which case don't deselect markers, rather use:
 
@@ -217,7 +208,7 @@ mcmc_out <- function(MS_object,
       print(sum(row_names != row_names_2))
       stop("Row names in datasets are not the same. Check compatible data.")
     }
-    
+
     # If a fix_vec is not given for dataset 2, allow all points to move
     # (i.e. unsupervised clustering)
     if (is.null(fix_vec_2)) {
@@ -246,29 +237,6 @@ mcmc_out <- function(MS_object,
   N <- nrow(num_data)
   d <- ncol(num_data)
 
-  # REDUNDANT
-  # Folders to save to
-  output_folders(n_clust_1, n_clust_2,
-    save_results = save_results,
-    load_results = load_results,
-    overwrite = overwrite
-  )
-
-  # Try and load previous runs of the same implementation
-  num_load <- 0
-
-  if (load_results) {
-    num_load <- attempt::try_catch(
-      expr = length(list.files("./output/dataset_1/allocation")),
-      .e = NULL,
-      .w = NULL
-    )
-  }
-
-  if (is.null(num_load)) {
-    num_load <- 0
-  }
-
   # Key to transforming from int to class
   class_labels_key <- data.frame(Class = sorted_classes) %>%
     magrittr::inset2(., "Class_key", value = as.numeric(.$Class))
@@ -280,7 +248,7 @@ mcmc_out <- function(MS_object,
     magrittr::inset2("Class_ind", value = class_numerical)
 
   # Generate initial labels to begin with in clustering
-  labels_0_1 <- cluster_label_prior(
+  labels_0_1 <- generateClusterLabelPrior(
     labels_0_1,
     train,
     MS_object,
@@ -302,7 +270,7 @@ mcmc_out <- function(MS_object,
   }
 
   # Warning if thinning is too high compared to num_iter - burn
-  thinning_warning(thinning, num_iter, burn)
+  checkThinningFactor(thinning, num_iter, burn)
 
   # Prior on mass parameter for cluster  weights
   if (is.null(cluster_weight_0_1)) {
@@ -328,7 +296,7 @@ mcmc_out <- function(MS_object,
 
   # If no second dataset, run a single mixture model
   if (is.null(data_2)) {
-    gibbs <- gibbs_sampling(num_data_mat, n_clust_1, labels_0_1, fix_vec_1,
+    gibbs <- doGaussianClustering(num_data_mat, n_clust_1, labels_0_1, fix_vec_1,
       d = d,
       N = N,
       num_iter = num_iter,
@@ -341,14 +309,14 @@ mcmc_out <- function(MS_object,
       thinning = thinning,
       outlier = outlier_1,
       t_df = t_df_1,
-      record_posteriors = record_posteriors,
+      # record_posteriors = record_posteriors,
       normalise = normalise_1
     )
   }
 
   # If second dataset is present, implement MDI
   else {
-    gibbs <- mdi(num_data_mat, data_2_mat,
+    gibbs <- MDI(num_data_mat, data_2_mat,
       args_1 = args_1,
       args_2 = args_2,
       type_1 = type_1,
@@ -373,11 +341,7 @@ mcmc_out <- function(MS_object,
       normalise_1 = normalise_1,
       outlier_2 = outlier_2,
       t_df_2 = t_df_2,
-      normalise_2 = normalise_2,
-      record_posteriors = record_posteriors,
-      save_results = save_results,
-      load_results = load_results,
-      num_load = num_load
+      normalise_2 = normalise_2
     )
   }
 
@@ -462,7 +426,7 @@ mcmc_out <- function(MS_object,
       cat("Constructing heat plot of expression data annotated by clustering.\n")
     }
 
-    component_heat_map <- pheatmap_cluster_by_col(num_data,
+    component_heat_map <- pheatmapClusterByCol(num_data,
       annotation_row,
       Predicted_class,
       main = sense_check_main,
@@ -473,10 +437,8 @@ mcmc_out <- function(MS_object,
       breaks = my_breaks
     )
     if (!is.null(data_2) & sense_check_map_2) {
-      
-      if(type_2 == "G" | type_2 == "Gaussian"){
-      
-        component_heat_map_2 <- annotated_heatmap(data_2, annotation_row,
+      if (type_2 == "G" | type_2 == "Gaussian") {
+        component_heat_map_2 <- plotAnnotatedHeatmap(data_2, annotation_row,
           train = train,
           main = main,
           cluster_row = cluster_row,
@@ -488,7 +450,7 @@ mcmc_out <- function(MS_object,
           breaks = my_breaks
         )
       } else {
-        component_heat_map_2 <- pheatmap_cluster_by_col(data_2,
+        component_heat_map_2 <- pheatmapClusterByCol(data_2,
           annotation_row,
           Predicted_class,
           main = sense_check_main,
@@ -498,9 +460,8 @@ mcmc_out <- function(MS_object,
           fontsize_col = fontsize_col,
           breaks = my_breaks
         )
-          
       }
-      # annotated_heatmap(data_2, annotation_row,
+      # PlotAnnotatedHeatmap(data_2, annotation_row,
       #                   train = train,
       #                   main = main,
       #                   cluster_row = cluster_row,
@@ -511,7 +472,7 @@ mcmc_out <- function(MS_object,
       #                   fontsize_col = fontsize_col,
       #                   breaks = my_breaks)
       #
-      #   pheatmap_cluster_by_col(data_2,
+      #   pheatmapClusterByCol(data_2,
       #                                               annotation_row,
       #                                               Predicted_class,
       #                                               main = sense_check_main,
@@ -565,7 +526,7 @@ mcmc_out <- function(MS_object,
 
     # col_pal <- RColorBrewer::brewer.pal(9, "Blues")
 
-    heat_map <- annotated_heatmap(sim, annotation_row,
+    heat_map <- PlotAnnotatedHeatmap(sim, annotation_row,
       train = train,
       main = main,
       cluster_row = cluster_row,
@@ -587,7 +548,7 @@ mcmc_out <- function(MS_object,
 
       # col_pal <- RColorBrewer::brewer.pal(9, "Blues")
 
-      heat_map_2 <- annotated_heatmap(sim_2, annotation_row,
+      heat_map_2 <- PlotAnnotatedHeatmap(sim_2, annotation_row,
         train = train,
         main = main,
         cluster_row = cluster_row,
@@ -612,7 +573,7 @@ mcmc_out <- function(MS_object,
       Entropy = gibbs$entropy
     )
 
-    rec_burn <- entropy_window(gibbs$entropy,
+    rec_burn <- PlotEntropyDiagnostic(gibbs$entropy,
       window_length = window_length,
       mean_tolerance = mean_tolerance,
       sd_tolerance = sd_tolerance
@@ -641,7 +602,8 @@ mcmc_out <- function(MS_object,
         lty = 4
       ) +
       ggplot2::ggtitle("Entropy over iterations including recommended and implemented burn") +
-      ggplot2::xlab("Iteration") + ggplot2::ylab("Entropy") +
+      ggplot2::xlab("Iteration") +
+      ggplot2::ylab("Entropy") +
       ggplot2::scale_color_manual(name = "Burn", values = c(
         Reccomended = "red",
         Implemented = "blue"

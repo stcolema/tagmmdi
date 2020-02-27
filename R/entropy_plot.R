@@ -4,7 +4,8 @@
 
 # === Convergence ==============================================================
 
-#' @title entropy_window
+# Old name: entropy_window
+#' @title Plot Entropy Diagnostic
 #' @description  Find the point at which entropy stabilises in the iterations.
 #'
 #' @param entropy_vec A vector of numbers corresponding to entropy of each
@@ -19,11 +20,11 @@
 #' deviation of the two windows must be to be considered converged (default is
 #' 0.001).
 #' @return The iteration at which convergence occurs in the clustering
-entropy_window <- function(entropy_vec,
-                           start = 1,
-                           window_length = 25,
-                           mean_tolerance = 0.001,
-                           sd_tolerance = 0.001) {
+PlotEntropyDiagnostic <- function(entropy_vec,
+                                  start = 1,
+                                  window_length = 25,
+                                  mean_tolerance = 0.001,
+                                  sd_tolerance = 0.001) {
   n <- length(entropy_vec)
 
   search_range <- seq(

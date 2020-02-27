@@ -4,7 +4,8 @@
 
 # === Sampling methods =========================================================
 
-#' @title Gibbs sampling
+# old name: gibbs_sampling
+#' @title Do Gaussian Clustering
 #' @description Carries out gibbs sampling of data and returns a similarity matrix for points
 #'
 #' @param data A matrix of the data being analysed.
@@ -39,30 +40,31 @@
 #' @param record_posteriors A bool instructing the mcmc function to record the
 #' posterior distributions of the mean and variance for each cluster
 #' (default is FALSE)
-gibbs_sampling <- function(data, k, class_labels,
-                           fix_vec = rep(F, nrow(data)),
-                           d = ncol(data),
-                           N = nrow(data),
-                           num_iter = NULL,
-                           burn = NULL,
-                           thinning = 25,
-                           mu_0 = NULL,
-                           df_0 = NULL,
-                           scale_0 = NULL,
-                           lambda_0 = NULL,
-                           concentration_0 = NULL,
-                           a0 = 1.0,
-                           b0 = 0.2,
-                           cat_data = NULL,
-                           cluster_weight_priors_categorical = 1,
-                           phi_0 = NULL,
-                           c_clusters_label_0 = NULL,
-                           num_clusters_cat = 100,
-                           outlier = FALSE,
-                           t_df = 4.0,
-                           record_posteriors = FALSE,
-                           normalise = FALSE) {
-  
+#' @export
+doGaussianClustering <- function(data, k, class_labels,
+                                 fix_vec = rep(F, nrow(data)),
+                                 d = ncol(data),
+                                 N = nrow(data),
+                                 num_iter = NULL,
+                                 burn = NULL,
+                                 thinning = 25,
+                                 mu_0 = NULL,
+                                 df_0 = NULL,
+                                 scale_0 = NULL,
+                                 lambda_0 = NULL,
+                                 concentration_0 = NULL,
+                                 a0 = 1.0,
+                                 b0 = 0.2,
+                                 cat_data = NULL,
+                                 cluster_weight_priors_categorical = 1,
+                                 phi_0 = NULL,
+                                 c_clusters_label_0 = NULL,
+                                 num_clusters_cat = 100,
+                                 outlier = FALSE,
+                                 t_df = 4.0,
+                                 record_posteriors = FALSE,
+                                 normalise = FALSE) {
+
   # REDUNDANT - DONE IN WRAPPER FUNCTION
   if (is.null(num_iter)) {
     num_iter <- min((d^2) * 1000 / sqrt(N), 10000)
@@ -76,12 +78,12 @@ gibbs_sampling <- function(data, k, class_labels,
     stop("Burn in exceeds total iterations. None will be recorded.\nStopping.")
   }
 
-  thinning_warning(thinning, num_iter, burn)
+  checkThinningFactor(thinning, num_iter, burn)
 
   data <- as.matrix(data)
 
   # Empirical Bayes
-  parameters_0 <- gaussian_arguments(data, k,
+  parameters_0 <- createGaussianArguments(data, k,
     mu_0 = mu_0,
     scale_0 = scale_0,
     lambda_0 = lambda_0,
@@ -123,7 +125,7 @@ gibbs_sampling <- function(data, k, class_labels,
     thinning,
     outlier,
     t_df,
-    record_posteriors,
+    # record_posteriors,
     normalise,
     2,
     10
@@ -132,8 +134,10 @@ gibbs_sampling <- function(data, k, class_labels,
   sim
 }
 
-#' @title Categorical gibbs sampling
-#' @description Carries out gibbs sampling of data and returns a similarity matrix for points
+# Old name: Categorical gibbs sampling
+#' @title Do Categorical Clustering
+#' @description Implements clustering using a mixture of categorical
+#' distributions.
 #'
 #' @param data A matrix of the data being analysed.
 #' @param cluster_weight_priors_categorical Vector of the prior on cluster
@@ -148,17 +152,18 @@ gibbs_sampling <- function(data, k, class_labels,
 #' @param burn The number of iterations to record after (i.e. the burn-in).
 #' @param thinning The step between iterations for which results are recorded in
 #' the mcmc output.
-categorical_gibbs_sampling <- function(data,
-                                       fix_vec = rep(F, nrow(data)),
-                                       d = ncol(data),
-                                       N = nrow(data),
-                                       cluster_weight_priors_categorical = 1,
-                                       phi_0 = NULL,
-                                       c_clusters_label_0 = NULL,
-                                       num_clusters_cat = NULL,
-                                       num_iter = 10000,
-                                       burn = floor(num_iter / 10),
-                                       thinning = 25) {
+#' @export
+DoCategoricalClustering <- function(data,
+                                    fix_vec = rep(F, nrow(data)),
+                                    d = ncol(data),
+                                    N = nrow(data),
+                                    cluster_weight_priors_categorical = 1,
+                                    phi_0 = NULL,
+                                    c_clusters_label_0 = NULL,
+                                    num_clusters_cat = NULL,
+                                    num_iter = 10000,
+                                    burn = floor(num_iter / 10),
+                                    thinning = 25) {
   if (burn > num_iter) {
     stop("Burn in exceeds total iterations. None will be recorded.\nStopping.")
   }
@@ -226,7 +231,7 @@ categorical_gibbs_sampling <- function(data,
   sim
 }
 
-#' @title MDI gibbs sampling
+#' @title MDI
 #' @description Carries out gibbs sampling of data and returns a similarity
 #' matrix for points.
 #'
@@ -278,7 +283,8 @@ categorical_gibbs_sampling <- function(data,
 #' posterior distributions of the mean and variance for each cluster
 #' (default is FALSE)
 #' @return A named list of the relevant outputs from the MDI MCMC.
-mdi <- function(data_1, data_2,
+#' @export
+MDI <- function(data_1, data_2,
                 args_1 = NULL,
                 args_2 = NULL,
                 type_1 = "Gaussian",
@@ -303,14 +309,14 @@ mdi <- function(data_1, data_2,
                 normalise_1 = FALSE,
                 outlier_2 = FALSE,
                 t_df_2 = 4.0,
-                normalise_2 = FALSE,
-                record_posteriors = FALSE,
-                save_results = FALSE,
-                load_results = FALSE,
-                num_load = 0) {
+                normalise_2 = FALSE) { # ,
+  # record_posteriors = FALSE,
+  # save_results = FALSE,
+  # load_results = FALSE,
+  # num_load = 0) {
 
   # Calculate all the relevant parameters
-  
+
   # Check the datasets are of equal height
   if (N != nrow(data_2)) {
     stop("Unequal number of observations in datasets. Incomparable.\nStopping.")
@@ -329,26 +335,26 @@ mdi <- function(data_1, data_2,
     stop("Burn in exceeds total iterations. None will be recorded.\nStopping.")
   }
 
-  thinning_warning(thinning, num_iter, burn)
+  checkThinningFactor(thinning, num_iter, burn)
 
   # Declare arguments if not given already
   if (is.null(args_1) & is.null(args_2)) {
     if ((type_1 == "Gaussian" | type_1 == "G")
     & (type_2 == "Categorical" | type_2 == "C")) {
-      args_1 <- gaussian_arguments(data_1, n_clust_1)
-      args_2 <- categorical_arguments(data_2, n_clust_2)
+      args_1 <- createGaussianArguments(data_1, n_clust_1)
+      args_2 <- createCategoricalArguments(data_2, n_clust_2)
     } else if ((type_1 == "Gaussian" | type_1 == "G")
     & (type_2 == "Gaussian" | type_2 == "G")) {
-      args_1 <- gaussian_arguments(data_1, n_clust_1)
-      args_2 <- gaussian_arguments(data_2, n_clust_2)
+      args_1 <- createGaussianArguments(data_1, n_clust_1)
+      args_2 <- createGaussianArguments(data_2, n_clust_2)
     } else if ((type_1 == "Categorical" | type_1 == "C")
     & (type_2 == "Categorical" | type_2 == "C")) {
-      args_1 <- categorical_arguments(data_1, n_clust_1)
-      args_2 <- categorical_arguments(data_2, n_clust_2)
+      args_1 <- createCategoricalArguments(data_1, n_clust_1)
+      args_2 <- createCategoricalArguments(data_2, n_clust_2)
     } else if ((type_1 == "Categorical" | type_1 == "C")
     & (type_2 == "Gaussian" | type_2 == "G")) {
-      args_1 <- categorical_arguments(data_1, n_clust_1)
-      args_2 <- gaussian_arguments(data_2, n_clust_2)
+      args_1 <- createCategoricalArguments(data_1, n_clust_1)
+      args_2 <- createGaussianArguments(data_2, n_clust_2)
     }
   }
 
@@ -358,11 +364,11 @@ mdi <- function(data_1, data_2,
   data_2 <- as.matrix(data_2)
 
   # Declare the cluster weights if not declared in advance
-  cluster_weight_0_1 <- declare_cluster_weights(c(0, 0), labels_0_1, n_clust_1,
+  cluster_weight_0_1 <- createClusterWeights(c(0, 0), labels_0_1, n_clust_1,
     weight_0 = cluster_weight_0_1
   )
 
-  cluster_weight_0_2 <- declare_cluster_weights(c(0, 0), labels_0_2, n_clust_2,
+  cluster_weight_0_2 <- createClusterWeights(c(0, 0), labels_0_2, n_clust_2,
     weight_0 = cluster_weight_0_2
   )
 
@@ -391,7 +397,7 @@ mdi <- function(data_1, data_2,
 
     phi_0 <- args_2$phi
 
-    sim <- mdi_gauss_cat(
+    sim <- mdiGaussCat(
       data_1,
       data_2,
       mu_0,
@@ -414,22 +420,22 @@ mdi <- function(data_1, data_2,
       thinning,
       outlier_1,
       t_df_1,
-      record_posteriors,
+      # record_posteriors,
       normalise_1,
       2, # u_1
       10, # v_1
       1, # rate_gauss_0
-      1, # rate_cat_0
-      save_results,
-      load_results,
-      num_load
+      1 # , # rate_cat_0
+      # save_results,
+      # load_results,
+      # num_load
     )
   } else if ((type_1 == "Categorical" | type_1 == "C")
   & (type_2 == "Categorical" | type_2 == "C")) {
     phi_0_1 <- args_1$phi
     phi_0_2 <- args_2$phi
 
-    sim <- mdi_cat_cat(
+    sim <- mdiCatCat(
       data_1,
       data_2,
       phi_0_1,
@@ -460,7 +466,7 @@ mdi <- function(data_1, data_2,
     scale_0_2 <- args_2$scale_0
     lambda_0_2 <- args_2$lambda_0
 
-    sim <- mdi_gauss_gauss(
+    sim <- mdiGaussGauss(
       data_1,
       data_2,
       mu_0_1,
@@ -488,7 +494,6 @@ mdi <- function(data_1, data_2,
       t_df_1,
       outlier_2,
       t_df_2,
-      record_posteriors,
       normalise_1,
       normalise_2
     )
