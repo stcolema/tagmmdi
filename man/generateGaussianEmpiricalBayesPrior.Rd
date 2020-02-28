@@ -38,6 +38,7 @@ of the inverse wishart distribution; if NULL defaults to a diagonal matrix.}
 \value{
 A named list of the three hyperparameters, mean, scale and degrees of
  freedom
+ @export
 }
 \description{
 Generate Gaussian Empirical Bayes Prior

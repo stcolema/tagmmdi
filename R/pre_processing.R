@@ -42,6 +42,7 @@ checkThinningFactor <- function(thinning, num_iter, burn) {
 #' @param lambda_0 A positive real number; the shrinkage prior for the mean.
 #' @return A named list of the three hyperparameters, mean, scale and degrees of
 #'  freedom
+#'  @export
 generateGaussianEmpiricalBayesPrior <- function(data,
                                                 mu_0,
                                                 df_0,
@@ -77,6 +78,7 @@ generateGaussianEmpiricalBayesPrior <- function(data,
 #' @param matrix_data A matrix of data.
 #' @return A list of vectors of the proportion of each level across all of
 #' matrix_data.
+#' @export
 generateCategoricalEmpiricalBayesPrior <- function(matrix_data) {
 
   # lambda function applies ``table'' to each column of matr_data before

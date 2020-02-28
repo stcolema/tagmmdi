@@ -153,7 +153,7 @@ doGaussianClustering <- function(data, k, class_labels,
 #' @param thinning The step between iterations for which results are recorded in
 #' the mcmc output.
 #' @export
-DoCategoricalClustering <- function(data,
+doCategoricalClustering <- function(data,
                                     fix_vec = rep(F, nrow(data)),
                                     d = ncol(data),
                                     N = nrow(data),
