@@ -55,6 +55,7 @@ double calcPointSimilarity(arma::uword point,
 //' @return A symmetric n x n matrix (for n rows in cluster record) describing 
 //' the fraction of iterations for which each pairwise combination of points are
 //' assigned the same label.
+//' @export
 // [[Rcpp::export]]
 arma::mat createSimilarityMat(arma::umat cluster_record){
   

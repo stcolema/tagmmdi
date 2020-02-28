@@ -9,7 +9,11 @@ using namespace Rcpp ;
 
 // Refers to categorical_parameters.cpp, mdi_parameters.cpp, entropy.cpp, t_dstn_clusters.cpp
 
-// MDI clustering for a gaussian and cateogrical dataset
+//' MDI clustering for a gaussian and cateogrical dataset
+//'
+//' @description Performs MDI with a mixture of Gaussian and Categorical 
+//' distributions on each dataset.
+//' @export
 // [[Rcpp::export]]
 Rcpp::List mdiGaussCat(arma::mat cont_data,
                        arma::umat cat_data,

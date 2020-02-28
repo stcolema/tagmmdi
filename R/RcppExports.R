@@ -268,6 +268,11 @@ mdiCatCat <- function(data_1, data_2, class_dist_prior_1, class_dist_prior_2, cl
     .Call('_tagmmdi_mdiCatCat', PACKAGE = 'tagmmdi', data_1, data_2, class_dist_prior_1, class_dist_prior_2, clust_weight_priors_1, clust_weight_priors_2, clust_labels_1, clust_labels_2, n_clust_1, n_clust_2, fix_vec_1, fix_vec_2, a_0, b_0, num_iter, burn, thinning)
 }
 
+#' MDI clustering for a gaussian and cateogrical dataset
+#'
+#' @description Performs MDI with a mixture of Gaussian and Categorical 
+#' distributions on each dataset.
+#' @export
 mdiGaussCat <- function(cont_data, cat_data, mu_0, lambda_0, scale_0, nu_0, a_0, b_0, clust_wgt_priors_gauss, clust_wgt_priors_cat, phi_prior, clust_labels_gauss, clust_labels_cat, n_clust_gauss, n_clust_cat, fix_vec_1, fix_vec_2, n_iter, burn, thin, allow_outliers = FALSE, t_df = 4.0, normalise = FALSE, u_1 = 2, v_1 = 10, rate_gauss_0 = 1L, rate_cat_0 = 1L) {
     .Call('_tagmmdi_mdiGaussCat', PACKAGE = 'tagmmdi', cont_data, cat_data, mu_0, lambda_0, scale_0, nu_0, a_0, b_0, clust_wgt_priors_gauss, clust_wgt_priors_cat, phi_prior, clust_labels_gauss, clust_labels_cat, n_clust_gauss, n_clust_cat, fix_vec_1, fix_vec_2, n_iter, burn, thin, allow_outliers, t_df, normalise, u_1, v_1, rate_gauss_0, rate_cat_0)
 }
@@ -420,6 +425,7 @@ NULL
 #' @return A symmetric n x n matrix (for n rows in cluster record) describing 
 #' the fraction of iterations for which each pairwise combination of points are
 #' assigned the same label.
+#' @export
 createSimilarityMat <- function(cluster_record) {
     .Call('_tagmmdi_createSimilarityMat', PACKAGE = 'tagmmdi', cluster_record)
 }
