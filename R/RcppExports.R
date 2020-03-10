@@ -389,19 +389,3 @@ createSimilarityMat <- function(cluster_record) {
     .Call(`_tagmmdi_createSimilarityMat`, cluster_record)
 }
 
-rcpparma_hello_world <- function() {
-    .Call(`_tagmmdi_rcpparma_hello_world`)
-}
-
-rcpparma_outerproduct <- function(x) {
-    .Call(`_tagmmdi_rcpparma_outerproduct`, x)
-}
-
-rcpparma_innerproduct <- function(x) {
-    .Call(`_tagmmdi_rcpparma_innerproduct`, x)
-}
-
-rcpparma_bothproducts <- function(x) {
-    .Call(`_tagmmdi_rcpparma_bothproducts`, x)
-}
-
