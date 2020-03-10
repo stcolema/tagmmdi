@@ -1,7 +1,5 @@
 # include <RcppArmadillo.h>
-// # include <iostream>
-// # include <fstream>
-# include "common_functions.h"
+# include "CommonFunctions.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -114,16 +112,16 @@ arma::vec sampleMDIClusterWeights(arma::vec shape_0,
   arma::uword r_class_start = 1;
   double b = 0.0;
   double b_n = 0.0;
-  arma::vec cluster_weight = arma::zeros<arma::vec>(n_rel);
+  arma::vec cluster_weight = arma::zeros<arma::vec>(n_clust);
   arma::vec shape_n = arma::zeros<arma::vec>(n_rel);
   
   // Calculate the concentration parameter for each cluster
   shape_n = updateConcentration(shape_0,
                                 cluster_labels,
-                                n_rel,
+                                n_clust,
                                 r_class_start) + 1;
   
-  for (arma::uword i = 0; i < n_rel; i++) {
+  for (arma::uword i = 0; i < n_clust; i++) {
   
     // Calculate the rate based upon the current clustering
     b = calcRateMDIClassWeights(v,
@@ -357,14 +355,14 @@ double calcNormalisingConst(arma::vec cl_wgts_1,
 // Sample the cluster membership of a categorical sample for MDI
 // Old name: mdi_cat_clust_prob
 arma::vec sampleMDICatClustProb(arma::uword row_index,
-                             arma::umat data,
-                             arma::field<arma::mat> class_probs,
-                             arma::uword num_clusters,
-                             arma::uword num_cols_cat,
-                             double phi,
-                             arma::vec cluster_weights_categorical,
-                             arma::uvec clust_labels,
-                             arma::uvec clust_labels_comp
+                                arma::umat data,
+                                arma::field<arma::mat> class_probs,
+                                arma::uword num_clusters,
+                                arma::uword n_col,
+                                double phi,
+                                arma::vec cluster_weights,
+                                arma::uvec clust_labels,
+                                arma::uvec clust_labels_comp
 ) {
   
   // cluster_labels_comparison is the labels of the data in the other context
@@ -374,28 +372,45 @@ arma::vec sampleMDICatClustProb(arma::uword row_index,
   arma::urowvec point = data.row(row_index);
   arma::vec prob_vec = arma::zeros<arma::vec>(num_clusters);
   
+  // std::cout << "\nCluster weights:\n" << cluster_weights.t() << "\n";
+  // std::cout << "\nK:\n" << num_clusters << "\n";
+  
   for(arma::uword i = 0; i < num_clusters; i++){
+    
+    // std::cout << "In loop: " << i << "\n";
     
     // calculate the log-weights for the context specific cluster and the across
     // context similarity
     // pretty much this is the product of probabilities possibly up-weighted by
     // being in the same cluster in a different context and weighted by the cluster
     // weight in the current context
-    curr_weight = log(cluster_weights_categorical(i));
+    curr_weight = log(cluster_weights(i));
+    
+    // std::cout << "\nWeight calculated\n";
     
     // Check if in the same cluster in both contexts
     common_cluster = 1 * (clust_labels_comp(row_index) == clust_labels(row_index));
     
+    // std::cout << "\nIndicator funciton done.\n";
+    
     similarity_upweight = log(1 + phi * common_cluster);
     
-    for(arma::uword j = 0; j < num_cols_cat; j++){
+    // std::cout << "\nUpweighed.\n";
+    
+    for(arma::uword j = 0; j < n_col; j++){
       
+      // std::cout << "\nLoop over columns: " << j << "\n";
       prob_vec(i) = prob_vec(i) + std::log(class_probs(j)(i, point(j)));
+      
     }
+    
+    // std::cout << "\nOut of loop, final calculation.\n";
     
     // As logs can sum rather than multiply the components
     prob_vec(i) = curr_weight + prob_vec(i) + similarity_upweight;
   }
+  
+  // std::cout << "\nFinished.\n";
   
   // // to handle overflowing
   // prob_vec = exp(prob_vec - max(prob_vec));

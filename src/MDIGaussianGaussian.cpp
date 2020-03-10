@@ -1,7 +1,5 @@
 # include <RcppArmadillo.h>
-// # include <iostream>
-// # include <fstream>
-# include "common_functions.h"
+# include "CommonFunctions.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 

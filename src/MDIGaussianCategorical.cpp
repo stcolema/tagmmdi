@@ -1,7 +1,5 @@
 # include <RcppArmadillo.h>
-// # include <iostream>
-// # include <fstream>
-# include "common_functions.h"
+# include "CommonFunctions.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -149,6 +147,8 @@ Rcpp::List mdiGaussCat(arma::mat cont_data,
   
   for(arma::uword i = 0; i < n_iter; i++) {
     
+    // std::cout << "In mcmc loop\n";
+    
     // Consider only the labels of points not considered to be outliers
     relevant_labels = clust_labels_gauss % (1 - outlier_vec);
     
@@ -186,6 +186,8 @@ Rcpp::List mdiGaussCat(arma::mat cont_data,
                                                       r_class_start
     );
     
+    // std::cout << "\nSampled parameters for each datasets\n";
+    
     // ## Sample cluster weights for the two datasets ##
     
     // Gaussian weights
@@ -200,6 +202,8 @@ Rcpp::List mdiGaussCat(arma::mat cont_data,
                                               context_similarity
     );
     
+    // std::cout << "Cluster weights before sampling: \n" << clust_wgt_cat.t() << "\n";
+    
     // Categorical weights
     clust_wgt_cat = sampleMDIClusterWeights(clust_wgt_priors_cat,
                                             rate_0_cat,
@@ -211,6 +215,10 @@ Rcpp::List mdiGaussCat(arma::mat cont_data,
                                             clust_labels_gauss,
                                             context_similarity
     );
+    
+    // std::cout << "Cluster weights after sampling: \n" << clust_wgt_cat.t() << "\n";
+    
+    // std::cout << "\nSampled MDI weights\n";
     
     // Calculate the current normalising constant (consider being more clever
     // about this)
@@ -235,6 +243,8 @@ Rcpp::List mdiGaussCat(arma::mat cont_data,
                                       a_0,
                                       b_0
     );
+    
+    // std::cout << "\nSampled MDI specific parameters\n";
 
     // If using a t-augmented Gaussian mixture rather than a Gaussian mixture
     if(allow_outliers) {
@@ -247,6 +257,8 @@ Rcpp::List mdiGaussCat(arma::mat cont_data,
     
     // sample class for each observation
     for(arma::uword j = 0; j < n; j++) {
+      
+      // std::cout << "\nAssigning allocation\n";
       
       // for each point create the vector of probabilities associated with 
       // assignment to each cluster within the gaussian dataset
@@ -261,13 +273,22 @@ Rcpp::List mdiGaussCat(arma::mat cont_data,
                                                        clust_labels_cat
       );
       
-      // Normalise this vector
+      // std::cout << "\nLikelihoods calculated.\n";
+      
+      // Convert from log-scores and normalise to convert to probabilities
+      curr_gauss_prob_vec = makeProbabilities(curr_norm_likelihoods);
+        
       // Predict membership
-      predicted_class =  predictCluster(curr_norm_likelihoods, 1);
+      // predicted_class =  predictCluster(curr_gauss_prob_vec, 1);
+      predicted_class =  predictIndex(curr_gauss_prob_vec, 1);
+     
+     // std::cout << "\nMembership predicted.\n";
      
       // The various probabilities to determine if the observation is considered 
       // an outlier or not (if using TAGM rather than traditional mixtures)
       if(allow_outliers) {
+        
+        // std::cout << "\nOutliers.\n";
         
         // The likelihood associated with the outlier t-distribution
         curr_outlier_likelihood = calcTdistnLikelihood( (cont_data.row(j) ).t(), 
@@ -281,6 +302,8 @@ Rcpp::List mdiGaussCat(arma::mat cont_data,
         
         curr_outlier_prob(1) = curr_outlier_likelihood;
         
+        // std::cout << "\nMore outlier related stuff.\n";
+        
         // The normal likelihood for the current class allocation
         predicted_norm_likelihood = calcNormalLikelihood( (cont_data.row(j) ).t(),
                                                          mu_n.col(predicted_class - 1),
@@ -290,10 +313,14 @@ Rcpp::List mdiGaussCat(arma::mat cont_data,
         predicted_norm_likelihood += log(1 - outlier_weight);
         curr_outlier_prob(0) = predicted_norm_likelihood;
         
+        // std::cout << "outliers assigning.\n";
+        
         // Predict if point is considered an outlier in current cluster
         predicted_outlier =  predictCluster(curr_outlier_prob);
     
       }
+      
+      // std::cout << "categorical assignment.\n";
       
       curr_cat_prob_vec = sampleMDICatClustProb(j,
                                                 cat_data,
@@ -307,8 +334,10 @@ Rcpp::List mdiGaussCat(arma::mat cont_data,
       );
       
       
-      
+      // std::cout << "\nHere.\n";
       if (i >= burn && (i - burn) % thin == 0) {
+        
+        // std::cout << "\nRecording probabilities.\n";
         
         alloc_prob_gauss.row(j) += arma::trans(curr_gauss_prob_vec);
         alloc_prob_cat.row(j) += arma::trans(curr_cat_prob_vec);
@@ -317,6 +346,8 @@ Rcpp::List mdiGaussCat(arma::mat cont_data,
         alloc_prob_cat_curr.row(j) = arma::trans(curr_cat_prob_vec);
         
       }
+      
+      // std::cout << "\nUpdate labels.\n";
       
       // update labels - in gaussian data this is only if the current point is 
       // not fixed
@@ -331,6 +362,8 @@ Rcpp::List mdiGaussCat(arma::mat cont_data,
         clust_labels_cat(j) = predictCluster(curr_cat_prob_vec, 1);
       }
     }
+    
+    // std::cout << "\nSwap labels if necessary.\n";
     
     // Update cluster labels in second dataset
     // Return the new labels, weights and similarity in a single vector
@@ -348,10 +381,14 @@ Rcpp::List mdiGaussCat(arma::mat cont_data,
                                              b_0,
                                              Z);
     
+    // std::cout << "\nAwkward handling of output for label swapping.\n";
+    
     // Separate the output into the relevant components
     clust_labels_cat = arma::conv_to<arma::uvec>::from(labels_weights_phi.subvec(0, n - 1) );
     clust_wgt_cat = labels_weights_phi.subvec(n, n + n_clust_cat - 1);
     context_similarity = arma::as_scalar(labels_weights_phi(n + n_clust_cat) );
+    
+    // std::cout << "\nThrough that.\n";
     
     // if current iteration is a recorded iteration, save the labels
     if (i >= burn && (i - burn) % thin == 0) {

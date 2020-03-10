@@ -1,7 +1,5 @@
 # include <RcppArmadillo.h>
-// # include <iostream>
-// # include <fstream>
-# include "common_functions.h"
+# include "CommonFunctions.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -11,7 +9,7 @@ using namespace Rcpp ;
 //' @param my_log_vec A vector of log, unnormalised porbabilities.
 //' 
 //' @return The exponentiated, normalised transform of my_log_vec.
-arma::vec handleOverflow(arma::vec my_log_vec) {
+arma::vec makeProbabilities(arma::vec my_log_vec) {
   
   arma::uword p = my_log_vec.n_cols;
   arma::vec my_vec(p);
@@ -53,7 +51,7 @@ arma::uword predictCluster(arma::vec my_vec, arma::uword start_label) {
   arma::uword pred = 0;
   
   // Overflow handling and convert from assignment scores to probabilities
-  my_vec = handleOverflow(my_vec);
+  my_vec = makeProbabilities(my_vec);
   
   // Sample from uniform distribution to select which value to use
   u = arma::randu<double>( );

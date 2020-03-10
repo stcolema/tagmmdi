@@ -157,10 +157,6 @@ crossValidateMDI <- function(MS_object,
       entropy_plot = F,
       outlier_1 = T,
       prediction_threshold = 0.0001,
-      record_posteriors = FALSE,
-      save_results = FALSE,
-      load_results = FALSE,
-      overwrite = FALSE,
       ...
     )
 
@@ -176,6 +172,7 @@ crossValidateMDI <- function(MS_object,
     map_pred <- params$data$Prediction[indices_for_prediction]
 
     # MCMC prediction
+    # print(str(params$gibbs))
     mcmc_pred <- apply(params$gibbs$allocation_mat_1, 1, max)
     prediction_vec <- params$gibbs$allocation_mat_1 == mcmc_pred
 

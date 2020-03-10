@@ -26,6 +26,7 @@
 #' @importFrom pheatmap pheatmap
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom rlang enquo quo_text
+#' @importFrom viridis viridis
 #' @export
 plotAnnotatedHeatmap <- function(input_data, annotation_row = NULL,
                                  sort_by_col = NULL,
@@ -128,9 +129,8 @@ plotAnnotatedHeatmap <- function(input_data, annotation_row = NULL,
       }
 
       # features_present[[feature]] <- types_feature_present
-      new_cols_list[[feature]] <- colorRampPalette(grDevices::rainbow(length(types_feature_present)))
-
-
+      # new_cols_list[[feature]] <- colorRampPalette(grDevices::rainbow(length(types_feature_present)))
+      new_cols_list[[feature]] <- viridis::viridis
 
       my_colours[[feature]] <- new_cols_list[[feature]](length(types_feature_present))
 
@@ -144,7 +144,7 @@ plotAnnotatedHeatmap <- function(input_data, annotation_row = NULL,
 
     # Heatmap
     if (is.null(train) | isTRUE(train)) {
-      heat_map <- pheatmap(dissim,
+      heat_map <- pheatmap::pheatmap(dissim,
         annotation_row = annotation_row,
         annotation_colors = my_colours,
         ...
@@ -239,16 +239,24 @@ pheatmapClusterByCol <- function(num_data, annotation_row, sort_col,
 
   # Iterate over the data frame clustering the points between gaps
   for (i in 2:length(loc_gapping)) {
+    
+    # If there is only 1 entry in a group, we do this to avoid clustering the 
+    # columns (as R gets confused when you select a single entry in a data.frame)
+    if(length( (loc_gapping[i - 1] + 1):loc_gapping[i]) == 1 ){
+      curr_order <- loc_gapping[i - 1] + 1
+    } else {
+    
     # Cluster the points in the current gap
     hc <- stats::hclust(dist(num_data[(loc_gapping[i - 1] + 1):loc_gapping[i], ])^2, "cen")
 
     # Update the order from hclust to match the position in the original data frame
     curr_order <- loc_gapping[i - 1] + hc$order
+    }
 
     # Add the local ordering to the global ordering
     ordering <- c(ordering, curr_order)
   }
-
+  
   # Update the data and annotation data frames ordering
   num_data <- num_data[ordering, ]
   annotation_row <- annotation_row[ordering, ]
@@ -272,7 +280,7 @@ pheatmapClusterByCol <- function(num_data, annotation_row, sort_col,
   }
 
   # Heatmap
-  annotated_heatmap(num_data, annotation_row,
+  plotAnnotatedHeatmap(num_data, annotation_row,
     main = main,
     cluster_row = FALSE,
     cluster_cols = FALSE,

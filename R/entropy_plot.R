@@ -20,25 +20,25 @@
 #' deviation of the two windows must be to be considered converged (default is
 #' 0.001).
 #' @return The iteration at which convergence occurs in the clustering
-PlotEntropyDiagnostic <- function(entropy_vec,
+plotEntropyDiagnostic <- function(entropy_vec,
                                   start = 1,
                                   window_length = 25,
                                   mean_tolerance = 0.001,
                                   sd_tolerance = 0.001) {
   n <- length(entropy_vec)
-
+  
   search_range <- seq(
     from = start,
     to = n - window_length,
     by = window_length
   )
 
-  for (i in search_range) {
+  for (i in 1:(length(search_range) - 2)) { # search_range) {
 
     # Create two windows looking forward from the current iteration and compare
     # their means and standard deviations
-    win_1 <- entropy_vec[i:(i + window_length - 1)]
-    win_2 <- entropy_vec[(i + window_length):min((i + 2 * window_length - 1), n)]
+    win_1 <- entropy_vec[search_range[i]:(search_range[i + 1]- 1)]
+    win_2 <- entropy_vec[search_range[i + 1]:min(search_range[i + 2]- 1, n)]
 
     mean_1 <- mean(win_1)
     mean_2 <- mean(win_2)

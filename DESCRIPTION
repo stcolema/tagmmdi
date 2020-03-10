@@ -1,42 +1,13 @@
 Package: tagmmdi
 Type: Package
-Title: Bayesian Analysis For Continuous And Categorical Data
-Version: 0.1
-Date: 2018-08-17
-Authors@R: c(
-  person("Stephen", "Coleman", email = "stcolema@tcd.ie",
-  role = c("aut", "cre")),
-  person("Paul", "Kirk", email = "paul.kirk@mrc-bsu.cam.ac.uk",
-  role = "ctb")
-  )
-Description: Implementation of Multiple Dataset Integration including an option
-    to use a t-augmented Gaussian mixture model
-License: MIT + file LICENSE
-biocViews:
-    pRoloc,
-    pRolocData,
-    BiocGenerics,
-    MSnbase
-Imports: 
-    Rcpp (>= 0.12.18),
-    attempt,
-    caret,
-    dplyr,
-    factoextra,
-    FactoMineR,
-    ggplot2,
-    magrittr,
-    mcclust,
-    pheatmap,
-    RColorBrewer,
-    reshape,
-    rlang,
-    sampling
-Suggests: 
-    testthat,
-    covr,
-    spelling
+Title: What the Package Does Using Title Case
+Version: 1.0
+Date: 2020-03-10
+Author: Your Name
+Maintainer: Your Name <your@email.com>
+Description: More details about what the package does. See <http://cran.r-project.org/doc/manuals/r-release/R-exts.html#The-DESCRIPTION-file> for
+                details on how to write this part.
+License: GPL (>= 2)
+Imports: Rcpp (>= 1.0.3)
 LinkingTo: Rcpp, RcppArmadillo
 RoxygenNote: 7.0.2
-Encoding: UTF-8
-Language: en-UK

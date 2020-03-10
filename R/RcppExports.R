@@ -7,7 +7,7 @@
 #' 
 #' @return The information entropy for the current cluster weights.
 calcEntropy <- function(class_weights) {
-    .Call('_tagmmdi_calcEntropy', PACKAGE = 'tagmmdi', class_weights)
+    .Call(`_tagmmdi_calcEntropy`, class_weights)
 }
 
 #' Updates the concentration parameter in the Dirichlet distribution.
@@ -47,7 +47,7 @@ NULL
 #' 
 #' @return Vector of counts of the number of categories in each variable in data.
 countCategories <- function(data) {
-    .Call('_tagmmdi_countCategories', PACKAGE = 'tagmmdi', data)
+    .Call(`_tagmmdi_countCategories`, data)
 }
 
 #' Finds the number of categories in each covariate and declares the appropriate
@@ -62,7 +62,7 @@ countCategories <- function(data) {
 #' holds the probabilities of each category within the variable for the n_clust
 #' clusters.
 declareClassProbsField <- function(cat_count, n_col, n_clust) {
-    .Call('_tagmmdi_declareClassProbsField', PACKAGE = 'tagmmdi', cat_count, n_col, n_clust)
+    .Call(`_tagmmdi_declareClassProbsField`, cat_count, n_col, n_clust)
 }
 
 #' Sample parameters for a dirichlet distribution (normally for the clusters).
@@ -74,7 +74,7 @@ declareClassProbsField <- function(cat_count, n_col, n_clust) {
 #' 
 #' @return Vector sampled from Dirichlet posterior.
 sampleDirichletPosterior <- function(concentration_0, cluster_labels, n_clusters, count_from) {
-    .Call('_tagmmdi_sampleDirichletPosterior', PACKAGE = 'tagmmdi', concentration_0, cluster_labels, n_clusters, count_from)
+    .Call(`_tagmmdi_sampleDirichletPosterior`, concentration_0, cluster_labels, n_clusters, count_from)
 }
 
 #' Sample the probabilities for each category across all clusters for each 
@@ -94,15 +94,15 @@ sampleDirichletPosterior <- function(concentration_0, cluster_labels, n_clusters
 #' @return Field of matrices of sampled class weights for each cluster within 
 #' each variable.
 sampleCategoryProbabilities <- function(data, class_probs, phi_prior, cluster_labels, cat_count, n_clust, n_col, class_start) {
-    .Call('_tagmmdi_sampleCategoryProbabilities', PACKAGE = 'tagmmdi', data, class_probs, phi_prior, cluster_labels, cat_count, n_clust, n_col, class_start)
+    .Call(`_tagmmdi_sampleCategoryProbabilities`, data, class_probs, phi_prior, cluster_labels, cat_count, n_clust, n_col, class_start)
 }
 
 sampleCategoricalDistn <- function(point, data, class_probabilities, cluster_weights, n_clust, n_col) {
-    .Call('_tagmmdi_sampleCategoricalDistn', PACKAGE = 'tagmmdi', point, data, class_probabilities, cluster_weights, n_clust, n_col)
+    .Call(`_tagmmdi_sampleCategoricalDistn`, point, data, class_probabilities, cluster_weights, n_clust, n_col)
 }
 
 categoricalClustering <- function(data, phi_prior, cluster_labels, fix_vec, cluster_weight_priors, num_clusters, num_iter, burn, thinning) {
-    .Call('_tagmmdi_categoricalClustering', PACKAGE = 'tagmmdi', data, phi_prior, cluster_labels, fix_vec, cluster_weight_priors, num_clusters, num_iter, burn, thinning)
+    .Call(`_tagmmdi_categoricalClustering`, data, phi_prior, cluster_labels, fix_vec, cluster_weight_priors, num_clusters, num_iter, burn, thinning)
 }
 
 #' Converts a vector of log, unnormalised probabilities to probabilities.
@@ -148,7 +148,7 @@ NULL
 NULL
 
 gaussianClustering <- function(num_iter, concentration_0, scale_0, class_labels, fix_vec, mu_0, lambda_0, data, nu_0, k, burn, thinning, outlier = FALSE, t_df = 4.0, normalise = FALSE, u = 2, v = 10) {
-    .Call('_tagmmdi_gaussianClustering', PACKAGE = 'tagmmdi', num_iter, concentration_0, scale_0, class_labels, fix_vec, mu_0, lambda_0, data, nu_0, k, burn, thinning, outlier, t_df, normalise, u, v)
+    .Call(`_tagmmdi_gaussianClustering`, num_iter, concentration_0, scale_0, class_labels, fix_vec, mu_0, lambda_0, data, nu_0, k, burn, thinning, outlier, t_df, normalise, u, v)
 }
 
 #' Returns a variable involved in updating the scale, it is similar to sample 
@@ -265,7 +265,7 @@ NULL
 NULL
 
 mdiCatCat <- function(data_1, data_2, class_dist_prior_1, class_dist_prior_2, clust_weight_priors_1, clust_weight_priors_2, clust_labels_1, clust_labels_2, n_clust_1, n_clust_2, fix_vec_1, fix_vec_2, a_0, b_0, num_iter, burn, thinning) {
-    .Call('_tagmmdi_mdiCatCat', PACKAGE = 'tagmmdi', data_1, data_2, class_dist_prior_1, class_dist_prior_2, clust_weight_priors_1, clust_weight_priors_2, clust_labels_1, clust_labels_2, n_clust_1, n_clust_2, fix_vec_1, fix_vec_2, a_0, b_0, num_iter, burn, thinning)
+    .Call(`_tagmmdi_mdiCatCat`, data_1, data_2, class_dist_prior_1, class_dist_prior_2, clust_weight_priors_1, clust_weight_priors_2, clust_labels_1, clust_labels_2, n_clust_1, n_clust_2, fix_vec_1, fix_vec_2, a_0, b_0, num_iter, burn, thinning)
 }
 
 #' MDI clustering for a gaussian and cateogrical dataset
@@ -274,11 +274,11 @@ mdiCatCat <- function(data_1, data_2, class_dist_prior_1, class_dist_prior_2, cl
 #' distributions on each dataset.
 #' @export
 mdiGaussCat <- function(cont_data, cat_data, mu_0, lambda_0, scale_0, nu_0, a_0, b_0, clust_wgt_priors_gauss, clust_wgt_priors_cat, phi_prior, clust_labels_gauss, clust_labels_cat, n_clust_gauss, n_clust_cat, fix_vec_1, fix_vec_2, n_iter, burn, thin, allow_outliers = FALSE, t_df = 4.0, normalise = FALSE, u_1 = 2, v_1 = 10, rate_gauss_0 = 1L, rate_cat_0 = 1L) {
-    .Call('_tagmmdi_mdiGaussCat', PACKAGE = 'tagmmdi', cont_data, cat_data, mu_0, lambda_0, scale_0, nu_0, a_0, b_0, clust_wgt_priors_gauss, clust_wgt_priors_cat, phi_prior, clust_labels_gauss, clust_labels_cat, n_clust_gauss, n_clust_cat, fix_vec_1, fix_vec_2, n_iter, burn, thin, allow_outliers, t_df, normalise, u_1, v_1, rate_gauss_0, rate_cat_0)
+    .Call(`_tagmmdi_mdiGaussCat`, cont_data, cat_data, mu_0, lambda_0, scale_0, nu_0, a_0, b_0, clust_wgt_priors_gauss, clust_wgt_priors_cat, phi_prior, clust_labels_gauss, clust_labels_cat, n_clust_gauss, n_clust_cat, fix_vec_1, fix_vec_2, n_iter, burn, thin, allow_outliers, t_df, normalise, u_1, v_1, rate_gauss_0, rate_cat_0)
 }
 
 mdiGaussGauss <- function(data_1, data_2, mu_0_1, lambda_0_1, scale_0_1, df_0_1, mu_0_2, lambda_0_2, scale_0_2, df_0_2, clust_weight_priors_1, clust_weight_priors_2, clust_labels_1, clust_labels_2, n_clust_1, n_clust_2, fix_vec_1, fix_vec_2, a_0, b_0, num_iter, burn, thinning, outlier_1 = FALSE, t_df_1 = 4.0, outlier_2 = FALSE, t_df_2 = 4.0, normalise_1 = FALSE, normalise_2 = FALSE, u_1 = 2, v_1 = 10, u_2 = 2, v_2 = 10, rate_1_0 = 1L, rate_2_0 = 1L) {
-    .Call('_tagmmdi_mdiGaussGauss', PACKAGE = 'tagmmdi', data_1, data_2, mu_0_1, lambda_0_1, scale_0_1, df_0_1, mu_0_2, lambda_0_2, scale_0_2, df_0_2, clust_weight_priors_1, clust_weight_priors_2, clust_labels_1, clust_labels_2, n_clust_1, n_clust_2, fix_vec_1, fix_vec_2, a_0, b_0, num_iter, burn, thinning, outlier_1, t_df_1, outlier_2, t_df_2, normalise_1, normalise_2, u_1, v_1, u_2, v_2, rate_1_0, rate_2_0)
+    .Call(`_tagmmdi_mdiGaussGauss`, data_1, data_2, mu_0_1, lambda_0_1, scale_0_1, df_0_1, mu_0_2, lambda_0_2, scale_0_2, df_0_2, clust_weight_priors_1, clust_weight_priors_2, clust_labels_1, clust_labels_2, n_clust_1, n_clust_2, fix_vec_1, fix_vec_2, a_0, b_0, num_iter, burn, thinning, outlier_1, t_df_1, outlier_2, t_df_2, normalise_1, normalise_2, u_1, v_1, u_2, v_2, rate_1_0, rate_2_0)
 }
 
 #' Sample from the posterior of a Gamma distribution.
@@ -361,47 +361,6 @@ NULL
 #' @return The log-likelihood for a point within a t-distribution.
 NULL
 
-#' Samples from a Beta distribution based on the idea that two independent gamma
-#' functions can be used. If X ~ Gamma(a, 1) and Y ~ Gamma(b, 1) then
-#' X / (X+Y) ~ Beta(a, b). Used in calculating the weights for allocation to 
-#' outlier.
-#' 
-#' @param a Shape parameter of the first gamma distribution.
-#' @param b Shape parameter of the second gamma distribution.
-#' @param theta (Default = 1.0) Rate of the two Gamma distributions.
-#' 
-#' @return Sample from Beta(a, b).
-NULL
-
-#' Samples if the point is an outlier or not (comparing to assigned class).
-#' 
-#' @param point A row from the dataset corresponding to the measurements for a 
-#' given sample.
-#' @param data Matrix of data.
-#' @param outlier_weight Weight for outlier assignment.
-#' @param gloabl_mean Sample mean of data.
-#' @param global_varinace Sample covariance matrix from data.
-#' @param t_df (Default = 4.0) Degrees of freedom parameter for the 
-#' t-distribution.
-#' 
-#' @return Probability that current point is an outlier within data.
-NULL
-
-#' Calculate the probability of being an outlier or not.
-#' @param point A row from the dataset corresponding to the measurements for a 
-#' given sample.
-#' @param gloabl_mean Sample mean of data.
-#' @param global_varinace Sample covariance matrix from data.
-#' @param n_col The number of columns present.
-#' @param t_df (Default = 4.0) Degrees of freedom parameter for the 
-#' t-distribution.
-#' @param outlier_weight The weight associated with outlier assignment.
-#' @param mu The mean.
-#' @param variance Covariance matrix.
-#' 
-#' @return Vector of non-outlier and outlier assignment probabilities.
-NULL
-
 #' Compares how similar two points are with regards to their clustering across 
 #' all iterations. Works for unsupervised methods (i.e. allows label flipping).
 #' 
@@ -427,6 +386,22 @@ NULL
 #' assigned the same label.
 #' @export
 createSimilarityMat <- function(cluster_record) {
-    .Call('_tagmmdi_createSimilarityMat', PACKAGE = 'tagmmdi', cluster_record)
+    .Call(`_tagmmdi_createSimilarityMat`, cluster_record)
+}
+
+rcpparma_hello_world <- function() {
+    .Call(`_tagmmdi_rcpparma_hello_world`)
+}
+
+rcpparma_outerproduct <- function(x) {
+    .Call(`_tagmmdi_rcpparma_outerproduct`, x)
+}
+
+rcpparma_innerproduct <- function(x) {
+    .Call(`_tagmmdi_rcpparma_innerproduct`, x)
+}
+
+rcpparma_bothproducts <- function(x) {
+    .Call(`_tagmmdi_rcpparma_bothproducts`, x)
 }
 

@@ -110,7 +110,7 @@ doGaussianClustering <- function(data, k, class_labels,
   }
 
   # Gaussian clustering
-  sim <- GaussianClustering(
+  sim <- gaussianClustering(
     num_iter,
     concentration_0,
     scale_0,

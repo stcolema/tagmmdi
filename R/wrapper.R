@@ -170,8 +170,15 @@ clusteringWrapper <- function(MS_object,
                               prediction_threshold = 0.5,
                               verbose = FALSE) {
 
-  # Consider allowing input of fcol in which case don't deselect markers, rather use:
-
+  # Colour palette for heatmap (white for 0, blue for 1)
+  col_pal <- grDevices::colorRampPalette(c("white", "#146EB4"))(100)
+  
+  # Define the breaks in the heatmap (i.e. that 0 is white and 1 is blue)
+  palette_length <- length(col_pal)
+  my_breaks <- c(
+    seq(1 / palette_length, 1, length.out = palette_length)
+  )
+  
   # Expression data
   num_data <- MS_object %>%
     Biobase::exprs()
@@ -410,15 +417,6 @@ clusteringWrapper <- function(MS_object,
   # Use NAs for blank space on annotation row (rather than an additional level)
   annotation_row$Class[annotation_row$Class == "unknown"] <- NA
 
-  # Colour palette for heatmap (white for 0, blue for 1)
-  col_pal <- grDevices::colorRampPalette(c("white", "#146EB4"))(100)
-
-  # Define the breaks in the heatmap (i.e. that 0 is white and 1 is blue)
-  palette_length <- length(col_pal)
-  my_breaks <- c(
-    seq(1 / palette_length, 1, length.out = palette_length)
-  )
-
   # col_pal <- RColorBrewer::brewer.pal(9, "Blues")
 
   if (sense_check_map) {
@@ -461,7 +459,7 @@ clusteringWrapper <- function(MS_object,
           breaks = my_breaks
         )
       }
-      # PlotAnnotatedHeatmap(data_2, annotation_row,
+      # plotAnnotatedHeatmap(data_2, annotation_row,
       #                   train = train,
       #                   main = main,
       #                   cluster_row = cluster_row,
@@ -494,9 +492,6 @@ clusteringWrapper <- function(MS_object,
     class_labels$Class
   ) %>% as.data.frame()
 
-  # print(head(all_data))
-  # print(head(all_data))
-
   # Set the column names
   colnames(all_data)[(d + 1):(d + 4)] <- c(
     "Prediction",
@@ -526,7 +521,7 @@ clusteringWrapper <- function(MS_object,
 
     # col_pal <- RColorBrewer::brewer.pal(9, "Blues")
 
-    heat_map <- PlotAnnotatedHeatmap(sim, annotation_row,
+    heat_map <- plotAnnotatedHeatmap(sim, annotation_row,
       train = train,
       main = main,
       cluster_row = cluster_row,
@@ -548,7 +543,7 @@ clusteringWrapper <- function(MS_object,
 
       # col_pal <- RColorBrewer::brewer.pal(9, "Blues")
 
-      heat_map_2 <- PlotAnnotatedHeatmap(sim_2, annotation_row,
+      heat_map_2 <- plotAnnotatedHeatmap(sim_2, annotation_row,
         train = train,
         main = main,
         cluster_row = cluster_row,
@@ -569,11 +564,15 @@ clusteringWrapper <- function(MS_object,
       cat("Constructing entropy plot.\n")
     }
     entropy_data <- data.frame(
-      Index = 1:(num_iter + 1),
-      Entropy = gibbs$entropy
+      Index = 1:(num_iter),
+      Entropy = gibbs$entropy[-1]
     )
 
-    rec_burn <- PlotEntropyDiagnostic(gibbs$entropy,
+    if(window_length > length(gibbs$entropy)){
+      cat("Cannot plot entropy with given inputs; window length greater than number of MCMC samples.")
+    }
+    
+    rec_burn <- plotEntropyDiagnostic(gibbs$entropy[-1],
       window_length = window_length,
       mean_tolerance = mean_tolerance,
       sd_tolerance = sd_tolerance

@@ -5,9 +5,9 @@
 double calcEntropy(arma::vec class_weights);
 arma::mat createSimilarityMat(arma::umat cluster_record);
 
-arma::uword predictIndex(arma::vec probabilities, arma::uword start_label = 0);
+arma::vec makeProbabilities(arma::vec my_log_vec);
 
-arma::vec handleOverflow(arma::vec my_log_vec);
+arma::uword predictIndex(arma::vec probabilities, arma::uword start_label = 0);
 
 arma::uword predictCluster(arma::vec my_vec, arma::uword start_label = 0) ;
 
@@ -74,12 +74,12 @@ double calcNormalLikelihood(arma::vec point,
 );                              
 
 
-arma::vec sampleGaussianMembership(arma::vec point,
-                                   arma::mat data,
-                                   arma::uword k,
-                                   arma::vec class_weights,
-                                   arma::mat mu,
-                                   arma::cube variance
+arma::vec calcGaussianMembership(arma::vec point,
+                                 arma::mat data,
+                                 arma::uword k,
+                                 arma::vec class_weights,
+                                 arma::mat mu,
+                                 arma::cube variance
 );
 
 double calcTdistnLikelihood(arma::vec point,
@@ -89,7 +89,7 @@ double calcTdistnLikelihood(arma::vec point,
                             double df
 );
 
-double sampleBetaDistn(double a, double b, double theta = 1.0);
+double sampleBetaDistn(double a, double b); //, double theta = 1.0);
 
 arma::vec calculateOutlierProb(arma::vec point,
                                arma::vec global_mean,

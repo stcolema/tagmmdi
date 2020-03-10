@@ -1,7 +1,5 @@
 # include <RcppArmadillo.h>
-// # include <iostream>
-// # include <fstream>
-# include "common_functions.h"
+# include "CommonFunctions.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -52,7 +50,7 @@ Rcpp::List gaussianClustering(arma::uword num_iter,
   arma::vec global_mean(num_cols);
   arma::vec point;
   arma::vec class_weights(k);
-  arma::vec cluster_prob(k);
+  arma::vec cluster_scores(k);
   arma::vec curr_prob_vec(k);
   arma::vec outlier_weights(2);
   arma::vec outlier_prob(2);
@@ -154,16 +152,20 @@ Rcpp::List gaussianClustering(arma::uword num_iter,
       // sample class allocation
       point = arma::trans(data.row(jj));
       
-      cluster_prob = sampleGaussianMembership(point, 
-                                              data,
-                                              k, 
-                                              class_weights, 
-                                              mu_n,
-                                              variance_n
+      cluster_scores = calcGaussianMembership(point, 
+                                            data,
+                                            k, 
+                                            class_weights, 
+                                            mu_n,
+                                            variance_n
       );
       
+      // Convert from log-scores and normalise to convert to probabilities
+      curr_prob_vec = makeProbabilities(cluster_scores);
+      
       // Predict the label (+1 due to R using a 1:n system rather than 0:(n-1))
-      predicted_class = predictCluster(curr_prob_vec, 1); 
+      predicted_class = predictIndex(curr_prob_vec, 1); 
+      // predicted_class = predictCluster(curr_prob_vec, 1); 
       
       if(outlier) {
         
@@ -207,11 +209,12 @@ Rcpp::List gaussianClustering(arma::uword num_iter,
   // Calculate similarity matrix
   sim = createSimilarityMat(record);
   
-  // Convert sum of recorded allocaiton probabilities to average probability
+  // Convert sum of recorded allocation probabilities to average probability
   alloc_prob = alloc_prob / eff_count; 
   
   return List::create(Named("similarity") = sim,
                       Named("class_record") = record,
+                      Named("allocation_mat_1") = alloc_prob,
                       Named("entropy") = entropy_cw,
                       Named("outliers") = outlier_probs_saved);
 }

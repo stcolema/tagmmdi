@@ -1,7 +1,5 @@
 # include <RcppArmadillo.h>
-// # include <iostream>
-// # include <fstream>
-# include "common_functions.h"
+# include "CommonFunctions.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -45,16 +43,16 @@ double calcTdistnLikelihood(arma::vec point,
 }
 
 // See https://en.wikipedia.org/wiki/Beta_distribution#Related_distributions.
-//' Samples from a Beta distribution based on the idea that two independent gamma
-//' functions can be used. If X ~ Gamma(a, 1) and Y ~ Gamma(b, 1) then
-//' X / (X+Y) ~ Beta(a, b). Used in calculating the weights for allocation to 
-//' outlier.
-//' 
-//' @param a Shape parameter of the first gamma distribution.
-//' @param b Shape parameter of the second gamma distribution.
-//' @param theta (Default = 1.0) Rate of the two Gamma distributions.
-//' 
-//' @return Sample from Beta(a, b).
+// Samples from a Beta distribution based on the idea that two independent gamma
+// functions can be used. If X ~ Gamma(a, 1) and Y ~ Gamma(b, 1) then
+// X / (X+Y) ~ Beta(a, b). Used in calculating the weights for allocation to 
+// outlier.
+// 
+// @param a Shape parameter of the first gamma distribution.
+// @param b Shape parameter of the second gamma distribution.
+// @param theta (Default = 1.0) Rate of the two Gamma distributions.
+// 
+// @return Sample from Beta(a, b).
 double sampleBetaDistn(double a, double b) { // double theta = 1.0) {
   double X = arma::randg( arma::distr_param(a, 1.0) );
   double Y = arma::randg( arma::distr_param(b, 1.0) );
@@ -65,18 +63,18 @@ double sampleBetaDistn(double a, double b) { // double theta = 1.0) {
 }
 
 
-//' Samples if the point is an outlier or not (comparing to assigned class).
-//' 
-//' @param point A row from the dataset corresponding to the measurements for a 
-//' given sample.
-//' @param data Matrix of data.
-//' @param outlier_weight Weight for outlier assignment.
-//' @param gloabl_mean Sample mean of data.
-//' @param global_varinace Sample covariance matrix from data.
-//' @param t_df (Default = 4.0) Degrees of freedom parameter for the 
-//' t-distribution.
-//' 
-//' @return Probability that current point is an outlier within data.
+// Samples if the point is an outlier or not (comparing to assigned class).
+// 
+// @param point A row from the dataset corresponding to the measurements for a 
+// given sample.
+// @param data Matrix of data.
+// @param outlier_weight Weight for outlier assignment.
+// @param gloabl_mean Sample mean of data.
+// @param global_varinace Sample covariance matrix from data.
+// @param t_df (Default = 4.0) Degrees of freedom parameter for the 
+// t-distribution.
+// 
+// @return Probability that current point is an outlier within data.
 double sampleOutlier(arma::vec point,
                      arma::mat data,
                      double outlier_weight,
@@ -98,19 +96,19 @@ double sampleOutlier(arma::vec point,
   return prob;
 }
 
-//' Calculate the probability of being an outlier or not.
-//' @param point A row from the dataset corresponding to the measurements for a 
-//' given sample.
-//' @param gloabl_mean Sample mean of data.
-//' @param global_varinace Sample covariance matrix from data.
-//' @param n_col The number of columns present.
-//' @param t_df (Default = 4.0) Degrees of freedom parameter for the 
-//' t-distribution.
-//' @param outlier_weight The weight associated with outlier assignment.
-//' @param mu The mean.
-//' @param variance Covariance matrix.
-//' 
-//' @return Vector of non-outlier and outlier assignment probabilities.
+// Calculate the probability of being an outlier or not.
+// @param point A row from the dataset corresponding to the measurements for a 
+// given sample.
+// @param gloabl_mean Sample mean of data.
+// @param global_varinace Sample covariance matrix from data.
+// @param n_col The number of columns present.
+// @param t_df (Default = 4.0) Degrees of freedom parameter for the 
+// t-distribution.
+// @param outlier_weight The weight associated with outlier assignment.
+// @param mu The mean.
+// @param variance Covariance matrix.
+// 
+// @return Vector of non-outlier and outlier assignment probabilities.
 arma::vec calculateOutlierProb(arma::vec point,
                                arma::vec global_mean,
                                arma::mat global_variance,
