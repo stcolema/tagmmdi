@@ -96,6 +96,13 @@ doGaussianClustering <- function(data, k, class_labels,
   scale_0 <- parameters_0$scale_0
   lambda_0 <- parameters_0$lambda_0
 
+  # Prior on the dirichlet process
+  if(is.null(concentration_0)){
+    concentration_0 <- rep(1, (k))
+  } else if (length(concentration_0) < (k)) {
+    concentration_0 <- rep(concentration_0, k)
+  }
+  
 
   # Prior on mass parameter for cluster  weights
   if (!is.null(cat_data)) {
